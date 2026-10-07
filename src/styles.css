@@ -34,6 +34,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-button: var(--button);
+  --color-button-foreground: var(--button-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -79,20 +81,22 @@
 :root {
   --radius: 0.75rem;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* Anchors: background=#f6f6f6  primary=#2e79f8 */
-  --background: oklch(0.966 0 0);
-  --foreground: oklch(0.19 0.01 260);
+  /* Anchors: background=#f6f6f6  primary=#5a31f4 */
+  --background: oklch(0.97 0 0);
+  --foreground: oklch(0.19 0.02 281);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.01 260);
+  --card-foreground: oklch(0.19 0.02 281);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.01 260);
-  --primary: oklch(0.55 0.23 260);
+  --popover-foreground: oklch(0.19 0.02 281);
+  --primary: oklch(0.508 0.264 281);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.92 0.015 260);
-  --secondary-foreground: oklch(0.19 0.01 260);
-  --muted: oklch(0.935 0.01 260);
-  --muted-foreground: oklch(0.53 0.02 260);
-  --accent: oklch(0.63 0.2 260);
+  --button: oklch(0.25 0.08 281);
+  --button-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.93 0.025 281);
+  --secondary-foreground: oklch(0.25 0.08 281);
+  --muted: oklch(0.945 0.012 281);
+  --muted-foreground: oklch(0.52 0.03 281);
+  --accent: oklch(0.508 0.264 281);
   --accent-foreground: oklch(0.99 0 0);
   --success: oklch(0.6 0.15 152);
   --success-foreground: oklch(0.99 0 0);
@@ -100,32 +104,86 @@
   --warning-foreground: oklch(0.25 0.05 70);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.895 0.01 260);
-  --input: oklch(0.875 0.012 260);
-  --ring: oklch(0.55 0.23 260);
+  --border: oklch(0.9 0.012 281);
+  --input: oklch(0.88 0.015 281);
+  --ring: oklch(0.508 0.264 281);
   --rail: oklch(1 0 0);
-  --tile-1: oklch(0.55 0.23 260);
+  --tile-1: oklch(0.508 0.264 281);
   --tile-2: oklch(0.6 0.15 152);
   --tile-3: oklch(0.7 0.16 55);
   --tile-4: oklch(0.6 0.2 20);
-  --tile-5: oklch(0.55 0.13 200);
-  --tile-6: oklch(0.5 0.03 260);
+  --tile-5: oklch(0.55 0.13 220);
+  --tile-6: oklch(0.5 0.04 281);
   --tile-foreground: oklch(0.99 0 0);
-  --chart-1: oklch(0.55 0.23 260);
-  --chart-2: oklch(0.6 0.15 152);
-  --chart-3: oklch(0.78 0.15 75);
-  --chart-4: oklch(0.58 0.22 27);
-  --chart-5: oklch(0.5 0.03 260);
+  --chart-1: oklch(0.508 0.264 281);
+  --chart-2: oklch(0.62 0.16 230);
+  --chart-3: oklch(0.6 0.15 152);
+  --chart-4: oklch(0.78 0.15 75);
+  --chart-5: oklch(0.5 0.04 281);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.19 0.01 260);
-  --sidebar-primary: oklch(0.55 0.23 260);
+  --sidebar-foreground: oklch(0.19 0.02 281);
+  --sidebar-primary: oklch(0.508 0.264 281);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.935 0.01 260);
-  --sidebar-accent-foreground: oklch(0.19 0.01 260);
-  --sidebar-border: oklch(0.895 0.01 260);
-  --sidebar-ring: oklch(0.55 0.23 260);
-  --shadow-card: 0 1px 2px oklch(0.19 0.01 260 / 7%), 0 0 0 1px oklch(0.19 0.01 260 / 7%);
-  --shadow-pop: 0 12px 40px -12px oklch(0.19 0.01 260 / 28%);
+  --sidebar-accent: oklch(0.945 0.012 281);
+  --sidebar-accent-foreground: oklch(0.25 0.08 281);
+  --sidebar-border: oklch(0.9 0.012 281);
+  --sidebar-ring: oklch(0.508 0.264 281);
+  --shadow-card: 0 1px 2px oklch(0.19 0.02 281 / 7%), 0 0 0 1px oklch(0.19 0.02 281 / 7%);
+  --shadow-pop: 0 12px 40px -12px oklch(0.19 0.02 281 / 28%);
+}
+
+.dark {
+  /* Dark surfaces carry the same violet hue (281) at very low chroma. */
+  --background: oklch(0.16 0.015 281);
+  --foreground: oklch(0.96 0.005 281);
+  --card: oklch(0.2 0.02 281);
+  --card-foreground: oklch(0.96 0.005 281);
+  --popover: oklch(0.22 0.022 281);
+  --popover-foreground: oklch(0.96 0.005 281);
+  /* Lighter than light mode so it stays readable on dark surfaces. */
+  --primary: oklch(0.64 0.22 281);
+  --primary-foreground: oklch(0.99 0 0);
+  --button: oklch(0.64 0.22 281);
+  --button-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.27 0.03 281);
+  --secondary-foreground: oklch(0.96 0.005 281);
+  --muted: oklch(0.25 0.02 281);
+  --muted-foreground: oklch(0.7 0.03 281);
+  /* Accent matches the brand violet exactly so tinted states never look faded. */
+  --accent: oklch(0.64 0.22 281);
+  --accent-foreground: oklch(0.99 0 0);
+  --success: oklch(0.68 0.16 152);
+  --success-foreground: oklch(0.16 0.03 152);
+  --warning: oklch(0.82 0.15 75);
+  --warning-foreground: oklch(0.22 0.05 70);
+  --destructive: oklch(0.66 0.21 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.3 0.02 281);
+  --input: oklch(0.33 0.025 281);
+  --ring: oklch(0.64 0.22 281);
+  --rail: oklch(0.2 0.02 281);
+  --tile-1: oklch(0.58 0.23 281);
+  --tile-2: oklch(0.62 0.15 152);
+  --tile-3: oklch(0.72 0.15 55);
+  --tile-4: oklch(0.62 0.19 20);
+  --tile-5: oklch(0.6 0.12 220);
+  --tile-6: oklch(0.5 0.04 281);
+  --tile-foreground: oklch(0.99 0 0);
+  --chart-1: oklch(0.64 0.22 281);
+  --chart-2: oklch(0.7 0.14 230);
+  --chart-3: oklch(0.68 0.16 152);
+  --chart-4: oklch(0.82 0.15 75);
+  --chart-5: oklch(0.6 0.04 281);
+  --sidebar: oklch(0.18 0.018 281);
+  --sidebar-foreground: oklch(0.96 0.005 281);
+  --sidebar-primary: oklch(0.64 0.22 281);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.26 0.025 281);
+  --sidebar-accent-foreground: oklch(0.96 0.005 281);
+  --sidebar-border: oklch(0.3 0.02 281);
+  --sidebar-ring: oklch(0.64 0.22 281);
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 40%), 0 0 0 1px oklch(1 0 0 / 6%);
+  --shadow-pop: 0 12px 40px -12px oklch(0 0 0 / 60%);
 }
 
 @layer base {
@@ -151,12 +209,15 @@
   .pos-key:active { transform: scale(0.94); }
 }
 
-/* Operations workspace: inherits brand tokens from :root, only density/layout differs. */
+/*
+ * Operations workspace: inherits brand tokens from :root / .dark,
+ * only density/layout differs. It no longer forces a light color-scheme,
+ * so dark mode applies here too.
+ */
 .storq-workspace, body:has(.storq-workspace) {
   --radius: 0.5rem;
   background: var(--background);
   color: var(--foreground);
-  color-scheme: light;
   letter-spacing: 0;
 }
 .storq-workspace h1, .storq-workspace h2,

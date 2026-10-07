@@ -15,7 +15,7 @@ describe("Store-aware workspace navigation", () => {
   });
 
   it("reduces the admin sidebar to six destinations", () => {
-    expect(workspaceNavigation("admin", "approval").map((item) => item.label)).toEqual(["Dashboard", "Register", "Sales", "Inventory", "Reports", "Business"]);
+    expect(workspaceNavigation("admin", "approval").map((item) => item.label)).toEqual(["Dashboard", "POS", "Sales", "Inventory", "Reports", "Settings"]);
   });
 
   it("groups items, collections and stock takes under Inventory", () => {
@@ -27,14 +27,14 @@ describe("Store-aware workspace navigation", () => {
     expect(visibleWorkspacePages("cashier", "approval").filter((page) => page.group === "inventory").map((page) => page.to)).toEqual(["/app/stocktake"]);
   });
 
-  it("preserves manager billing but hides admin-only business pages", () => {
-    expect(visibleWorkspacePages("manager", "direct").filter((page) => page.group === "business").map((page) => page.to)).toEqual(["/app/billing"]);
+  it("preserves manager billing but hides admin-only settings pages", () => {
+    expect(visibleWorkspacePages("manager", "direct").filter((page) => page.group === "settings").map((page) => page.to)).toEqual(["/app/billing"]);
   });
 
-  it("keeps cashier expenses accessible without reports or business settings", () => {
+  it("keeps cashier expenses accessible without reports or settings", () => {
     const nav = workspaceNavigation("cashier", "direct");
     expect(nav.find((item) => item.group === "finance")?.to).toBe("/app/expenses");
-    expect(nav.some((item) => item.group === "business")).toBe(false);
+    expect(nav.some((item) => item.group === "settings")).toBe(false);
   });
 
   it("keeps deep collection pages within Inventory and handles trailing slashes", () => {

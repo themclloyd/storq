@@ -12,7 +12,7 @@ import { useSales, useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Empty, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/sales")({ head: () => ({ meta: [{ title: "Sales — Storq" }, { name: "description", content: "Review Storq sales, receipts and refunds." }, { property: "og:title", content: "Sales — Storq" }, { property: "og:description", content: "Review Storq sales, receipts and refunds." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Sales });
+export const Route = createFileRoute("/_authenticated/app/sales")({ head: () => ({ meta: [{ title: "Sales — Storq" }, { name: "description", content: "Review Storq sales, receipts and refunds." }, { property: "og:title", content: "Sales — Storq" }, { property: "og:description", content: "Review Storq sales, receipts and refunds." }, { name: "robots", content: "noindex, nofollow" }] }), component: Sales });
 
 const ranges = { today: 0, "7 days": 7, "30 days": 30 } as const;
 

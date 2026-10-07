@@ -16,7 +16,7 @@ import { Empty, Field, PageHeader } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { useCollections } from "@/lib/collections";
 
-export const Route = createFileRoute("/_authenticated/app/inventory")({ head: () => ({ meta: [{ title: "Inventory — Storq" }, { name: "description", content: "Manage Storq items, buying costs and store stock." }, { property: "og:title", content: "Inventory — Storq" }, { property: "og:description", content: "Manage Storq items, buying costs and store stock." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Inventory });
+export const Route = createFileRoute("/_authenticated/app/inventory")({ head: () => ({ meta: [{ title: "Inventory — Storq" }, { name: "description", content: "Manage Storq items, buying costs and store stock." }, { property: "og:title", content: "Inventory — Storq" }, { property: "og:description", content: "Manage Storq items, buying costs and store stock." }, { name: "robots", content: "noindex, nofollow" }] }), component: Inventory });
 
 function Inventory() {
   const { store, money, can } = usePos();

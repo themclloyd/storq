@@ -12,19 +12,19 @@ import { Empty, Field, PageHeader, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/lib/billing";
 
-export const Route = createFileRoute("/_authenticated/app/stores")({ head: () => ({ meta: [{ title: "Stores — Storq" }, { name: "description", content: "Manage your Storq stores and tax settings." }, { property: "og:title", content: "Stores — Storq" }, { property: "og:description", content: "Manage your Storq stores and tax settings." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Stores });
+export const Route = createFileRoute("/_authenticated/app/stores")({ head: () => ({ meta: [{ title: "Locations — Storq" }, { name: "description", content: "Manage your Storq locations and tax settings." }, { property: "og:title", content: "Locations — Storq" }, { property: "og:description", content: "Manage your Storq locations and tax settings." }, { name: "robots", content: "noindex, nofollow" }] }), component: Stores });
 
 function Stores() {
   const { stores, can, business } = usePos();
   const subscription = useSubscription(business?.id, stores.length);
   const [edit, setEdit] = useState<Partial<Store> | null>(null);
-  if (!can("admin")) return <Empty>Only admins can manage stores.</Empty>;
+  if (!can("admin")) return <Empty>Only admins can manage locations.</Empty>;
   return (
     <>
-      <PageHeader title="Stores" actions={<Button variant="accent" disabled={!subscription.data?.canAddStore} onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add store</Button>} />
+      <PageHeader title="Locations" actions={<Button variant="accent" disabled={!subscription.data?.canAddStore} onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add location</Button>} />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4 text-sm">
-        <p className="text-muted-foreground">{subscription.data?.trial ? "Free trial" : `${stores.length} stores · ${subscription.data?.capacity ?? 0} paid store slots`}</p>
-        {!subscription.data?.canAddStore && <Link to="/app/billing" className="font-medium underline">Pay for more stores</Link>}
+        <p className="text-muted-foreground">{subscription.data?.trial ? "Free trial" : `${stores.length} locations · ${subscription.data?.capacity ?? 0} paid location slots`}</p>
+        {!subscription.data?.canAddStore && <Link to="/app/billing" className="font-medium underline">Pay for more locations</Link>}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {stores.map((s) => (
@@ -57,8 +57,8 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{s.id ? "Edit store" : "Add store"}</DialogTitle></DialogHeader>
-        <Field label="Store name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <DialogHeader><DialogTitle>{s.id ? "Edit location" : "Add location"}</DialogTitle></DialogHeader>
+        <Field label="Location name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <div className="space-y-2">
           {types.map((t) => (
             <button key={t.v} onClick={() => setType(t.v)} className={cn("w-full rounded-lg border p-4 text-left", type === t.v ? "border-accent bg-accent/10" : "bg-card")}>
@@ -66,7 +66,7 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
             </button>
           ))}
         </div>
-        <Button size="lg" disabled={!name} onClick={save}>Save store</Button>
+        <Button size="lg" disabled={!name} onClick={save}>Save location</Button>
       </DialogContent>
     </Dialog>
   );
@@ -83,7 +83,7 @@ function TaxSettings() {
   }
   return (
     <div className="pos-card mt-8 max-w-xl space-y-4 p-6">
-      <div><h3 className="text-lg font-bold">VAT / sales tax</h3><p className="text-sm text-muted-foreground">Applies to all stores. Set 0 if you are not VAT registered. Past sales keep the tax they were sold with.</p></div>
+      <div><h3 className="text-lg font-bold">VAT / sales tax</h3><p className="text-sm text-muted-foreground">Applies to all locations. Set 0 if you are not VAT registered. Past sales keep the tax they were sold with.</p></div>
       <Field label="Tax rate (%)"><Input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></Field>
       <div className="grid grid-cols-2 gap-2">
         {[[true, "Prices include VAT", "Shelf price is what the customer pays."], [false, "Add VAT at till", "VAT is added on top of the shelf price."]].map(([v, t, d]) => (

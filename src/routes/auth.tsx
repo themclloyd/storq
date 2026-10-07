@@ -1,8 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { BoxesIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +10,8 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Storq" },
-      { name: "description", content: "Sign this device in to your business account." },
-      { property: "og:title", content: "Sign in — Storq" },
-      { property: "og:description", content: "Sign this device in to your business account." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "description", content: "Sign this device in to your Storq business account." },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: AuthPage,
@@ -58,7 +53,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen flex-col px-6 py-8 sm:px-12">
       <div className="flex items-center gap-3 text-2xl font-semibold">
-        <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-5" /></span>
+        <img src="/logo.svg" alt="Storq logo" className="size-10 rounded-lg" />
         Storq
       </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-16">

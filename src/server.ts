@@ -44,9 +44,50 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+function requestOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const host = request.headers.get("x-forwarded-host") || url.host;
+  const proto = request.headers.get("x-forwarded-proto") || url.protocol.replace(":", "");
+  return host ? `${proto}://${host}` : url.origin;
+}
+
+// Serve /robots.txt and /sitemap.xml straight from the request so the absolute
+// origin is always correct, whatever domain this build is deployed on.
+function serveSeoFiles(request: Request): Response | null {
+  const { pathname } = new URL(request.url);
+  if (pathname !== "/robots.txt" && pathname !== "/sitemap.xml") return null;
+  const origin = requestOrigin(request);
+  const isHead = request.method === "HEAD";
+  if (pathname === "/robots.txt") {
+    const body =
+      "User-agent: *\nAllow: /\nDisallow: /app/\nDisallow: /auth\n\n" +
+      `Sitemap: ${origin}/sitemap.xml\n`;
+    return new Response(isHead ? null : body, {
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "public, max-age=3600",
+      },
+    });
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const body =
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    `  <url><loc>${origin}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n` +
+    "</urlset>\n";
+  return new Response(isHead ? null : body, {
+    headers: {
+      "content-type": "application/xml; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    },
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const seoFile = serveSeoFiles(request);
+      if (seoFile) return seoFile;
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

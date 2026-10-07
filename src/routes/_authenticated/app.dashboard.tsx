@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/app/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — Storq" }, { name: "description", content: "Sales, expenses, profit and alerts at a glance." }, { property: "og:title", content: "Dashboard — Storq" }, { property: "og:description", content: "Sales, expenses, profit and alerts at a glance." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Storq" }, { name: "description", content: "Sales, expenses, profit and alerts at a glance." }, { property: "og:title", content: "Dashboard — Storq" }, { property: "og:description", content: "Sales, expenses, profit and alerts at a glance." }, { name: "robots", content: "noindex, nofollow" }] }),
   component: Dashboard,
 });
 
@@ -159,7 +159,7 @@ function Dashboard() {
                     <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={60} />
                 <Tooltip formatter={(v: number) => money(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", background: "var(--card)", fontSize: 13 }} />

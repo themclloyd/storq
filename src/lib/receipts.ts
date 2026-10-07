@@ -1,0 +1,181 @@
+// Client-safe sale/layby receipt builders. No DB access — the caller passes an
+// already-formatted `money` fn (from usePos) so amounts stay in the store currency.
+
+export type ReceiptLine = { name: string; qty: number; price: number; total: number };
+
+export type Receipt = {
+  number: number;
+  kind: "sale" | "layby";
+  status: string;
+  bizName: string;
+  storeName: string;
+  cashier: string;
+  date: string;
+  lines: ReceiptLine[];
+  subtotal: number;
+  tax: number;
+  taxRate: number;
+  taxInclusive: boolean;
+  total: number;
+  method: string;
+  paid: number;
+  change: number;
+  customerName: string | null;
+  customerPhone: string | null;
+  note: string | null;
+};
+
+export type MoneyFmt = (n: number) => string;
+
+const METHOD_LABELS: Record<string, string> = { cash: "Cash", card: "Card", mobile: "Mobile money" };
+
+export const methodLabel = (m: string) => METHOD_LABELS[m] ?? m;
+
+export function receiptTitle(r: Receipt) {
+  if (r.kind === "layby") return r.status === "layby_completed" ? "LAYBY — PAID IN FULL" : "LAYBY RECEIPT";
+  return "SALE RECEIPT";
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: "PAID",
+  layby_open: "LAYBY OPEN",
+  layby_completed: "LAYBY PAID",
+};
+
+const esc = (t: string) => t.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] ?? ch);
+
+const W = 40; // monospace column budget for an 80mm thermal roll
+const padRow = (l: string, rv: string) => {
+  const space = Math.max(1, W - l.length - rv.length);
+  return `${l}${" ".repeat(space)}${rv}`;
+};
+const rule = "-".repeat(W);
+
+/** Plain-text receipt for downloading or sharing over SMS / WhatsApp. */
+export function receiptText(r: Receipt, money: MoneyFmt) {
+  const out: string[] = [];
+  out.push(r.bizName.toUpperCase().slice(0, W));
+  out.push(r.storeName);
+  out.push(receiptTitle(r));
+  out.push(rule);
+  out.push(padRow(`Invoice`, `#${r.number}`));
+  out.push(padRow(`Date`, new Date(r.date).toLocaleString()));
+  out.push(padRow(`Served by`, r.cashier));
+  out.push(rule);
+  for (const l of r.lines) {
+    out.push(l.name);
+    out.push(padRow(`  ${l.qty} x ${money(l.price)}`, money(l.total)));
+  }
+  out.push(rule);
+  out.push(padRow(`Subtotal`, money(r.subtotal)));
+  if (r.taxRate > 0) out.push(padRow(`VAT ${r.taxRate}%${r.taxInclusive ? " (incl)" : ""}`, money(r.tax)));
+  out.push(padRow(`TOTAL`, money(r.total)));
+  out.push(rule);
+  out.push(padRow(`Method`, methodLabel(r.method)));
+  out.push(padRow(r.kind === "layby" ? "Deposit" : "Paid", money(r.paid)));
+  if (r.change > 0) out.push(padRow(`Change`, money(r.change)));
+  if (r.customerName) {
+    out.push(rule);
+    out.push(`Customer: ${r.customerName}`);
+    if (r.customerPhone) out.push(`Phone: ${r.customerPhone}`);
+  }
+  if (r.note) out.push(`Note: ${r.note}`);
+  out.push(rule);
+  out.push("Thank you — keep this receipt.");
+  out.push(`*${r.number}*`);
+  return out.join("\n");
+}
+
+/** 80mm thermal HTML used for both the on-screen preview and printing. */
+export function receiptHtml(r: Receipt, money: MoneyFmt) {
+  const status = STATUS_LABELS[r.status] ?? "";
+  const row = (l: string, v: string, bold = false) =>
+    '<div class="lr' + (bold ? " b" : "") + '"><span>' + esc(l) + "</span><span>" + v + "</span></div>";
+  const dashed = '<div class="dashed"></div>';
+  const itemRows = r.lines
+    .map(
+      (l) =>
+        '<div class="it"><div class="nm">' +
+        esc(l.name) +
+        '</div><div class="lr"><span>' +
+        l.qty +
+        " × " +
+        esc(money(l.price)) +
+        "</span><span>" +
+        esc(money(l.total)) +
+        "</span></div></div>",
+    )
+    .join("");
+  const titleChip = status ? ' <span class="chip">' + esc(status) + "</span>" : "";
+  const vatRow = r.taxRate > 0 ? row("VAT " + r.taxRate + "%" + (r.taxInclusive ? " incl" : " added"), esc(money(r.tax))) : "";
+  const paidRow = row(r.kind === "layby" ? "Deposit" : "Paid", esc(money(r.paid)));
+  const changeRow = r.change > 0 ? row("Change", esc(money(r.change))) : "";
+  const meta =
+    (r.customerName ? row("Customer", esc(r.customerName)) : "") +
+    (r.customerPhone ? row("Phone", esc(r.customerPhone)) : "") +
+    (r.note ? row("Note", esc(r.note)) : "");
+  const metaBlock = meta ? dashed + meta : "";
+  const parts = [
+    '<div class="rcp">',
+    '<div class="hd">' + esc(r.bizName) + "</div>",
+    '<div class="sub">' + esc(r.storeName) + "</div>",
+    '<div class="ttl">' + esc(receiptTitle(r)) + titleChip + "</div>",
+    dashed,
+    row("Invoice", "#" + r.number),
+    row("Date", esc(new Date(r.date).toLocaleString())),
+    row("Served by", esc(r.cashier)),
+    dashed,
+    itemRows,
+    dashed,
+    row("Subtotal", esc(money(r.subtotal))),
+    vatRow,
+    row("TOTAL", esc(money(r.total)), true),
+    dashed,
+    row("Method", esc(methodLabel(r.method))),
+    paidRow,
+    changeRow,
+    metaBlock,
+    dashed,
+    '<div class="ft">Thank you \u2014 keep this receipt.</div>',
+    '<div class="bc">*' + r.number + "*</div>",
+    "</div>",
+  ];
+  return parts.join("");
+}
+
+const PRINT_CSS =
+  "@page{size:80mm auto;margin:4mm}*{box-sizing:border-box;margin:0;padding:0}" +
+  "body{font-family:'Courier New',ui-monospace,monospace;color:#111;background:#fff;width:72mm}" +
+  ".rcp{width:100%;font-size:12px;line-height:1.45}" +
+  ".hd{font-size:16px;font-weight:800;text-align:center;letter-spacing:1px}" +
+  ".sub,.ft,.bc{text-align:center}.sub{font-size:11px;margin-top:2px}" +
+  ".ttl{text-align:center;font-weight:700;margin:6px 0 2px}" +
+  ".chip{border:1px solid #111;border-radius:3px;padding:0 4px;font-size:9px;vertical-align:middle}" +
+  ".dashed{border-top:1px dashed #999;margin:6px 0}" +
+  ".lr{display:flex;justify-content:space-between;gap:8px}.lr.b{font-weight:800;font-size:14px}" +
+  ".it{margin:3px 0}.it .nm{font-weight:600}" +
+  ".ft{margin-top:8px;font-size:11px}.bc{margin-top:4px;letter-spacing:2px}";
+
+/** Open the receipt in a thermal-sized window and trigger printing. */
+export function printReceipt(r: Receipt, money: MoneyFmt) {
+  const w = window.open("", "_blank", "width=380,height=640");
+  if (!w) return false;
+  w.document.write(
+    `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${r.number}</title><style>${PRINT_CSS}</style></head><body>${receiptHtml(r, money)}<script>window.onload=function(){setTimeout(function(){window.print()},60)}<\/script></body></html>`,
+  );
+  w.document.close();
+  return true;
+}
+
+/** Download the receipt as a plain-text file. */
+export function downloadReceipt(r: Receipt, money: MoneyFmt) {
+  const blob = new Blob([receiptText(r, money)], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `storq-receipt-${r.number}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

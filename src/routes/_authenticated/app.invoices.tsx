@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/invoices")({ head: () => ({ meta: [{ title: "Invoices — Storq" }, { name: "description", content: "Review and approve store invoices in Storq." }, { property: "og:title", content: "Invoices — Storq" }, { property: "og:description", content: "Review and approve store invoices in Storq." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Invoices });
+export const Route = createFileRoute("/_authenticated/app/invoices")({ head: () => ({ meta: [{ title: "Invoices — Storq" }, { name: "description", content: "Review and approve store invoices in Storq." }, { property: "og:title", content: "Invoices — Storq" }, { property: "og:description", content: "Review and approve store invoices in Storq." }, { name: "robots", content: "noindex, nofollow" }] }), component: Invoices });
 
 function Invoices() {
   const { store, money, can, rpc, staff } = usePos();

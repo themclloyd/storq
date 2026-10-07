@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, Tick01Icon, ArrowDown01Icon, SmartPhone01Icon, WifiOffIcon, ShieldCheckIcon, FlashIcon, StoreIcon, BoxesIcon, UserMultipleIcon, BarChartIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { PRICES } from "@/lib/billing";
+import { buildSeo, absUrl, SITE_NAME } from "@/lib/seo";
 import heroShop from "@/assets/hero-shop.jpg";
 import counter from "@/assets/counter.jpg";
 import stocktake from "@/assets/stocktake.jpg";
@@ -12,23 +13,61 @@ import storeGrocery from "@/assets/store-grocery.jpg";
 import storeHardware from "@/assets/store-hardware.jpg";
 import ownerPortrait from "@/assets/owner-portrait.jpg";
 
+const faqItems: [string, string][] = [
+  ["Do I need to buy hardware?", "No. Storq runs in the browser on any phone, tablet or laptop you already own."],
+  ["How do staff log in?", "You sign each device in once with your business email. After that, every staff member unlocks it with their own 4-digit PIN, which sets what they can do."],
+  ["Can I run more than one shop?", "Yes. Add as many stores as you need and choose for each one whether it's direct sale or approval-based."],
+  ["Does it support mobile money?", "Yes — cash, card and mobile money are all recorded at checkout and on layby payments."],
+];
+
+const landingJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${absUrl("/")}/#website`,
+      url: absUrl("/"),
+      name: "Storq POS",
+      description: "Point of sale, inventory and layby for African shops.",
+      inLanguage: "en",
+      publisher: { "@id": `${absUrl("/")}/#organization` },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${absUrl("/")}/#organization`,
+      name: SITE_NAME,
+      url: absUrl("/"),
+      logo: { "@type": "ImageObject", url: absUrl("/logo.svg") },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Storq POS",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description:
+        "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop.",
+      offers: { "@type": "AggregateOffer", lowPrice: "0", priceCurrency: "MWK", offerCount: "2" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: faqItems.map(([q, a]) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
+  ],
+};
+
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "Storq POS — The point of sale for every sale" },
-      {
-        name: "description",
-        content:
-          "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop. Free to start.",
-      },
-      { property: "og:title", content: "Storq POS — The point of sale for every sale" },
-      {
-        property: "og:description",
-        content: "Point of sale, layby and stock control for one shop or many — on the phone you already own.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    ...buildSeo({
+      title: "Storq POS — The point of sale for every sale",
+      description:
+        "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop. Free to start.",
+      path: "/",
+    }),
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(landingJsonLd) }],
   }),
   component: Landing,
 });
@@ -59,7 +98,7 @@ function Landing() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-light tracking-tight">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">T</span>
+            <img src="/logo.svg" alt="Storq logo" className="h-8 w-8 rounded-lg" />
             Storq
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">

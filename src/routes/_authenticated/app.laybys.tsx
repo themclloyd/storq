@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/laybys")({ head: () => ({ meta: [{ title: "Laybys — Storq" }, { name: "description", content: "Track customer laybys and outstanding balances." }, { property: "og:title", content: "Laybys — Storq" }, { property: "og:description", content: "Track customer laybys and outstanding balances." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Laybys });
+export const Route = createFileRoute("/_authenticated/app/laybys")({ head: () => ({ meta: [{ title: "Laybys — Storq" }, { name: "description", content: "Track customer laybys and outstanding balances." }, { property: "og:title", content: "Laybys — Storq" }, { property: "og:description", content: "Track customer laybys and outstanding balances." }, { name: "robots", content: "noindex, nofollow" }] }), component: Laybys });
 
 function Laybys() {
   const { store, money, can, rpc } = usePos();

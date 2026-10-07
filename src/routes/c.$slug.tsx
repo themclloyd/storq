@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { buildSeo } from "@/lib/seo";
 
 type Shared = { name: string; discount_pct: number; business: string; currency: string; items: { name: string; price: number; sale_price: number }[] };
 
@@ -18,10 +19,10 @@ const getShared = createServerFn({ method: "GET" })
 
 export const Route = createFileRoute("/c/$slug")({
   loader: ({ params }) => getShared({ data: { slug: params.slug } }),
-  head: ({ loaderData }) => {
+  head: ({ params, loaderData }) => {
     const t = loaderData ? `${loaderData.name} — ${loaderData.business}` : "Collection — Storq";
     const d = loaderData ? `Shop ${loaderData.items.length} items from ${loaderData.business}${loaderData.discount_pct > 0 ? `, now ${loaderData.discount_pct}% off` : ""}.` : "A shared Storq collection.";
-    return { meta: [{ title: t }, { name: "description", content: d }, { property: "og:title", content: t }, { property: "og:description", content: d }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] };
+    return buildSeo({ title: t, description: d, path: `/c/${params.slug}` });
   },
   errorComponent: () => <Msg>Could not load this collection.</Msg>,
   notFoundComponent: () => <Msg>Collection not found.</Msg>,

@@ -20,10 +20,7 @@ export const Route = createFileRoute("/_authenticated/app")({
     meta: [
       { title: "Register — Storq" },
       { name: "description", content: "Storq point of sale register." },
-      { property: "og:title", content: "Register — Storq" },
-      { property: "og:description", content: "Storq point of sale register." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: AppLayout,
@@ -162,7 +159,7 @@ function PinPad() {
 
 const navIcons: Record<WorkspaceGroup, typeof BoxesIcon> = {
   dashboard: DashboardSquare01Icon, register: ShoppingBag01Icon, sales: ReceiptIcon,
-  inventory: PackageIcon, finance: BarChartIcon, business: StoreIcon,
+  inventory: PackageIcon, finance: BarChartIcon, settings: StoreIcon,
 };
 
 function Shell() {
@@ -182,7 +179,7 @@ function Shell() {
     <div className="storq-workspace flex min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r bg-rail md:flex">
         <div className="flex items-center gap-3 px-6 py-7 text-2xl font-semibold">
-          <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-5" /></span>
+          <img src="/logo.svg" alt="Storq logo" className="size-9 rounded-lg" />
           Storq
         </div>
         <div className="px-4">
