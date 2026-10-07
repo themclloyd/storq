@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
+import { DashboardSquare01Icon, BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
