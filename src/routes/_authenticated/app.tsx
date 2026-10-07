@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
+import { DashboardSquare01Icon, BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
@@ -152,6 +152,7 @@ function PinPad() {
 
 type NavItem = { to: string; label: string; icon: typeof BoxesIcon; roles: Role[] };
 const nav: NavItem[] = [
+  { to: "/app/dashboard", label: "Dashboard", icon: DashboardSquare01Icon, roles: ["admin", "manager", "cashier"] },
   { to: "/app", label: "Register", icon: ShoppingBag01Icon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/invoices", label: "Invoices", icon: FileCheckIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/laybys", label: "Laybys", icon: Wallet01Icon, roles: ["admin", "manager", "cashier"] },
