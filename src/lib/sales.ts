@@ -5,14 +5,14 @@ export type SaleRow = {
   id: string; number: number; kind: "sale" | "layby"; status: string; total: number; paid: number; payment_method: string | null;
   customer_name: string | null; customer_phone: string | null; note: string | null; store_id: string; created_at: string;
   created_by: string | null; approved_by: string | null; approved_at: string | null;
-  sale_items: { name: string; qty: number; price: number }[];
+  sale_items: { name: string; qty: number; price: number; cost: number; product_id: string | null }[];
 };
 
 export function useSales(key: string, filter: { storeId?: string | undefined; statuses?: string[]; since?: string }) {
   return useQuery({
     queryKey: ["sales", key, filter],
     queryFn: async () => {
-      let q = supabase.from("sales").select("*, sale_items(name,qty,price)").order("created_at", { ascending: false }).limit(300);
+      let q = supabase.from("sales").select("*, sale_items(name,qty,price,cost,product_id)").order("created_at", { ascending: false }).limit(1000);
       if (filter.storeId) q = q.eq("store_id", filter.storeId);
       if (filter.statuses) q = q.in("status", filter.statuses);
       if (filter.since) q = q.gte("created_at", filter.since);

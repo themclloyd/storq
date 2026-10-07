@@ -38,6 +38,67 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          business_id: string
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          source: string
+          spent_on: string
+          store_id: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+          spent_on?: string
+          store_id: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+          spent_on?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -126,6 +187,7 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          cost: number
           id: string
           name: string
           price: number
@@ -134,6 +196,7 @@ export type Database = {
           sale_id: string
         }
         Insert: {
+          cost?: number
           id?: string
           name: string
           price: number
@@ -142,6 +205,7 @@ export type Database = {
           sale_id: string
         }
         Update: {
+          cost?: number
           id?: string
           name?: string
           price?: number
@@ -548,6 +612,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_expense: {
+        Args: { p_id: string; p_token: string }
+        Returns: undefined
+      }
       layby_pay: {
         Args: {
           p_amount: number
@@ -562,6 +630,18 @@ export type Database = {
       pin_taken: {
         Args: { p_business: string; p_except: string; p_pin: string }
         Returns: boolean
+      }
+      record_expense: {
+        Args: {
+          p_amount: number
+          p_category: string
+          p_date: string
+          p_note: string
+          p_source: string
+          p_store: string
+          p_token: string
+        }
+        Returns: string
       }
       require_staff: {
         Args: { p_roles: string[]; p_token: string }

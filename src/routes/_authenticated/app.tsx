@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Boxes, ClipboardCheck, Delete, FileCheck2, Lock, LogOut, Package, Receipt, ShoppingBag, Store as StoreIcon, Users, Wallet,
+  Boxes, ClipboardCheck, Delete, FileCheck2, Lock, LogOut, Package, Receipt, ShoppingBag, Store as StoreIcon, Users, Wallet, BarChart3, Banknote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
@@ -157,6 +157,8 @@ const nav: NavItem[] = [
   { to: "/app/invoices", label: "Invoices", icon: FileCheck2, roles: ["admin", "manager", "cashier"] },
   { to: "/app/laybys", label: "Laybys", icon: Wallet, roles: ["admin", "manager", "cashier"] },
   { to: "/app/sales", label: "Sales", icon: Receipt, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/expenses", label: "Expenses", icon: Banknote, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
   { to: "/app/inventory", label: "Inventory", icon: Package, roles: ["admin", "manager"] },
   { to: "/app/stocktake", label: "Stock take", icon: ClipboardCheck, roles: ["admin", "manager", "cashier"] },
   { to: "/app/staff", label: "Staff", icon: Users, roles: ["admin"] },
