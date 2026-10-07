@@ -304,14 +304,14 @@ function Landing() {
           </h2>
           <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              [Zap, "Fast checkout", "Ring up sales in seconds with cash, card or mobile money."],
+              [FlashIcon, "Fast checkout", "Ring up sales in seconds with cash, card or mobile money."],
               [Users, "Staff management", "One login per shop, a 4-digit PIN per person. Roles come from the PIN."],
               [Boxes, "Inventory management", "Live stock across every store, with quantity tracking on every item."],
-              [ShieldCheck, "Invoice approvals", "Approval-based stores: cashiers invoice, managers approve before stock moves."],
+              [ShieldCheckIcon, "Invoice approvals", "Approval-based stores: cashiers invoice, managers approve before stock moves."],
               [BarChart3, "Reports & analytics", "See what sells best, when you're busiest, and what each store makes."],
-              [Smartphone, "Stock takes with staff", "Count together on your phones. Variances and losses shown instantly."],
+              [SmartPhone01Icon, "Stock takes with staff", "Count together on your phones. Variances and losses shown instantly."],
             ].map(([Icon, t, d]) => {
-              const I = Icon as typeof Zap;
+              const I = Icon as typeof FlashIcon;
               return (
                 <div key={t as string}>
                   <I className="h-8 w-8 text-accent" />
@@ -351,11 +351,11 @@ function Landing() {
           <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Built for how Africa actually trades.</h2>
           <div className="mt-14 grid gap-10 md:grid-cols-3">
             {[
-              [Smartphone, "Any device", "Android phone, old laptop, tablet — sign in once and every staff member uses their PIN."],
-              [ShieldCheck, "Staff can't cheat the till", "Roles come from the PIN. Cashiers sell, managers approve, owners see everything."],
-              [WifiOff, "Light on data", "A fast, lightweight app that keeps working on everyday mobile connections."],
+              [SmartPhone01Icon, "Any device", "Android phone, old laptop, tablet — sign in once and every staff member uses their PIN."],
+              [ShieldCheckIcon, "Staff can't cheat the till", "Roles come from the PIN. Cashiers sell, managers approve, owners see everything."],
+              [WifiOffIcon, "Light on data", "A fast, lightweight app that keeps working on everyday mobile connections."],
             ].map(([Icon, t, d]) => {
-              const I = Icon as typeof Smartphone;
+              const I = Icon as typeof SmartPhone01Icon;
               return (
                 <div key={t as string}>
                   <I className="h-8 w-8 text-accent" />
