@@ -1,4 +1,9 @@
 # Storq visual refresh
+## Paid store enforcement
+- [ ] Research Shopify POS per-location subscriptions and audit Storq billing.
+- [ ] Enforce paid store capacity server-side and explain capacity in Stores and Billing.
+- [ ] Verify guards, payment activation, and app checks.
+
 - [x] Apply light workspace tokens with charcoal text, lime accents and consistent controls.
 - [x] Refresh navigation, sign-in and billing presentation without changing workflows.
 - [x] Check content-page metadata and verify accessible screens.
