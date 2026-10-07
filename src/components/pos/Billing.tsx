@@ -48,6 +48,11 @@ export function Billing({ locked }: { locked?: boolean }) {
       ]);
       if (!key) throw new Error("Payments are not configured yet.");
       const url = `${window.location.origin}/app/billing`;
+      if (!document.getElementById("wrapper")) {
+        const w = document.createElement("div");
+        w.id = "wrapper";
+        document.body.appendChild(w);
+      }
       window.PaychanguCheckout?.({
         public_key: key, tx_ref: start.tx_ref, amount: start.amount, currency,
         callback_url: url, return_url: url,
