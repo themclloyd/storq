@@ -62,6 +62,7 @@
   --color-tile-4: var(--tile-4);
   --color-tile-5: var(--tile-5);
   --color-tile-6: var(--tile-6);
+  --color-tile-foreground: var(--tile-foreground);
   --font-sans: var(--font-sans);
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
@@ -108,6 +109,7 @@
   --tile-4: oklch(0.6 0.2 20);
   --tile-5: oklch(0.55 0.13 200);
   --tile-6: oklch(0.5 0.03 260);
+  --tile-foreground: oklch(0.99 0 0);
   --chart-1: oklch(0.56 0.2 256);
   --chart-2: oklch(0.6 0.15 152);
   --chart-3: oklch(0.78 0.15 75);
@@ -146,4 +148,86 @@
   .pos-tile:active { transform: scale(0.97); }
   .pos-key { border-radius: 9999px; transition: background 120ms ease, transform 100ms ease; }
   .pos-key:active { transform: scale(0.94); }
+}
+
+/* Operations workspace; public pages retain their existing theme. */
+.storq-workspace {
+  --radius: 0.5rem;
+  --background: oklch(0.216 0.003 230);
+  --foreground: oklch(0.968 0.007 125);
+  --card: oklch(0.284 0.006 215);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.903 0.157 121);
+  --primary-foreground: var(--background);
+  --accent: var(--primary);
+  --accent-foreground: var(--background);
+  --secondary: oklch(0.323 0.007 215);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.264 0.005 215);
+  --muted-foreground: oklch(0.722 0.01 140);
+  --border: oklch(0.372 0.006 215);
+  --input: var(--border);
+  --ring: var(--primary);
+  --rail: var(--background);
+  --success: oklch(0.79 0.13 155);
+  --success-foreground: var(--background);
+  --warning: oklch(0.83 0.12 80);
+  --warning-foreground: var(--warning);
+  --destructive: oklch(0.76 0.15 25);
+  --destructive-foreground: var(--background);
+  --chart-1: var(--accent);
+  --chart-2: oklch(0.78 0.1 220);
+  --chart-3: var(--warning);
+  --chart-4: var(--destructive);
+  --chart-5: oklch(0.76 0.1 160);
+  --tile-1: oklch(0.43 0.07 150);
+  --tile-2: oklch(0.43 0.06 220);
+  --tile-3: oklch(0.46 0.07 75);
+  --tile-4: oklch(0.43 0.07 25);
+  --tile-5: oklch(0.42 0.06 180);
+  --tile-6: oklch(0.38 0.01 215);
+  --shadow-card: 0 0 0 1px var(--border);
+  --shadow-pop: 0 16px 40px oklch(0.1 0 0 / 30%);
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: dark;
+  letter-spacing: 0;
+}
+.storq-workspace h1, .storq-workspace h2,
+.storq-workspace label { letter-spacing: 0; }
+.storq-workspace table th { font-weight: 500; }
+.storq-workspace table tbody tr { transition: background 150ms ease; }
+.storq-workspace table tbody tr:hover { background: var(--muted); }
+.storq-workspace input, .storq-workspace select { box-shadow: none; }
+.storq-workspace .pos-card { box-shadow: none; border: 1px solid var(--border); }
+.storq-workspace .pos-card .pos-card { border: 0; background: transparent; }
+.storq-workspace .pos-tile:hover { border-color: var(--accent); }
+.storq-workspace .billing-plan { min-height: 156px; }
+.storq-workspace .billing-plan[aria-pressed="true"] { background: color-mix(in oklch, var(--accent) 7%, var(--card)); }
+body:has(.storq-workspace) {
+  --background: oklch(0.216 0.003 230);
+  --foreground: oklch(0.968 0.007 125);
+  --card: oklch(0.284 0.006 215);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.903 0.157 121);
+  --primary-foreground: var(--background);
+  --accent: var(--primary);
+  --accent-foreground: var(--background);
+  --secondary: oklch(0.323 0.007 215);
+  --muted: oklch(0.264 0.005 215);
+  --muted-foreground: oklch(0.722 0.01 140);
+  --border: oklch(0.372 0.006 215);
+  --input: var(--border);
+  --ring: var(--primary);
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) {
+  .storq-workspace *, .storq-workspace *::before, .storq-workspace *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
