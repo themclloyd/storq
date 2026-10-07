@@ -1035,6 +1035,7 @@ export type Database = {
         Row: {
           business_id: string
           created_at: string
+          paid_store_limit: number
           paid_until: string | null
           plan: string | null
           trial_ends_at: string
@@ -1042,6 +1043,7 @@ export type Database = {
         Insert: {
           business_id: string
           created_at?: string
+          paid_store_limit?: number
           paid_until?: string | null
           plan?: string | null
           trial_ends_at?: string
@@ -1049,6 +1051,7 @@ export type Database = {
         Update: {
           business_id?: string
           created_at?: string
+          paid_store_limit?: number
           paid_until?: string | null
           plan?: string | null
           trial_ends_at?: string
@@ -1319,6 +1322,15 @@ export type Database = {
       start_stock_take: {
         Args: { p_store: string; p_token: string }
         Returns: string
+      }
+      start_store_subscription_payment: {
+        Args: {
+          p_currency: string
+          p_period: string
+          p_stores: number
+          p_token: string
+        }
+        Returns: Json
       }
       start_subscription_payment: {
         Args: { p_currency: string; p_period: string; p_token: string }
