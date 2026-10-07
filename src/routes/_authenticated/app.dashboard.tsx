@@ -47,18 +47,24 @@ function Dashboard() {
 
   // Alerts: pending invoices, open laybys, low stock
   const alerts = useQuery({
-    queryKey: ["dash-alerts", storeId],
+    queryKey: ["dash-alerts", storeId, store?.store_type, can("admin", "manager")],
+    enabled: !!storeId,
     queryFn: async () => {
       const out: { icon: typeof Alert02Icon; text: string; to: string; tone: "warn" | "info" }[] = [];
-      const pend = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("status", "pending_approval");
-      if ((pend.count ?? 0) > 0) out.push({ icon: Alert02Icon, text: `${pend.count} invoice${pend.count === 1 ? "" : "s"} waiting for approval`, to: "/app/invoices", tone: "warn" });
-      const lay = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("status", "layby_open");
+      if (!storeId) return out;
+      if (store?.store_type === "approval") {
+        const pend = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("store_id", storeId).eq("status", "pending_approval");
+        if (pend.error) throw pend.error;
+        if ((pend.count ?? 0) > 0) out.push({ icon: Alert02Icon, text: `${pend.count} invoice${pend.count === 1 ? "" : "s"} waiting for approval`, to: "/app/invoices", tone: "warn" });
+      }
+      const lay = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("store_id", storeId).eq("status", "layby_open");
+      if (lay.error) throw lay.error;
       if ((lay.count ?? 0) > 0) out.push({ icon: Wallet01Icon, text: `${lay.count} open layby${lay.count === 1 ? "" : "s"} with balances due`, to: "/app/laybys", tone: "info" });
       if (storeId) {
         const { data: low } = await supabase.from("store_stock").select("qty, products(name)").eq("store_id", storeId).lte("qty", 5).limit(5);
         for (const r of low ?? []) {
           const name = (r as { products?: { name?: string } | null }).products?.name ?? "Item";
-          out.push({ icon: MoneyBag02Icon, text: `Low stock: ${name} (${Number((r as { qty: number }).qty)} left)`, to: "/app/inventory", tone: "warn" });
+          out.push({ icon: MoneyBag02Icon, text: `Low stock: ${name} (${Number((r as { qty: number }).qty)} left)`, to: can("admin", "manager") ? "/app/inventory" : "/app/stocktake", tone: "warn" });
         }
       }
       return out;

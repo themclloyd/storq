@@ -44,17 +44,17 @@ function Sales() {
             {(Object.keys(ranges) as (keyof typeof ranges)[]).map((r) => (
               <Button key={r} size="sm" variant={range === r ? "default" : "outline"} onClick={() => setRange(r)} className="capitalize">{r}</Button>
             ))}
-            {stores.length > 1 && <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>All stores</Button>}
+            {stores.length > 1 && can("admin", "manager") && <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>All stores</Button>}
           </>
         }
       />
-      <div className="mb-6 grid gap-3 sm:grid-cols-5">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Net sales", money(revenue)],
           ["Collected", money(collected)],
           ["Refunds", money((refunds.data ?? []).reduce((a, r) => a + Number(r.amount), 0))],
           ["Transactions", String(done.length)],
-          ["Awaiting approval", String(pending)],
+          ...((all ? stores.some((s) => s.store_type === "approval") : store?.store_type === "approval") ? [["Awaiting approval", String(pending)]] : []),
         ].map(([k, v]) => (
           <div key={k} className="pos-card p-5">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>

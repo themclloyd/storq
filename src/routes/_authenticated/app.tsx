@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DashboardSquare01Icon, BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
-import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
+import { PosProvider, roleLabel, usePos } from "@/lib/pos";
+import { workspaceNavigation, workspacePageAt, type WorkspaceGroup } from "@/lib/workspace-navigation";
+import { WorkspaceTabs } from "@/components/pos/WorkspaceTabs";
 import { useSubscription } from "@/lib/billing";
 import { Billing } from "@/components/pos/Billing";
 import { CreditCardIcon, CashierIcon } from "@hugeicons/core-free-icons";
@@ -155,29 +157,23 @@ function PinPad() {
   );
 }
 
-type NavItem = { to: string; label: string; icon: typeof BoxesIcon; roles: Role[] };
-const nav: NavItem[] = [
-  { to: "/app/dashboard", label: "Dashboard", icon: DashboardSquare01Icon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app", label: "Register", icon: ShoppingBag01Icon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/invoices", label: "Invoices", icon: FileCheckIcon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/laybys", label: "Laybys", icon: Wallet01Icon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/shifts", label: "Cash drawer", icon: CashierIcon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/sales", label: "Sales", icon: ReceiptIcon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/expenses", label: "Expenses", icon: BanknoteIcon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/reports", label: "Reports", icon: BarChartIcon, roles: ["admin", "manager"] },
-  { to: "/app/inventory", label: "Inventory", icon: PackageIcon, roles: ["admin", "manager"] },
-  { to: "/app/collections", label: "Collections", icon: BoxesIcon, roles: ["admin", "manager"] },
-  { to: "/app/stocktake", label: "Stock take", icon: ClipboardCheckIcon, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/staff", label: "Staff", icon: UserMultipleIcon, roles: ["admin"] },
-  { to: "/app/stores", label: "Stores", icon: StoreIcon, roles: ["admin"] },
-  { to: "/app/billing", label: "Subscription", icon: CreditCardIcon, roles: ["admin", "manager"] },
-];
+const navIcons: Record<WorkspaceGroup, typeof BoxesIcon> = {
+  dashboard: DashboardSquare01Icon, register: ShoppingBag01Icon, sales: ReceiptIcon,
+  inventory: PackageIcon, finance: BarChartIcon, business: StoreIcon,
+};
 
 function Shell() {
-  const { staff, stores, store, setStoreId, lock, can } = usePos();
+  const { staff, stores, store, setStoreId, lock } = usePos();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const items = nav.filter((n) => can(...n.roles));
+  const navigate = useNavigate();
+  const items = staff ? workspaceNavigation(staff.role, store?.store_type) : [];
+  const current = workspacePageAt(path);
   const lockedToStore = staff?.role === "cashier" && !!staff.store_id;
+  const unavailableApproval = current?.approvalOnly && store?.store_type !== "approval";
+
+  useEffect(() => {
+    if (store && unavailableApproval) void navigate({ to: "/app/sales", replace: true });
+  }, [store?.id, unavailableApproval, navigate]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -194,10 +190,10 @@ function Shell() {
         </div>
         <nav className="mt-6 flex-1 space-y-1 overflow-y-auto px-3 pb-5">
           {items.map((n) => {
-            const active = n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to);
+            const active = current?.group === n.group;
             return (
               <Link key={n.to} to={n.to} aria-current={active ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>
-                <HugeiconsIcon icon={n.icon} className="size-[18px]" /> {n.label}
+                <HugeiconsIcon icon={navIcons[n.group]} className="size-[18px]" /> {n.label}
               </Link>
             );
           })}
@@ -213,7 +209,7 @@ function Shell() {
 
       <div className="flex min-w-0 flex-1 flex-col md:pl-60">
         <header className="hidden h-20 items-center justify-between border-b px-8 md:flex lg:px-10">
-          <div className="flex items-center gap-3 text-sm"><span className="text-muted-foreground">Workspace</span><span className="text-muted-foreground">/</span><span className="font-medium">{items.find((n) => n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to))?.label ?? "Storq"}</span></div>
+          <div className="flex items-center gap-3 text-sm"><span className="text-muted-foreground">{items.find((n) => n.group === current?.group)?.label ?? "Workspace"}</span><span className="text-muted-foreground">/</span><span className="font-medium">{current?.label ?? "Storq"}</span></div>
           <div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-secondary text-xs font-semibold">{staff?.name.slice(0, 2).toUpperCase()}</span><span className="text-sm text-muted-foreground">{staff?.name}</span><Button size="icon" variant="ghost" aria-label="Lock workspace" title="Lock workspace" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button></div>
         </header>
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
@@ -224,14 +220,15 @@ function Shell() {
           <Button size="icon" variant="outline" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button>
         </header>
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-5 pb-24 md:p-8 md:pb-8 lg:p-10">
-          <Outlet />
+          {staff && <WorkspaceTabs path={path} role={staff.role} storeType={store?.store_type} />}
+          {!unavailableApproval && <div key={store?.id}><Outlet /></div>}
         </main>
         <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-rail md:hidden">
           {items.map((n) => {
-            const active = n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to);
+            const active = current?.group === n.group;
             return (
-              <Link key={n.to} to={n.to} className={cn("flex min-w-[72px] flex-1 flex-col items-center gap-1 py-2 text-[11px] font-semibold", active ? "text-accent" : "text-muted-foreground")}>
-                <HugeiconsIcon icon={n.icon} className="size-5" /> {n.label}
+              <Link key={n.to} to={n.to} aria-current={active ? "page" : undefined} className={cn("flex min-w-[72px] flex-1 flex-col items-center gap-1 py-2 text-[11px] font-semibold", active ? "text-accent" : "text-muted-foreground")}>
+                <HugeiconsIcon icon={navIcons[n.group]} className="size-5" /> {n.label}
               </Link>
             );
           })}
