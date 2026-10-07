@@ -188,7 +188,7 @@ function Shell() {
             const active = n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to);
             return (
               <Link key={n.to} to={n.to} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold", active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary")}>
-                <n.icon className="size-4" /> {n.label}
+                <HugeiconsIcon icon={n.icon} className="size-4" /> {n.label}
               </Link>
             );
           })}
@@ -218,7 +218,7 @@ function Shell() {
             const active = n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to);
             return (
               <Link key={n.to} to={n.to} className={cn("flex min-w-[72px] flex-1 flex-col items-center gap-1 py-2 text-[11px] font-semibold", active ? "text-accent" : "text-muted-foreground")}>
-                <n.icon className="size-5" /> {n.label}
+                <HugeiconsIcon icon={n.icon} className="size-5" /> {n.label}
               </Link>
             );
           })}
