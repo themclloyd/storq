@@ -1,7 +1,23 @@
-import type { ReactNode, SelectHTMLAttributes } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export function PageHeader({ title, sub, actions }: { title: string; sub?: string; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  sub,
+  actions,
+}: {
+  title: string;
+  sub?: string;
+  actions?: ReactNode;
+}) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -22,15 +38,34 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-export function NativeSelect({ className, ...p }: SelectHTMLAttributes<HTMLSelectElement>) {
+export function NativeSelect({
+  value,
+  onChange,
+  className,
+  options,
+  placeholder,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  disabled?: boolean;
+}) {
   return (
-    <select
-      {...p}
-      className={cn(
-        "h-9 w-full rounded-md border border-input bg-card px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring",
-        className,
-      )}
-    />
+    <Select value={value} onValueChange={onChange} {...(disabled !== undefined && { disabled })}>
+      <SelectTrigger className={cn("h-9 bg-card text-sm", className)}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -60,9 +95,9 @@ const statusText: Record<string, string> = {
 };
 export function Status({ s }: { s: string }) {
   return (
-    <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold", statusStyle[s])}>
+    <Badge className={cn("rounded-full border-transparent px-2.5 py-0.5", statusStyle[s])}>
       {statusText[s] ?? s}
-    </span>
+    </Badge>
   );
 }
 
@@ -72,16 +107,23 @@ export function Empty({ children }: { children: ReactNode }) {
 
 export function StoreTypeTag({ type }: { type: string }) {
   return (
-    <span
+    <Badge
       className={cn(
-        "rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
-        type === "approval" ? "bg-warning/25 text-warning-foreground" : "bg-success/15 text-success",
+        "rounded-full border-transparent px-2 py-0.5 text-[11px] uppercase tracking-wide",
+        type === "approval"
+          ? "bg-warning/25 text-warning-foreground"
+          : "bg-success/15 text-success",
       )}
     >
       {type === "approval" ? "Approval" : "Direct sale"}
-    </span>
+    </Badge>
   );
 }
 
 export const fmtDate = (d: string) =>
-  new Date(d).toLocaleString("en-ZA", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(d).toLocaleString("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });

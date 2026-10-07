@@ -7,7 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { PRICES, YEARLY_FACTOR, loadPaychangu, useSubscription } from "@/lib/billing";
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -365,84 +374,82 @@ export function Billing({ locked }: { locked?: boolean }) {
               <p className="text-sm text-muted-foreground">Your paid invoices will appear here.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead className="bg-muted/50 text-left text-[11px] text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Invoice</th>
-                    <th className="px-4 py-2.5 font-medium">Billing date</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 font-medium">Amount</th>
-                    <th className="px-4 py-2.5 font-medium">Plan</th>
-                    <th className="px-4 py-2.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.data.map((r) => (
-                    <tr key={r.tx_ref} className="border-t">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                            <HugeiconsIcon icon={File01Icon} className="size-4 text-accent" />
+            <Table className="text-[13px]">
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="px-4 py-2.5 text-[11px]">Invoice</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px]">Billing date</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px]">Status</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px]">Amount</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px]">Plan</TableHead>
+                  <TableHead className="px-4 py-2.5" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.data.map((r) => (
+                  <TableRow key={r.tx_ref}>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10">
+                          <HugeiconsIcon icon={File01Icon} className="size-4 text-accent" />
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            Invoice{" "}
+                            {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
+                              month: "short",
+                              year: "numeric",
+                            })}{" "}
+                            — {r.stores} store{r.stores > 1 ? "s" : ""}
                           </div>
-                          <div>
-                            <div className="font-medium">
-                              Invoice{" "}
-                              {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
-                                month: "short",
-                                year: "numeric",
-                              })}{" "}
-                              — {r.stores} store{r.stores > 1 ? "s" : ""}
-                            </div>
-                            <div className="font-mono text-[11px] text-muted-foreground">
-                              {r.tx_ref}
-                            </div>
+                          <div className="font-mono text-[11px] text-muted-foreground">
+                            {r.tx_ref}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
-                          dateStyle: "medium",
-                        })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-xs font-semibold capitalize",
-                            r.status === "paid"
-                              ? "bg-accent/15 text-accent"
-                              : "bg-secondary text-muted-foreground",
-                          )}
-                        >
-                          {r.status === "paid" ? "✓ Paid" : r.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-medium tabular">
-                        {fmt(r.currency as "MWK" | "USD", Number(r.amount))}
-                      </td>
-                      <td className="px-4 py-3 capitalize text-muted-foreground">
-                        {r.period} plan
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {r.status === "paid" ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-accent hover:text-accent"
-                            aria-label={`Download invoice ${r.tx_ref}`}
-                            onClick={() => printInvoice(r, business?.name ?? "")}
-                          >
-                            Download
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Not paid</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground">
+                      {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
+                        dateStyle: "medium",
+                      })}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge
+                        className={cn(
+                          "rounded-full border-transparent capitalize",
+                          r.status === "paid"
+                            ? "bg-accent/15 text-accent"
+                            : "bg-secondary text-muted-foreground",
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      >
+                        {r.status === "paid" ? "✓ Paid" : r.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 font-medium tabular">
+                      {fmt(r.currency as "MWK" | "USD", Number(r.amount))}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 capitalize text-muted-foreground">
+                      {r.period} plan
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right">
+                      {r.status === "paid" ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-accent hover:text-accent"
+                          aria-label={`Download invoice ${r.tx_ref}`}
+                          onClick={() => printInvoice(r, business?.name ?? "")}
+                        >
+                          Download
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not paid</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </div>
       </section>

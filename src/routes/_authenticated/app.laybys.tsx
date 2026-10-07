@@ -9,24 +9,50 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/laybys")({ head: () => ({ meta: [{ title: "Laybys — Storq" }, { name: "description", content: "Track customer laybys and outstanding balances." }, { property: "og:title", content: "Laybys — Storq" }, { property: "og:description", content: "Track customer laybys and outstanding balances." }, { name: "robots", content: "noindex, nofollow" }] }), component: Laybys });
+export const Route = createFileRoute("/_authenticated/app/laybys")({
+  head: () => ({
+    meta: [
+      { title: "Laybys — Storq" },
+      { name: "description", content: "Track customer laybys and outstanding balances." },
+      { property: "og:title", content: "Laybys — Storq" },
+      { property: "og:description", content: "Track customer laybys and outstanding balances." },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+  component: Laybys,
+});
 
 function Laybys() {
   const { store, money, can, rpc } = usePos();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"open" | "done">("open");
   const open = useSales("laybys-open", { storeId: store?.id, statuses: ["layby_open"] });
-  const done = useSales("laybys-done", { storeId: store?.id, statuses: ["layby_completed", "layby_cancelled"] });
+  const done = useSales("laybys-done", {
+    storeId: store?.id,
+    statuses: ["layby_completed", "layby_cancelled"],
+  });
   const [paying, setPaying] = useState<SaleRow | null>(null);
   const [q, setQ] = useState("");
   const rows = (tab === "open" ? open.data : done.data)?.filter(
-    (s) => !q || `${s.customer_name} ${s.customer_phone} ${s.number}`.toLowerCase().includes(q.toLowerCase()),
+    (s) =>
+      !q ||
+      `${s.customer_name} ${s.customer_phone} ${s.number}`.toLowerCase().includes(q.toLowerCase()),
   );
 
   async function cancel(s: SaleRow) {
-    if (!confirm(`Cancel layby #${s.number}? Items go back into stock. Refund ${money(s.paid)} separately.`)) return;
-    try { await rpc("cancel_layby", { p_sale: s.id }); toast.success("Layby cancelled"); qc.invalidateQueries(); }
-    catch (e) { toast.error((e as Error).message); }
+    if (
+      !confirm(
+        `Cancel layby #${s.number}? Items go back into stock. Refund ${money(s.paid)} separately.`,
+      )
+    )
+      return;
+    try {
+      await rpc("cancel_layby", { p_sale: s.id });
+      toast.success("Layby cancelled");
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   return (
@@ -34,9 +60,21 @@ function Laybys() {
       <PageHeader title="Laybys" sub="Stock is reserved while the customer pays it off." />
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {(["open", "done"] as const).map((t) => (
-          <Button key={t} size="sm" variant={tab === t ? "default" : "outline"} onClick={() => setTab(t)}>{t === "open" ? `Open (${open.data?.length ?? 0})` : "Closed"}</Button>
+          <Button
+            key={t}
+            size="sm"
+            variant={tab === t ? "default" : "outline"}
+            onClick={() => setTab(t)}
+          >
+            {t === "open" ? `Open (${open.data?.length ?? 0})` : "Closed"}
+          </Button>
         ))}
-        <Input className="ml-auto h-8 w-56 bg-card" placeholder="Search customer or number" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input
+          className="ml-auto h-8 w-56 bg-card"
+          placeholder="Search customer or number"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
       </div>
       {rows?.length === 0 && <Empty>No laybys here.</Empty>}
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -47,54 +85,111 @@ function Laybys() {
               <div className="flex min-w-0 justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate font-bold">{s.customer_name}</div>
-                  <div className="truncate text-xs text-muted-foreground">#{s.number} · {s.customer_phone ?? "no phone"} · {fmtDate(s.created_at)}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    #{s.number} · {s.customer_phone ?? "no phone"} · {fmtDate(s.created_at)}
+                  </div>
                 </div>
                 <Status s={s.status} />
               </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>
-              <div className="tabular mt-1.5 flex justify-between gap-2 text-[13px]">
-                <span className="truncate">Paid {money(s.paid)}</span><span className="truncate font-bold">Owing {money(Number(s.total) - Number(s.paid))}</span>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
               </div>
-              <p className="mt-1.5 truncate text-xs text-muted-foreground">{s.sale_items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
+              <div className="tabular mt-1.5 flex justify-between gap-2 text-[13px]">
+                <span className="truncate">Paid {money(s.paid)}</span>
+                <span className="truncate font-bold">
+                  Owing {money(Number(s.total) - Number(s.paid))}
+                </span>
+              </div>
+              <p className="mt-1.5 truncate text-xs text-muted-foreground">
+                {s.sale_items.map((i) => `${i.qty}× ${i.name}`).join(", ")}
+              </p>
               {s.status === "layby_open" && (
                 <div className="mt-3 flex gap-2">
-                  {can("admin", "manager") && <Button size="sm" variant="outline" onClick={() => cancel(s)}>Cancel</Button>}
-                  <Button size="sm" variant="accent" className="flex-1" onClick={() => setPaying(s)}>Take payment</Button>
+                  {can("admin", "manager") && (
+                    <Button size="sm" variant="outline" onClick={() => cancel(s)}>
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="accent"
+                    className="flex-1"
+                    onClick={() => setPaying(s)}
+                  >
+                    Take payment
+                  </Button>
                 </div>
               )}
             </div>
           );
         })}
       </div>
-      {paying && <PayDialog s={paying} onClose={() => setPaying(null)} onPaid={() => { setPaying(null); qc.invalidateQueries(); }} />}
+      {paying && (
+        <PayDialog
+          s={paying}
+          onClose={() => setPaying(null)}
+          onPaid={() => {
+            setPaying(null);
+            qc.invalidateQueries();
+          }}
+        />
+      )}
     </>
   );
 }
 
-function PayDialog({ s, onClose, onPaid }: { s: SaleRow; onClose: () => void; onPaid: () => void }) {
+function PayDialog({
+  s,
+  onClose,
+  onPaid,
+}: {
+  s: SaleRow;
+  onClose: () => void;
+  onPaid: () => void;
+}) {
   const { money, rpc } = usePos();
   const owing = Number(s.total) - Number(s.paid);
   const [amt, setAmt] = useState(String(owing));
   const [method, setMethod] = useState("cash");
   async function pay() {
     try {
-      const st = await rpc<string>("layby_pay", { p_sale: s.id, p_amount: Number(amt), p_method: method });
-      toast.success(st === "layby_completed" ? "Layby fully paid — hand over the goods" : "Payment recorded");
+      const st = await rpc<string>("layby_pay", {
+        p_sale: s.id,
+        p_amount: Number(amt),
+        p_method: method,
+      });
+      toast.success(
+        st === "layby_completed" ? "Layby fully paid — hand over the goods" : "Payment recorded",
+      );
       onPaid();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Layby payment — {s.customer_name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Layby payment — {s.customer_name}</DialogTitle>
+        </DialogHeader>
         <p className="text-sm text-muted-foreground">Owing {money(owing)}</p>
-        <Field label="Amount"><Input inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} /></Field>
-        <Field label="Method">
-          <NativeSelect value={method} onChange={(e) => setMethod(e.target.value)}>
-            <option value="cash">Cash</option><option value="card">Card</option><option value="mobile">Mobile money</option>
-          </NativeSelect>
+        <Field label="Amount">
+          <Input inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} />
         </Field>
-        <Button variant="success" onClick={pay}>Record payment</Button>
+        <Field label="Method">
+          <NativeSelect
+            value={method}
+            onChange={setMethod}
+            options={[
+              { value: "cash", label: "Cash" },
+              { value: "card", label: "Card" },
+              { value: "mobile", label: "Mobile money" },
+            ]}
+          />
+        </Field>
+        <Button variant="success" onClick={pay}>
+          Record payment
+        </Button>
       </DialogContent>
     </Dialog>
   );
