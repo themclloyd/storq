@@ -1,610 +1,311 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Banknote,
-  Boxes,
-  Check,
-  ChevronDown,
-  ClipboardCheck,
-  Eye,
-  FileCheck2,
-  KeyRound,
-  Layers,
-  Lock,
-  Smartphone,
-  Store,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Smartphone, WifiOff, ShieldCheck, Zap } from "lucide-react";
 import { useState } from "react";
+import heroShop from "@/assets/hero-shop.jpg";
+import counter from "@/assets/counter.jpg";
+import stocktake from "@/assets/stocktake.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Tillpoint — POS, stock & layby for your stores" },
+      { title: "Tillpoint POS — Sell more. Lose less stock." },
       {
         name: "description",
         content:
-          "One login per business, a 4-digit PIN per staff member. Sell, approve invoices, run laybys and count stock across one shop or many — from any phone or laptop.",
+          "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop. Free to start.",
       },
-      { property: "og:title", content: "Tillpoint — POS, stock & layby for your stores" },
+      { property: "og:title", content: "Tillpoint POS — Sell more. Lose less stock." },
       {
         property: "og:description",
-        content:
-          "One login, staff PINs, direct-sale and approval stores, layby and stock takes — from any phone or laptop.",
+        content: "Point of sale, layby and stock control for one shop or many — on the phone you already own.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
 });
 
-/* ---------------------------------- data --------------------------------- */
-
-const features = [
-  {
-    icon: KeyRound,
-    t: "One login, many PINs",
-    d: "Sign a device in once with the business email. Every cashier, manager and admin unlocks with their own 4-digit PIN — so you always know who rang up what.",
-  },
-  {
-    icon: Store,
-    t: "Two store types",
-    d: "Direct-sale stores ring up instantly. Approval-based stores send every invoice to a manager for sign-off before it counts. Each store strictly follows its own rules.",
-  },
-  {
-    icon: Wallet,
-    t: "Layby built in",
-    d: "Take a deposit, reserve the stock and collect instalments until it's paid off. Balances and due dates tracked automatically — in both store types.",
-  },
-  {
-    icon: ClipboardCheck,
-    t: "Stock takes with staff",
-    d: "Everyone counts on their own phone. Variances show live as you count, and a manager closes the count when it's done.",
-  },
-  {
-    icon: Boxes,
-    t: "Inventory that stays true",
-    d: "Every sale, layby, approval and count moves your stock in one ledger. Set starting quantities and receive or remove stock when it arrives.",
-  },
-  {
-    icon: Banknote,
-    t: "Made for African retail",
-    d: "Rand as the default currency and mobile money-friendly checkout. Runs on the phones and laptops you already own — no special hardware.",
-  },
-];
-
-const stats = [
-  { v: "1 login", l: "shared across every device" },
-  { v: "4 digits", l: "unlocks each staff member" },
-  { v: "2 store types", l: "direct sale & approval" },
-  { v: "0 extra hardware", l: "phone or laptop is enough" },
-];
-
-const steps = [
-  {
-    icon: Lock,
-    t: "Sign in once",
-    d: "Enter your business email and password on the device. That's the only login you'll ever share.",
-  },
-  {
-    icon: KeyRound,
-    t: "Tap your PIN",
-    d: "Each staff member unlocks with their own 4-digit PIN. The PIN sets their role — cashier, manager or admin.",
-  },
-  {
-    icon: TrendingUp,
-    t: "Start selling",
-    d: "Ring up sales, create invoices, take laybys and count stock. Everything syncs back to the owner instantly.",
-  },
-];
-
-const faqs = [
-  {
-    q: "Do I need to buy a till or card machine?",
-    a: "No. Tillpoint runs in the browser on any phone, tablet or laptop. Open the site, sign in with your business email, and the device becomes a register.",
-  },
-  {
-    q: "How do staff log in without their own email?",
-    a: "You sign the device in once with the business email and password. Staff then choose their name and enter their own 4-digit PIN. The PIN decides their role and what they can do.",
-  },
-  {
-    q: "What's the difference between the two store types?",
-    a: "Direct-sale stores let cashiers complete sales immediately. Approval-based stores require another user — a manager or admin — to approve each invoice before the sale counts. Each store strictly follows its own type.",
-  },
-  {
-    q: "Does layby work in both store types?",
-    a: "Yes. Take a deposit, reserve the item and collect instalments until the balance is settled — in direct-sale and approval-based stores alike.",
-  },
-  {
-    q: "Can staff count stock together?",
-    a: "Yes. Start a stock take and every staff member counts from their own device. You see counted quantities and variances live, and a manager closes the count.",
-  },
-  {
-    q: "What happens if a device is lost or stolen?",
-    a: "Nobody can get past the PIN screen without a staff PIN, and you can change the business password or remove a staff PIN at any time from the Staff page.",
-  },
-];
-
-const testimonials = [
-  {
-    quote:
-      "The PIN system changed everything. I know exactly which cashier made every sale, and I don't have to buy anyone a laptop.",
-    name: "Thandi M.",
-    role: "Owner, two clothing stores",
-  },
-  {
-    quote:
-      "Approval invoices stopped stock walking out the back door. Nothing counts until a manager signs it off.",
-    name: "Sipho K.",
-    role: "Manager, hardware & building supplies",
-  },
-  {
-    quote:
-      "Layby used to be a book and a calculator. Now the balance, deposit and due dates are just there.",
-    name: "Nomvula D.",
-    role: "Owner, furniture shop",
-  },
-];
-
-/* ------------------------------- components ------------------------------ */
-
-function Logo({ dark = false }: { dark?: boolean }) {
+function Cta({ label = "Start free", invert = false }: { label?: string; invert?: boolean }) {
   return (
-    <span className={`flex items-center gap-2 text-lg font-extrabold tracking-tight ${dark ? "text-primary-foreground" : ""}`}>
-      <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-        <Boxes className="size-4" />
-      </span>
-      Tillpoint
-    </span>
+    <Button
+      asChild
+      size="lg"
+      variant={invert ? "secondary" : "default"}
+      className="h-14 rounded-full px-8 text-base font-semibold"
+    >
+      <Link to="/auth">
+        {label} <ArrowRight className="ml-1 h-5 w-5" />
+      </Link>
+    </Button>
   );
 }
-
-function CheckItem({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-2.5 text-sm">
-      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
-        <Check className="size-3" strokeWidth={3} />
-      </span>
-      <span className="text-muted-foreground">{children}</span>
-    </li>
-  );
-}
-
-/* --------------------------------- mockups -------------------------------- */
-
-function PinPadMock() {
-  return (
-    <div className="pos-card w-full max-w-[220px] p-5 shadow-pop">
-      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-        <Lock className="size-3.5 text-accent" /> Unlock Tillpoint
-      </div>
-      <div className="mt-3 text-sm font-bold">Thandi M.</div>
-      <div className="mt-1 text-[11px] text-muted-foreground">Enter your 4-digit PIN</div>
-      <div className="mt-3 flex gap-2">
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="size-2.5 rounded-full bg-accent" />
-        ))}
-        <span className="size-2.5 rounded-full border border-input" />
-      </div>
-      <div className="mt-4 grid grid-cols-3 gap-1.5 text-center text-sm font-semibold">
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
-          <span key={k} className="pos-key grid h-9 place-items-center bg-secondary text-secondary-foreground">{k}</span>
-        ))}
-        <span className="grid h-9 place-items-center text-muted-foreground">C</span>
-        <span className="pos-key grid h-9 place-items-center bg-secondary">0</span>
-        <span className="grid h-9 place-items-center text-accent">⌫</span>
-      </div>
-    </div>
-  );
-}
-
-function RegisterMock() {
-  const tiles = [
-    { n: "Sneakers", p: "R 899.00", c: "bg-tile-1" },
-    { n: "Denim Jeans", p: "R 549.00", c: "bg-tile-2" },
-    { n: "T-Shirt", p: "R 199.00", c: "bg-tile-3" },
-    { n: "Cap", p: "R 149.00", c: "bg-tile-4" },
-    { n: "Hoodie", p: "R 649.00", c: "bg-tile-5" },
-    { n: "Belt", p: "R 229.00", c: "bg-tile-6" },
-  ];
-  return (
-    <div className="pos-card w-full max-w-[380px] overflow-hidden p-0 shadow-pop">
-      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <span className="text-xs font-bold">Sandton Store · Direct sale</span>
-        <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success">Cashier: Thandi</span>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5 p-3">
-        {tiles.map((t) => (
-          <div key={t.n} className={`pos-tile ${t.c} p-2.5 text-white`}>
-            <div className="text-[11px] font-bold leading-tight">{t.n}</div>
-            <div className="mt-3 text-[11px] font-semibold opacity-90 tabular">{t.p}</div>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-border px-4 py-3">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>2 items</span>
-          <span className="tabular">R 1 448.00</span>
-        </div>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-sm font-bold">Charge</span>
-          <span className="rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground">R 1 448.00 →</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ApprovalMock() {
-  return (
-    <div className="pos-card w-full max-w-sm p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Invoice #1042</span>
-        <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-[10px] font-bold text-warning-foreground">Awaiting approval</span>
-      </div>
-      <div className="mt-3 space-y-1.5 text-sm">
-        <div className="flex justify-between"><span className="text-muted-foreground">Cement 50kg × 10</span><span className="tabular">R 990.00</span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">Brick force × 4</span><span className="tabular">R 316.00</span></div>
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-        <span className="text-sm font-bold">Total</span>
-        <span className="text-sm font-bold tabular">R 1 306.00</span>
-      </div>
-      <div className="mt-4 flex gap-2">
-        <span className="flex-1 rounded-lg bg-destructive/10 py-2 text-center text-xs font-bold text-destructive">Decline</span>
-        <span className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success py-2 text-xs font-bold text-success-foreground">
-          <BadgeCheck className="size-3.5" /> Approve
-        </span>
-      </div>
-      <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Eye className="size-3.5" /> Cashier Sipho · requires manager sign-off
-      </div>
-    </div>
-  );
-}
-
-function LaybyMock() {
-  return (
-    <div className="pos-card w-full max-w-sm p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Layby · Sofa set</span>
-        <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-bold text-accent">Active</span>
-      </div>
-      <div className="mt-4">
-        <div className="flex items-end justify-between">
-          <span className="text-xs text-muted-foreground">Paid so far</span>
-          <span className="text-sm font-bold tabular">R 1 800 / R 4 500</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full w-[40%] rounded-full bg-accent" />
-        </div>
-      </div>
-      <div className="mt-4 space-y-2 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-muted-foreground"><Check className="size-3.5 text-success" strokeWidth={3} /> Deposit</span>
-          <span className="tabular text-muted-foreground line-through">R 500</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-muted-foreground"><Check className="size-3.5 text-success" strokeWidth={3} /> Instalment 1</span>
-          <span className="tabular text-muted-foreground line-through">R 650</span>
-        </div>
-        <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
-          <span className="font-semibold">Instalment 2 · due Fri</span>
-          <span className="font-bold tabular">R 650</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* --------------------------------- landing -------------------------------- */
 
 function Landing() {
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-
   return (
-    <div className="min-h-screen scroll-smooth bg-background">
-      {/* nav */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Logo />
-          <nav className="hidden items-center gap-7 text-sm font-semibold text-muted-foreground md:flex">
-            <a href="#features" className="transition-colors hover:text-foreground">Features</a>
-            <a href="#how" className="transition-colors hover:text-foreground">How it works</a>
-            <a href="#stores" className="transition-colors hover:text-foreground">Store types</a>
-            <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Nav */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          <Link to="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">T</span>
+            Tillpoint
+          </Link>
+          <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
+            <a href="#sell" className="hover:text-accent">Sell</a>
+            <a href="#stock" className="hover:text-accent">Inventory</a>
+            <a href="#layby" className="hover:text-accent">Layby</a>
+            <a href="#pricing" className="hover:text-accent">Pricing</a>
           </nav>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link to="/auth">Sign in</Link>
+            <Button asChild variant="ghost" className="hidden rounded-full sm:inline-flex">
+              <Link to="/auth">Log in</Link>
             </Button>
-            <Button asChild size="sm"><Link to="/auth">Start free</Link></Button>
+            <Button asChild className="rounded-full px-5 font-semibold">
+              <Link to="/auth">Get started</Link>
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* hero */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_70%_0%,var(--accent)_0%,transparent_70%)] opacity-[0.07]" />
-        <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 pb-20 pt-16 lg:grid-cols-2 lg:pt-24">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-success" />
-              Works on any phone, tablet or laptop
-            </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-              Run every till from one account.
-            </h1>
-            <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-              Tillpoint turns any device into a point of sale. Staff unlock with their own 4-digit PIN, invoices get approved, laybys run themselves and stock counts itself — for one shop or many.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="xl" className="text-base">
-                <Link to="/auth">Start selling free <ArrowRight className="size-4" /></Link>
-              </Button>
-              <Button asChild size="xl" variant="outline" className="text-base">
-                <a href="#how">See how it works</a>
-              </Button>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              No card details. No hardware. Set up your first store in minutes.
-            </p>
+      {/* Hero */}
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-14 md:pt-20">
+        <div className="max-w-4xl">
+          <p className="mb-5 text-sm font-semibold uppercase tracking-widest text-accent">Point of sale for African retail</p>
+          <h1 className="text-5xl font-extrabold leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+            Sell more.
+            <br />
+            Lose less stock.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
+            Tillpoint turns the phone or laptop you already own into a full till — with staff PINs, laybys,
+            invoice approvals and stock takes for every shop you run.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Cta label="Start selling free" />
+            <span className="text-sm text-muted-foreground">No card. No hardware. Set up in 5 minutes.</span>
           </div>
-          <div className="relative flex items-center justify-center gap-6 lg:justify-end">
-            <div className="hidden sm:block"><RegisterMock /></div>
-            <div className="sm:absolute sm:-bottom-10 sm:left-2 lg:left-6"><PinPadMock /></div>
+        </div>
+        <div className="relative mt-14 overflow-hidden rounded-3xl">
+          <img src={heroShop} alt="Shop owner ringing up a sale on Tillpoint" width={1600} height={1104} className="h-[460px] w-full object-cover md:h-[620px]" />
+          <div className="absolute bottom-5 left-5 rounded-2xl bg-card/95 p-5 shadow-xl backdrop-blur md:bottom-8 md:left-8">
+            <p className="text-xs font-medium text-muted-foreground">Today · Rosebank store</p>
+            <p className="mt-1 text-3xl font-extrabold">R 18 450</p>
+            <p className="text-sm font-semibold text-success">▲ 24% vs last Wednesday</p>
           </div>
         </div>
       </section>
 
-      {/* stats strip */}
-      <section className="border-y border-border bg-card">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-y-6 px-6 py-8 sm:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.v} className="text-center">
-              <div className="text-xl font-extrabold tracking-tight">{s.v}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">{s.l}</div>
+      {/* Stats */}
+      <section className="border-y border-border">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-12 md:grid-cols-4">
+          {[
+            ["5 min", "to set up your first till"],
+            ["R0", "hardware to buy"],
+            ["4-digit", "PIN per staff member"],
+            ["1 login", "for every device you own"],
+          ].map(([n, l]) => (
+            <div key={n}>
+              <p className="text-4xl font-extrabold tracking-tight md:text-5xl">{n}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{l}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* features */}
-      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
-        <div className="max-w-2xl">
-          <span className="text-sm font-bold uppercase tracking-widest text-accent">Everything in one place</span>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
-            The features shop owners actually ask for
+      {/* Sell */}
+      <section id="sell" className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
+        <img src={counter} alt="Cashier completing a sale" loading="lazy" width={1200} height={1200} className="aspect-square w-full rounded-3xl object-cover" />
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-widest text-accent">Checkout</p>
+          <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">The fastest till at the counter.</h2>
+          <p className="mt-5 text-lg text-muted-foreground">
+            Tap products, take cash, card or mobile money, and you're done. Every sale updates stock instantly, on every device.
+          </p>
+          <ul className="mt-8 space-y-4">
+            {[
+              "Cash, card and mobile money in one checkout",
+              "Each cashier signs in with their own PIN — every rand is traceable",
+              "Works for one shop or ten, from the same account",
+            ].map((t) => (
+              <li key={t} className="flex gap-3 text-base">
+                <Check className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Two store types — dark */}
+      <section className="bg-primary text-primary-foreground">
+        <div className="mx-auto max-w-7xl px-6 py-24">
+          <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+            Run your shop your way. Not ours.
           </h2>
-          <p className="mt-3 text-muted-foreground">
-            Built around how African retail really works — shared devices, tight stock control, and customers who pay over time.
-          </p>
-        </div>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
-            <div key={f.t} className="pos-card p-6 transition-shadow hover:shadow-pop">
-              <span className="grid size-11 place-items-center rounded-xl bg-accent/10 text-accent">
-                <f.icon className="size-5" />
-              </span>
-              <h3 className="mt-4 text-lg font-bold">{f.t}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.d}</p>
+          <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Tillpoint enforces it — no shortcuts, no leaks.</p>
+          <div className="mt-14 grid gap-6 md:grid-cols-2">
+            <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
+              <Zap className="h-8 w-8" />
+              <h3 className="mt-6 text-3xl font-bold">Direct sale</h3>
+              <p className="mt-3 opacity-70">Cashier rings it up, customer pays, stock drops. Perfect for busy counters and spazas.</p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* how it works */}
-      <section id="how" className="scroll-mt-20 bg-foreground/[0.03] py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="text-sm font-bold uppercase tracking-widest text-accent">How it works</span>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">From box to first sale in minutes</h2>
-            <p className="mt-3 text-muted-foreground">Three steps. No install, no training day, no hardware purchase.</p>
-          </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            {steps.map((s, i) => (
-              <div key={s.t} className="relative">
-                <div className="flex items-center gap-3">
-                  <span className="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
-                    <s.icon className="size-5" />
-                  </span>
-                  <span className="text-5xl font-extrabold tracking-tight text-muted-foreground/25">{i + 1}</span>
-                </div>
-                <h3 className="mt-4 text-lg font-bold">{s.t}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.d}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-12 flex justify-center">
-            <Button asChild size="xl" className="text-base"><Link to="/auth">Create your business account <ArrowRight className="size-4" /></Link></Button>
+            <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
+              <ShieldCheck className="h-8 w-8" />
+              <h3 className="mt-6 text-3xl font-bold">Approval-based</h3>
+              <p className="mt-3 opacity-70">Cashier creates an invoice, a manager approves it before stock moves. Built for wholesale and high-value goods.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* store types */}
-      <section id="stores" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-bold uppercase tracking-widest text-accent">Two store types</span>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Strict rules for every kind of shop</h2>
-          <p className="mt-3 text-muted-foreground">
-            Each store behaves exactly by its type — no exceptions, no workarounds.
+      {/* Stock */}
+      <section id="stock" className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
+        <div className="md:order-2">
+          <img src={stocktake} alt="Manager counting stock on his phone" loading="lazy" width={1200} height={1200} className="aspect-square w-full rounded-3xl object-cover" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-widest text-accent">Inventory</p>
+          <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Know exactly what's on the shelf.</h2>
+          <p className="mt-5 text-lg text-muted-foreground">
+            Run stock takes with your whole team on their phones. Tillpoint shows what's missing, who counted it, and what it cost you.
           </p>
-        </div>
-        <div className="mt-12 grid items-start gap-8 lg:grid-cols-2">
-          <div className="pos-card p-8">
-            <span className="grid size-11 place-items-center rounded-xl bg-success/10 text-success"><Store className="size-5" /></span>
-            <h3 className="mt-4 text-xl font-bold">Direct sale</h3>
-            <p className="mt-2 text-sm text-muted-foreground">The classic till. Cashier taps products, charges and done.</p>
-            <ul className="mt-5 space-y-3">
-              <CheckItem>Sale completes the moment the customer pays</CheckItem>
-              <CheckItem>Stock leaves the shelf automatically</CheckItem>
-              <CheckItem>Cash up and daily totals per cashier</CheckItem>
-              <CheckItem>Layby deposits and instalments on the spot</CheckItem>
-            </ul>
-            <div className="mt-6"><RegisterMock /></div>
-          </div>
-          <div className="pos-card p-8">
-            <span className="grid size-11 place-items-center rounded-xl bg-accent/10 text-accent"><FileCheck2 className="size-5" /></span>
-            <h3 className="mt-4 text-xl font-bold">Approval-based</h3>
-            <p className="mt-2 text-sm text-muted-foreground">High-value or controlled stock. Nothing counts until someone senior signs it off.</p>
-            <ul className="mt-5 space-y-3">
-              <CheckItem>Cashier creates an invoice, never a final sale</CheckItem>
-              <CheckItem>A manager or admin approves or declines</CheckItem>
-              <CheckItem>Stock only moves once the invoice is approved</CheckItem>
-              <CheckItem>Full trail of who created and who approved</CheckItem>
-            </ul>
-            <div className="mt-6"><ApprovalMock /></div>
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            <div className="rounded-2xl bg-muted p-6">
+              <p className="text-3xl font-extrabold">Live</p>
+              <p className="text-sm text-muted-foreground">stock across all stores</p>
+            </div>
+            <div className="rounded-2xl bg-muted p-6">
+              <p className="text-3xl font-extrabold">Every</p>
+              <p className="text-sm text-muted-foreground">adjustment logged to a PIN</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* layby + stock take split */}
-      <section className="bg-foreground/[0.03] py-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 lg:grid-cols-2">
+      {/* Layby */}
+      <section id="layby" className="bg-muted">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
-              <Wallet className="size-3.5" /> Layby
-            </span>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight">Sell now, paid over time</h2>
-            <p className="mt-3 text-muted-foreground">
-              Layby is how most of your customers actually buy. Take a deposit, reserve the stock and collect instalments — the balance, due dates and history are tracked for you in both store types.
+            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Layby</p>
+            <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Say yes to customers who pay over time.</h2>
+            <p className="mt-5 text-lg text-muted-foreground">
+              Reserve the goods, take a deposit, record each payment. The item is held out of stock until it's paid off.
             </p>
-            <ul className="mt-5 space-y-3">
-              <CheckItem>Deposit locks the item and the price</CheckItem>
-              <CheckItem>Every instalment recorded against the layby</CheckItem>
-              <CheckItem>Stock only releases when it's fully paid</CheckItem>
-            </ul>
+            <div className="mt-8"><Cta label="Try layby free" /></div>
           </div>
-          <div className="flex justify-center lg:justify-end"><LaybyMock /></div>
-        </div>
-        <div className="mx-auto mt-20 grid max-w-6xl items-center gap-12 px-6 lg:grid-cols-2">
-          <div className="order-2 lg:order-1">
-            <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-xs font-bold text-success">
-              <ClipboardCheck className="size-3.5" /> Stock takes
-            </span>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-tight">Count your whole shop, together</h2>
-            <p className="mt-3 text-muted-foreground">
-              Start a stock take and every staff member counts from their own device. Watch counted quantities and variances appear live, then close the count and let Tillpoint true up your inventory.
-            </p>
-            <ul className="mt-5 space-y-3">
-              <CheckItem>Everyone counts at the same time, on their own phone</CheckItem>
-              <CheckItem>Variances show as you count — not days later</CheckItem>
-              <CheckItem>A manager reviews and closes the count</CheckItem>
-            </ul>
-          </div>
-          <div className="order-1 flex justify-center lg:order-2 lg:justify-end">
-            <div className="pos-card w-full max-w-sm p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Stock take · Beverages</span>
-                <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-[10px] font-bold text-warning-foreground">Counting</span>
+          <div className="rounded-3xl bg-card p-8 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Layby #1042 · Thandi M.</p>
+                <p className="mt-1 text-2xl font-bold">Couch set — R 9 600</p>
               </div>
-              <div className="mt-4 space-y-2.5 text-sm">
-                <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
-                  <span className="font-semibold">Cola 330ml</span>
-                  <span className="tabular"><span className="font-bold">48</span> <span className="text-xs text-success">/ 48 expected</span></span>
+              <span className="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">On track</span>
+            </div>
+            <div className="mt-6 h-3 overflow-hidden rounded-full bg-muted">
+              <div className="h-full w-[62%] rounded-full bg-accent" />
+            </div>
+            <div className="mt-3 flex justify-between text-sm">
+              <span className="font-semibold">R 5 950 paid</span>
+              <span className="text-muted-foreground">R 3 650 left</span>
+            </div>
+            <div className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
+              {[["12 Sep", "Deposit · Cash", "R 2 000"], ["26 Sep", "Mobile money", "R 1 950"], ["03 Oct", "Card", "R 2 000"]].map(([d, m, a]) => (
+                <div key={d} className="flex justify-between">
+                  <span className="text-muted-foreground">{d} · {m}</span>
+                  <span className="font-semibold">{a}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
-                  <span className="font-semibold">Water 1L</span>
-                  <span className="tabular"><span className="font-bold text-destructive">51</span> <span className="text-xs text-destructive">/ 54 expected</span></span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
-                  <span className="font-semibold">Energy drink</span>
-                  <span className="tabular"><span className="font-bold">—</span> <span className="text-xs text-muted-foreground">not counted</span></span>
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Smartphone className="size-3.5" /> 3 staff counting on their own devices
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* testimonials */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-bold uppercase tracking-widest text-accent">Trusted by owners</span>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Built for how you already run things</h2>
-        </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <figure key={t.name} className="pos-card flex flex-col p-6">
-              <Layers className="size-5 text-accent" />
-              <blockquote className="mt-4 flex-1 text-sm leading-relaxed">“{t.quote}”</blockquote>
-              <figcaption className="mt-5 border-t border-border pt-4">
-                <div className="text-sm font-bold">{t.name}</div>
-                <div className="text-xs text-muted-foreground">{t.role}</div>
-              </figcaption>
-            </figure>
-          ))}
+      {/* Why */}
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Built for how Africa actually trades.</h2>
+        <div className="mt-14 grid gap-10 md:grid-cols-3">
+          {[
+            [Smartphone, "Any device", "Android phone, old laptop, tablet — sign in once and every staff member uses their PIN."],
+            [ShieldCheck, "Staff can't cheat the till", "Roles come from the PIN. Cashiers sell, managers approve, owners see everything."],
+            [WifiOff, "Light on data", "A fast, lightweight app that keeps working on everyday mobile connections."],
+          ].map(([Icon, t, d]) => {
+            const I = Icon as typeof Smartphone;
+            return (
+              <div key={t as string}>
+                <I className="h-8 w-8 text-accent" />
+                <h3 className="mt-5 text-2xl font-bold">{t as string}</h3>
+                <p className="mt-2 text-muted-foreground">{d as string}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* faq */}
-      <section id="faq" className="scroll-mt-20 bg-foreground/[0.03] py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <div className="text-center">
-            <span className="text-sm font-bold uppercase tracking-widest text-accent">FAQ</span>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Questions, answered</h2>
-          </div>
-          <div className="mt-10 space-y-3">
-            {faqs.map((f, i) => (
-              <div key={f.q} className="pos-card overflow-hidden">
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-bold"
-                >
-                  {f.q}
-                  <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
-                </button>
-                {openFaq === i && (
-                  <p className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
-                )}
+      {/* Pricing */}
+      <section id="pricing" className="border-t border-border">
+        <div className="mx-auto max-w-7xl px-6 py-24">
+          <h2 className="text-center text-4xl font-extrabold tracking-tight md:text-6xl">Simple pricing. Start free.</h2>
+          <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-2">
+            {[
+              { n: "Starter", p: "R0", s: "/month", f: ["1 store", "Up to 3 staff PINs", "Direct sale, layby, stock"], hi: false },
+              { n: "Growth", p: "R299", s: "/month", f: ["Unlimited stores", "Unlimited staff PINs", "Approval-based stores", "Team stock takes & reports"], hi: true },
+            ].map((t) => (
+              <div key={t.n} className={`rounded-3xl p-10 ${t.hi ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <p className="text-lg font-semibold">{t.n}</p>
+                <p className="mt-4 text-6xl font-extrabold tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
+                <ul className="mt-8 space-y-3">
+                  {t.f.map((x) => (
+                    <li key={x} className="flex gap-3"><Check className="h-5 w-5 shrink-0" /> {x}</li>
+                  ))}
+                </ul>
+                <div className="mt-10"><Cta label={t.hi ? "Start 30-day trial" : "Start free"} invert={t.hi} /></div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* final CTA */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="relative overflow-hidden rounded-3xl bg-primary px-8 py-16 text-center text-primary-foreground">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_80%_10%,var(--accent)_0%,transparent_70%)] opacity-40" />
-          <div className="relative">
-            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Your first sale is minutes away</h2>
-            <p className="mx-auto mt-3 max-w-xl text-primary-foreground/80">
-              Create your business account, add your staff PINs and start selling from the devices you already own.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button asChild size="xl" variant="secondary" className="text-base">
-                <Link to="/auth">Start free <ArrowRight className="size-4" /></Link>
-              </Button>
-              <Button asChild size="xl" variant="outline" className="border-primary-foreground/30 bg-transparent text-base text-primary-foreground hover:bg-primary-foreground/10">
-                <Link to="/auth">Sign in to your business</Link>
-              </Button>
-            </div>
-            <p className="mt-5 text-sm text-primary-foreground/70">Free to set up · No hardware · Works offline-friendly on mobile</p>
-          </div>
+      <Faq />
+
+      {/* Final CTA */}
+      <section className="bg-primary text-primary-foreground">
+        <div className="mx-auto max-w-7xl px-6 py-24 text-center">
+          <h2 className="mx-auto max-w-4xl text-5xl font-extrabold leading-[0.95] tracking-tight md:text-7xl">Open your till in the next 5 minutes.</h2>
+          <div className="mt-10 flex justify-center"><Cta label="Get started free" invert /></div>
         </div>
       </section>
 
-      {/* footer */}
-      <footer className="border-t border-border py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 sm:flex-row">
-          <Logo />
-          <nav className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#stores" className="hover:text-foreground">Store types</a>
-            <a href="#faq" className="hover:text-foreground">FAQ</a>
-            <Link to="/auth" className="hover:text-foreground">Sign in</Link>
-          </nav>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Tillpoint. All rights reserved.</p>
-        </div>
+      <footer className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-6 py-10 text-sm text-muted-foreground md:flex-row">
+        <span>© {new Date().getFullYear()} Tillpoint</span>
+        <span>Point of sale · Inventory · Layby</span>
       </footer>
     </div>
+  );
+}
+
+function Faq() {
+  const items = [
+    ["Do I need to buy hardware?", "No. Tillpoint runs in the browser on any phone, tablet or laptop you already own."],
+    ["How do staff log in?", "You sign each device in once with your business email. After that, every staff member unlocks it with their own 4-digit PIN, which sets what they can do."],
+    ["Can I run more than one shop?", "Yes. Add as many stores as you need and choose for each one whether it's direct sale or approval-based."],
+    ["Does it support mobile money?", "Yes — cash, card and mobile money are all recorded at checkout and on layby payments."],
+  ];
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <section className="mx-auto max-w-3xl px-6 pb-24">
+      <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">Questions</h2>
+      <div className="mt-8 divide-y divide-border border-y border-border">
+        {items.map(([q, a], i) => (
+          <button key={q} onClick={() => setOpen(open === i ? null : i)} className="block w-full py-6 text-left">
+            <div className="flex items-center justify-between text-lg font-semibold">
+              {q}
+              <ChevronDown className={`h-5 w-5 transition-transform ${open === i ? "rotate-180" : ""}`} />
+            </div>
+            {open === i && <p className="mt-3 text-muted-foreground">{a}</p>}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
