@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type Role = "admin" | "manager" | "cashier";
 export type StaffSession = { token: string; id: string; name: string; role: Role; store_id: string | null };
 export type Store = { id: string; name: string; store_type: "direct" | "approval" };
-export type Business = { id: string; name: string; currency: string };
+export type Business = { id: string; name: string; currency: string; tax_rate: number; tax_inclusive: boolean };
 
 type PosCtx = {
   userId: string;
@@ -48,7 +48,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   const businessQ = useQuery({
     queryKey: ["business", userId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("businesses").select("id,name,currency").maybeSingle();
+      const { data, error } = await supabase.from("businesses").select("id,name,currency,tax_rate,tax_inclusive").maybeSingle();
       if (error) throw error;
       return data as Business | null;
     },

@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useStaffNames } from "@/lib/sales";
+import { NativeSelect, fmtDate } from "@/components/pos/bits";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
@@ -83,7 +86,7 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
       if (pid) await rpc("set_product_collections", { p_product: pid, p_collections: chosen });
       const qty = f.qty === "" ? null : Number(f.qty);
       if (pid && qty !== null && qty !== currentQty && store?.id) {
-        await rpc("adjust_stock", { p_store: store.id, p_product: pid, p_delta: qty - currentQty });
+        await rpc("adjust_stock_reason", { p_store: store.id, p_product: pid, p_delta: qty - currentQty, p_reason: "correction", p_note: "Edited on item" });
       }
       toast.success("Saved"); qc.invalidateQueries(); onClose();
     } catch (e) { toast.error((e as Error).message); }
@@ -129,27 +132,75 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
   );
 }
 
+const reasons = {
+  in: [["supplier_intake", "Delivery from supplier"], ["transfer_in", "Transfer from another store"], ["correction", "Count correction"]],
+  out: [["damage", "Damaged"], ["shrinkage", "Lost / stolen"], ["return_to_supplier", "Returned to supplier"], ["transfer_out", "Transfer to another store"], ["correction", "Count correction"]],
+} as const;
+const reasonText: Record<string, string> = {
+  sale: "Sold", sale_reversal: "Sale cancelled", refund_restock: "Customer return", stocktake: "Stock take", opening_balance: "Opening balance",
+  adjustment: "Adjustment", supplier_intake: "Supplier delivery", transfer_in: "Transfer in", transfer_out: "Transfer out",
+  correction: "Correction", damage: "Damaged", shrinkage: "Lost / stolen", return_to_supplier: "Returned to supplier",
+};
+
 function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
   const { rpc, store } = usePos();
   const qc = useQueryClient();
+  const names = useStaffNames();
   const [n, setN] = useState("");
   const [mode, setMode] = useState<"in" | "out">("in");
+  const [reason, setReason] = useState<string>("supplier_intake");
+  const [note, setNote] = useState("");
+  const [tab, setTab] = useState<"adjust" | "history">("adjust");
+  const hist = useQuery({
+    queryKey: ["movements", store?.id, p.id],
+    enabled: tab === "history" && !!store,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("stock_movements").select("*").eq("store_id", store!.id).eq("product_id", p.id).order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data as { id: string; delta: number; balance_after: number; reason: string; note: string | null; staff_id: string | null; created_at: string }[];
+    },
+  });
   async function save() {
     try {
-      await rpc("adjust_stock", { p_store: store!.id, p_product: p.id, p_delta: (mode === "in" ? 1 : -1) * Number(n) });
+      await rpc("adjust_stock_reason", { p_store: store!.id, p_product: p.id, p_delta: (mode === "in" ? 1 : -1) * Number(n), p_reason: reason, p_note: note || null });
       toast.success("Stock updated"); qc.invalidateQueries(); onClose();
     } catch (e) { toast.error((e as Error).message); }
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{p.name} — {store?.name}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant={mode === "in" ? "success" : "outline"} onClick={() => setMode("in")}>Receive stock</Button>
-          <Button variant={mode === "out" ? "destructive" : "outline"} onClick={() => setMode("out")}>Remove (damage/loss)</Button>
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-secondary p-1">
+          {(["adjust", "history"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={cn("rounded-md py-1.5 text-sm font-semibold", tab === t && "bg-card shadow-sm")}>{t === "adjust" ? "Change stock" : "History"}</button>
+          ))}
         </div>
-        <Field label="Quantity"><Input inputMode="decimal" value={n} onChange={(e) => setN(e.target.value)} /></Field>
-        <Button size="lg" disabled={!Number(n)} onClick={save}>Save</Button>
+        {tab === "adjust" ? (<>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant={mode === "in" ? "success" : "outline"} onClick={() => { setMode("in"); setReason("supplier_intake"); }}>Add stock</Button>
+            <Button variant={mode === "out" ? "destructive" : "outline"} onClick={() => { setMode("out"); setReason("damage"); }}>Remove stock</Button>
+          </div>
+          <Field label="Reason"><NativeSelect value={reason} onChange={(e) => setReason(e.target.value)}>
+            {reasons[mode].map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+          </NativeSelect></Field>
+          <Field label="Quantity"><Input inputMode="decimal" value={n} onChange={(e) => setN(e.target.value)} /></Field>
+          <Field label="Note (optional)"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Invoice no., who delivered…" /></Field>
+          <Button size="lg" disabled={!Number(n)} onClick={save}>Save</Button>
+        </>) : (
+          <div className="max-h-96 divide-y overflow-y-auto rounded-lg border text-sm">
+            {(hist.data ?? []).length === 0 ? <p className="p-4 text-muted-foreground">{hist.isLoading ? "Loading…" : "No movements yet."}</p> :
+              hist.data!.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 px-3 py-2">
+                  <div className="flex-1">
+                    <div className="font-semibold">{reasonText[m.reason] ?? m.reason}</div>
+                    <div className="text-xs text-muted-foreground">{fmtDate(m.created_at)}{m.staff_id && ` · ${names.data?.[m.staff_id] ?? ""}`}{m.note && ` · ${m.note}`}</div>
+                  </div>
+                  <span className={cn("tabular font-bold", m.delta < 0 ? "text-destructive" : "text-success")}>{m.delta > 0 ? "+" : ""}{m.delta}</span>
+                  <span className="tabular w-12 text-right text-muted-foreground">{m.balance_after}</span>
+                </div>
+              ))}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

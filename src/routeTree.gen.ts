@@ -24,6 +24,7 @@ import { Route as AuthenticatedAppInvoicesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppLaybysRouteImport } from './routes/_authenticated/app.laybys'
 import { Route as AuthenticatedAppReportsRouteImport } from './routes/_authenticated/app.reports'
 import { Route as AuthenticatedAppSalesRouteImport } from './routes/_authenticated/app.sales'
+import { Route as AuthenticatedAppShiftsRouteImport } from './routes/_authenticated/app.shifts'
 import { Route as AuthenticatedAppStaffRouteImport } from './routes/_authenticated/app.staff'
 import { Route as AuthenticatedAppStocktakeRouteImport } from './routes/_authenticated/app.stocktake'
 import { Route as AuthenticatedAppStoresRouteImport } from './routes/_authenticated/app.stores'
@@ -109,6 +110,11 @@ const AuthenticatedAppSalesRoute = AuthenticatedAppSalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppShiftsRoute = AuthenticatedAppShiftsRouteImport.update({
+  id: '/shifts',
+  path: '/shifts',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppStaffRoute = AuthenticatedAppStaffRouteImport.update({
   id: '/staff',
   path: '/staff',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/app/laybys': typeof AuthenticatedAppLaybysRoute
   '/app/reports': typeof AuthenticatedAppReportsRoute
   '/app/sales': typeof AuthenticatedAppSalesRoute
+  '/app/shifts': typeof AuthenticatedAppShiftsRoute
   '/app/staff': typeof AuthenticatedAppStaffRoute
   '/app/stocktake': typeof AuthenticatedAppStocktakeRoute
   '/app/stores': typeof AuthenticatedAppStoresRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/app/laybys': typeof AuthenticatedAppLaybysRoute
   '/app/reports': typeof AuthenticatedAppReportsRoute
   '/app/sales': typeof AuthenticatedAppSalesRoute
+  '/app/shifts': typeof AuthenticatedAppShiftsRoute
   '/app/staff': typeof AuthenticatedAppStaffRoute
   '/app/stocktake': typeof AuthenticatedAppStocktakeRoute
   '/app/stores': typeof AuthenticatedAppStoresRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/app/laybys': typeof AuthenticatedAppLaybysRoute
   '/_authenticated/app/reports': typeof AuthenticatedAppReportsRoute
   '/_authenticated/app/sales': typeof AuthenticatedAppSalesRoute
+  '/_authenticated/app/shifts': typeof AuthenticatedAppShiftsRoute
   '/_authenticated/app/staff': typeof AuthenticatedAppStaffRoute
   '/_authenticated/app/stocktake': typeof AuthenticatedAppStocktakeRoute
   '/_authenticated/app/stores': typeof AuthenticatedAppStoresRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/app/laybys'
     | '/app/reports'
     | '/app/sales'
+    | '/app/shifts'
     | '/app/staff'
     | '/app/stocktake'
     | '/app/stores'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/app/laybys'
     | '/app/reports'
     | '/app/sales'
+    | '/app/shifts'
     | '/app/staff'
     | '/app/stocktake'
     | '/app/stores'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/laybys'
     | '/_authenticated/app/reports'
     | '/_authenticated/app/sales'
+    | '/_authenticated/app/shifts'
     | '/_authenticated/app/staff'
     | '/_authenticated/app/stocktake'
     | '/_authenticated/app/stores'
@@ -380,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSalesRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/shifts': {
+      id: '/_authenticated/app/shifts'
+      path: '/shifts'
+      fullPath: '/app/shifts'
+      preLoaderRoute: typeof AuthenticatedAppShiftsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/staff': {
       id: '/_authenticated/app/staff'
       path: '/staff'
@@ -445,6 +464,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppLaybysRoute: typeof AuthenticatedAppLaybysRoute
   AuthenticatedAppReportsRoute: typeof AuthenticatedAppReportsRoute
   AuthenticatedAppSalesRoute: typeof AuthenticatedAppSalesRoute
+  AuthenticatedAppShiftsRoute: typeof AuthenticatedAppShiftsRoute
   AuthenticatedAppStaffRoute: typeof AuthenticatedAppStaffRoute
   AuthenticatedAppStocktakeRoute: typeof AuthenticatedAppStocktakeRoute
   AuthenticatedAppStoresRoute: typeof AuthenticatedAppStoresRoute
@@ -462,6 +482,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppLaybysRoute: AuthenticatedAppLaybysRoute,
   AuthenticatedAppReportsRoute: AuthenticatedAppReportsRoute,
   AuthenticatedAppSalesRoute: AuthenticatedAppSalesRoute,
+  AuthenticatedAppShiftsRoute: AuthenticatedAppShiftsRoute,
   AuthenticatedAppStaffRoute: AuthenticatedAppStaffRoute,
   AuthenticatedAppStocktakeRoute: AuthenticatedAppStocktakeRoute,
   AuthenticatedAppStoresRoute: AuthenticatedAppStoresRoute,

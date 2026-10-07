@@ -43,6 +43,8 @@ const statusStyle: Record<string, string> = {
   layby_cancelled: "bg-destructive/15 text-destructive",
   open: "bg-accent/15 text-accent",
   closed: "bg-secondary text-muted-foreground",
+  refunded: "bg-destructive/15 text-destructive",
+  partially_refunded: "bg-warning/25 text-warning-foreground",
 };
 const statusText: Record<string, string> = {
   completed: "Paid",
@@ -53,6 +55,8 @@ const statusText: Record<string, string> = {
   layby_cancelled: "Layby cancelled",
   open: "Open",
   closed: "Closed",
+  refunded: "Refunded",
+  partially_refunded: "Part refunded",
 };
 export function Status({ s }: { s: string }) {
   return (

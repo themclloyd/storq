@@ -6,13 +6,14 @@ import { rangeDays, sinceFor, useExpenses } from "@/lib/expenses";
 import { Button } from "@/components/ui/button";
 import { Empty, PageHeader } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { COUNTED, useRefunds } from "@/lib/refunds";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
   head: () => ({ meta: [{ title: "Reports — Storq" }, { name: "description", content: "Profit, expenses and business performance." }] }),
   component: Reports,
 });
 
-const DONE = ["completed", "layby_completed"];
+const DONE = COUNTED;
 
 function Reports() {
   const { store, stores, money, can } = usePos();
@@ -23,6 +24,7 @@ function Reports() {
   const sales = useSales("report", { storeId, since });
   const expenses = useExpenses({ storeId, since });
   const names = useStaffNames();
+  const refundsQ = useRefunds({ storeId, since });
 
   const r = useMemo(() => {
     const rows = (sales.data ?? []).filter((s) => DONE.includes(s.status));
@@ -47,6 +49,15 @@ function Reports() {
       const bs = (byStore[s.store_id] ??= { revenue: 0, profit: 0, expenses: 0 });
       bs.revenue += Number(s.total); bs.profit += sp;
     }
+    let refunds = 0, refundCost = 0, tax = 0, refundTax = 0;
+    for (const s of rows) tax += Number(s.tax ?? 0);
+    for (const f of refundsQ.data ?? []) {
+      refunds += Number(f.amount); refundCost += Number(f.cost); refundTax += Number(f.tax);
+      (byStore[f.store_id] ??= { revenue: 0, profit: 0, expenses: 0 }).revenue -= Number(f.amount);
+      byStore[f.store_id]!.profit -= Number(f.amount) - Number(f.cost);
+      for (const i of f.refund_items) { const it = items[i.product_id ?? i.name]; if (it) { it.qty -= Number(i.qty); it.revenue -= Number(i.amount); it.profit -= Number(i.amount) - Number(i.cost); } }
+    }
+    revenue -= refunds; cogs -= refundCost; tax -= refundTax;
     const exByCat: Record<string, number> = {};
     let expTotal = 0, tillOut = 0;
     for (const e of ex) {
@@ -58,13 +69,13 @@ function Reports() {
     const gross = revenue - cogs;
     return {
       revenue, cogs, gross, expTotal, net: gross - expTotal, margin: revenue ? (gross / revenue) * 100 : 0, count: rows.length,
-      tillOut, cashIn, items: Object.values(items).sort((a, b) => b.profit - a.profit), byStaff, byMethod, exByCat, byStore,
+      tillOut, cashIn, refunds, tax, items: Object.values(items).sort((a, b) => b.profit - a.profit), byStaff, byMethod, exByCat, byStore,
       lowMargin: Object.values(items).filter((i) => i.revenue > 0 && i.profit / i.revenue < 0.1),
     };
-  }, [sales.data, expenses.data]);
+  }, [sales.data, expenses.data, refundsQ.data]);
 
   if (!can("admin", "manager")) return <Empty>Only admins and managers can view reports.</Empty>;
-  const loading = sales.isLoading || expenses.isLoading;
+  const loading = sales.isLoading || expenses.isLoading || refundsQ.isLoading;
 
   return (
     <>
@@ -80,7 +91,7 @@ function Reports() {
         <div className="space-y-6">
           <div className="pos-card overflow-hidden">
             <div className="grid divide-y sm:grid-cols-5 sm:divide-x sm:divide-y-0">
-              <Stat k="Sales" v={money(r.revenue)} sub={`${r.count} transactions`} />
+              <Stat k="Net sales" v={money(r.revenue)} sub={`${r.count} sales · ${money(r.refunds)} refunded`} />
               <Stat k="Buying cost" v={`− ${money(r.cogs)}`} sub="Cost of items sold" />
               <Stat k="Gross profit" v={money(r.gross)} sub={`${r.margin.toFixed(1)}% margin`} />
               <Stat k="Expenses" v={`− ${money(r.expTotal)}`} sub={`${Object.keys(r.exByCat).length} categories`} />
@@ -88,11 +99,16 @@ function Reports() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             <Card title="Till cash check">
               <Row k="Cash taken from sales" v={money(r.cashIn)} />
               <Row k="Cash paid out (expenses)" v={`− ${money(r.tillOut)}`} />
               <Row k="Expected cash in till" v={money(r.cashIn - r.tillOut)} bold />
+            </Card>
+            <Card title="Tax summary (VAT)">
+              <Row k="Sales incl. tax" v={money(r.revenue)} />
+              <Row k="VAT collected" v={money(r.tax)} />
+              <Row k="Sales excl. tax" v={money(r.revenue - r.tax)} bold />
             </Card>
             <Card title="Sales by payment method">
               {Object.keys(r.byMethod).length === 0 ? <p className="text-sm text-muted-foreground">No sales.</p> :
@@ -143,7 +159,7 @@ function Reports() {
               </table>
             </Card>
           )}
-          <p className="text-xs text-muted-foreground">Profit uses the buying price set on each item at the time it was sold. Sales waiting for approval and open laybys are not counted until completed.</p>
+          <p className="text-xs text-muted-foreground">Profit uses the buying price set on each item at the time it was sold. Refunds are taken off sales and profit; restocked items return their buying cost. Sales waiting for approval and open laybys are not counted until completed. For exact till balances use Cash drawer shifts.</p>
         </div>
       )}
     </>
