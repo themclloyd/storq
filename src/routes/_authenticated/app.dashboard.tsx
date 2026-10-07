@@ -14,6 +14,7 @@ import { useSales } from "@/lib/sales";
 import { useExpenses } from "@/lib/expenses";
 import { PageHeader } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Storq" }, { name: "description", content: "Today at a glance: sales, expenses, profit and alerts." }] }),
@@ -32,12 +33,12 @@ function sinceDays(days: number) {
   const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - days); return d.toISOString();
 }
 
-const PIE_COLORS = ["var(--accent)", "var(--primary)", "#f59e0b", "#10b981", "#8b5cf6"];
+const PIE_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 function Dashboard() {
   const { store, money, can } = usePos();
   const [range, setRange] = useState<RangeKey>("today");
-  const days = ranges.find((r) => r.key === range)!.days;
+  const days = ranges.find((r) => r.key === range)?.days ?? 0;
   const since = useMemo(() => sinceDays(days), [days]);
   const storeId = store?.id;
 
@@ -105,37 +106,37 @@ function Dashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl p-4 md:p-8">
+    <div className="mx-auto max-w-6xl">
       <PageHeader title="Dashboard" sub={store?.name ?? ""}
         actions={
           <div className="flex gap-1 rounded-lg border bg-card p-1">
             {ranges.map((r) => (
-              <button key={r.key} onClick={() => setRange(r.key)}
-                className={cn("rounded-md px-3 py-1.5 text-sm font-medium", range === r.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>
+              <Button key={r.key} size="sm" variant="ghost" aria-pressed={range === r.key} onClick={() => setRange(r.key)}
+                className={cn("text-sm font-medium", range === r.key ? "bg-secondary text-foreground" : "text-muted-foreground")}>
                 {r.label}
-              </button>
+              </Button>
             ))}
           </div>
         } />
 
       {/* Top stat cards */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-xl border bg-card p-4">
+          <div key={c.label} className="min-w-0 rounded-lg border bg-card p-6">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{c.label}</span>
               <HugeiconsIcon icon={c.icon} className="size-5 text-accent" />
             </div>
-            <div className="mt-2 text-xl font-extrabold tracking-tight md:text-2xl">{c.value}</div>
+            <div className="mt-6 break-words text-2xl font-semibold tabular">{c.value}</div>
             <div className="mt-1 text-xs text-muted-foreground">{c.sub}</div>
           </div>
         ))}
       </div>
 
       {/* Trend chart */}
-      <div className="mt-4 rounded-xl border bg-card p-4">
+      <section className="mt-8 border-y py-6">
         <h3 className="font-bold">Sales vs expenses</h3>
-        <p className="text-xs text-muted-foreground">{ranges.find((r) => r.key === range)!.label}</p>
+        <p className="text-xs text-muted-foreground">{ranges.find((r) => r.key === range)?.label}</p>
         <div className="mt-3 h-64">
           {d.trend.length === 0 ? (
             <div className="grid h-full place-items-center text-sm text-muted-foreground">No activity in this period yet.</div>
@@ -148,8 +149,8 @@ function Dashboard() {
                     <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -158,16 +159,16 @@ function Dashboard() {
                 <Tooltip formatter={(v: number) => money(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", background: "var(--card)", fontSize: 13 }} />
                 <Legend />
                 <Area type="monotone" dataKey="sales" name="Sales" stroke="var(--accent)" strokeWidth={2.5} fill="url(#gSales)" />
-                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={2.5} fill="url(#gExp)" />
+                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="var(--chart-2)" strokeWidth={2.5} fill="url(#gExp)" />
               </AreaChart>
             </ResponsiveContainer>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Bottom row: payment methods + notifications */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border bg-card p-4">
+      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <section className="min-w-0 lg:border-r lg:pr-8">
           <h3 className="font-bold">Payment methods</h3>
           <p className="text-xs text-muted-foreground">How customers paid</p>
           <div className="mt-3 h-56">
@@ -185,9 +186,9 @@ function Dashboard() {
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-xl border bg-card p-4">
+        <section className="min-w-0">
           <div className="flex items-center gap-2">
             <HugeiconsIcon icon={Notification01Icon} className="size-5 text-accent" />
             <h3 className="font-bold">Notifications</h3>
@@ -199,7 +200,7 @@ function Dashboard() {
             ) : (
               (alerts.data ?? []).map((a, i) => (
                 <Link key={i} to={a.to} className="flex items-center gap-3 rounded-lg border p-3 text-sm transition-colors hover:bg-secondary">
-                  <span className={cn("grid size-8 shrink-0 place-items-center rounded-full", a.tone === "warn" ? "bg-amber-100 text-amber-700" : "bg-secondary text-foreground")}>
+                  <span className={cn("grid size-8 shrink-0 place-items-center rounded-full", a.tone === "warn" ? "bg-warning/15 text-warning" : "bg-secondary text-foreground")}>
                     <HugeiconsIcon icon={a.icon} className="size-4" />
                   </span>
                   <span className="font-medium">{a.text}</span>
@@ -210,7 +211,7 @@ function Dashboard() {
           {!can("admin", "manager") && (
             <p className="mt-3 text-xs text-muted-foreground">Profit figures are visible to owners and managers only on the Reports page.</p>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

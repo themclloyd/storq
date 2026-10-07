@@ -97,7 +97,7 @@ function Register() {
               const s = stock.data?.[p.id] ?? 0;
               return (
                 <button key={p.id} onClick={() => add(p)} className="pos-tile pos-card overflow-hidden text-left hover:shadow-[var(--shadow-pop)]">
-                  <div className={cn("grid h-20 place-items-center text-2xl font-extrabold text-primary-foreground", tileFor(p.name))}>
+                    <div className={cn("grid h-20 place-items-center text-2xl font-extrabold text-tile-foreground", tileFor(p.name))}>
                     {p.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="p-3">
