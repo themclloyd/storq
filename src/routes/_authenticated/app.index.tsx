@@ -52,9 +52,10 @@ function Register() {
     setCart((c) => (qty <= 0 ? c.filter((l) => l.p.id !== id) : c.map((l) => (l.p.id === id ? { ...l, qty } : l))));
 
   async function finish(kind: "sale" | "layby", f: { payment: number; method: string; name: string; phone: string; note: string }) {
+    if (!store) return;
     try {
       const r = await rpc<{ number: number; status: string }>("checkout", {
-        p_store: store!.id, p_kind: kind, p_items: cart.map((l) => ({ product_id: l.p.id, qty: l.qty })),
+        p_store: store.id, p_kind: kind, p_items: cart.map((l) => ({ product_id: l.p.id, qty: l.qty })),
         p_payment: f.payment, p_method: f.method, p_customer_name: f.name || null, p_customer_phone: f.phone || null, p_note: f.note || null,
       });
       toast.success(
@@ -177,7 +178,7 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
 
   const submit = async () => {
     setBusy(true);
-    await onDone({ payment: kind === "sale" ? total : pay, method, name, phone, note });
+    await onDone({ payment: approval ? 0 : kind === "sale" ? total : pay, method, name, phone, note });
     setBusy(false);
   };
 
@@ -192,10 +193,10 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
         <div className="tabular text-center text-4xl font-extrabold">{money(total)}</div>
         {approval && <p className="text-center text-sm text-muted-foreground">An approver must approve this before stock leaves the store and payment is recorded.</p>}
         <div className="space-y-3">
-          {(!approval || kind === "sale") && (
+          {!approval && (
             <div className="grid grid-cols-3 gap-2">
               {["cash", "card", "mobile"].map((m) => (
-                <button key={m} onClick={() => setMethod(m)} className={cn("rounded-lg border py-3 text-sm font-semibold capitalize", method === m ? "border-accent bg-accent/10 text-accent" : "bg-card")}>{m === "mobile" ? "Mobile money" : m}</button>
+                <Button key={m} variant={method === m ? "secondary" : "outline"} aria-pressed={method === m} onClick={() => setMethod(m)} className="h-12 px-2 capitalize">{m === "mobile" ? "Mobile money" : m}</Button>
               ))}
             </div>
           )}

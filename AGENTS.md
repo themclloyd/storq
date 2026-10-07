@@ -1,4 +1,5 @@
 # Project rules
+- Keep workspace navigation policy in a client-safe shared module and group existing URLs with shell-level page tabs; filter by staff role and selected store type. Why: fewer sidebar entries without broken deep links or lost staff tools.
 - Define workspace theme tokens once for `.storq-workspace` and `body:has(.storq-workspace)` so portaled dialogs inherit the same theme; leave public pages independent. Why: operations and their overlays stay consistent without changing public marketing or shared collections.
 - All writes go through Postgres SECURITY DEFINER RPCs that take a staff session token (`p_token`) and check role via `require_staff`; tables are read-only via RLS. Why: one shared business login per device, so staff role must be verified server-side from the PIN session, not the client.
 - Business logic for store types (direct vs approval), layby and stock movement lives in SQL functions (`checkout`, `review_invoice`, `layby_pay`, etc.). Why: keeps stock and payments consistent across devices.
