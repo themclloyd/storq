@@ -33,7 +33,7 @@ function AppLayout() {
   const { user } = Route.useRouteContext();
   return (
     <PosProvider userId={user.id}>
-      <div className="storq-workspace min-h-screen"><Gate /></div>
+      <div className="min-h-screen"><Gate /></div>
     </PosProvider>
   );
 }
@@ -179,7 +179,7 @@ function Shell() {
   }, [store?.id, unavailableApproval, navigate]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="storq-workspace flex min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r bg-rail md:flex">
         <div className="flex items-center gap-3 px-6 py-7 text-2xl font-semibold">
           <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-5" /></span>

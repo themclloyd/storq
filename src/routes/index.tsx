@@ -124,8 +124,8 @@ function Landing() {
             ].map((t) => (
               <div key={t.label} className="group relative overflow-hidden rounded-3xl">
                 <img src={t.img} alt={t.label} loading="lazy" width={800} height={1008} className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 pt-16">
-                  <p className="text-lg font-light text-white">{t.label}</p>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 to-transparent p-6 pt-16">
+                  <p className="text-lg font-light text-background">{t.label}</p>
                 </div>
               </div>
             ))}

@@ -56,7 +56,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="storq-workspace flex min-h-screen flex-col px-6 py-8 sm:px-12">
+    <div className="flex min-h-screen flex-col px-6 py-8 sm:px-12">
       <div className="flex items-center gap-3 text-2xl font-semibold">
         <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-5" /></span>
         Storq
