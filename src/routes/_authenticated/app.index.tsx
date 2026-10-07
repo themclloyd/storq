@@ -128,7 +128,7 @@ function Register() {
                 <span className="tabular w-7 text-center text-sm font-bold">{l.qty}</span>
                 <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty + 1)}><HugeiconsIcon icon={PlusSignIcon} /></Button>
               </div>
-              <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * Number(l.p.price))}</div>
+              <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * price(l.p))}</div>
             </div>
           ))}
         </div>
