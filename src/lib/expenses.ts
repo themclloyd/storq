@@ -9,7 +9,7 @@ export type Expense = {
 export const expenseCategories = ["Stock / Supplier", "Rent", "Power & Fuel", "Transport", "Wages", "Airtime & Data", "Maintenance", "Cleaning", "Food & Refreshments", "Other"];
 export const sourceLabel: Record<Expense["source"], string> = { till: "Cash from till", bank: "Bank / Card", mobile: "Mobile money" };
 
-export function useExpenses(filter: { storeId?: string; since?: string }) {
+export function useExpenses(filter: { storeId?: string | undefined; since?: string }) {
   return useQuery({
     queryKey: ["expenses", filter],
     queryFn: async () => {

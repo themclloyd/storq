@@ -49,7 +49,7 @@ function Expenses() {
 
   return (
     <>
-      <PageHeader title="Expenses" sub={store?.name}
+      <PageHeader title="Expenses" sub={store?.name ?? ""}
         actions={(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((r) => (
           <Button key={r} size="sm" variant={range === r ? "default" : "outline"} onClick={() => setRange(r)} className="capitalize">{r}</Button>
         ))}

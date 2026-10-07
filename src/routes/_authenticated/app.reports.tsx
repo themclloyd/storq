@@ -68,7 +68,7 @@ function Reports() {
 
   return (
     <>
-      <PageHeader title="Business report" sub={all ? "All stores" : store?.name}
+      <PageHeader title="Business report" sub={all ? "All stores" : store?.name ?? ""}
         actions={<>
           {(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((k) => (
             <Button key={k} size="sm" variant={range === k ? "default" : "outline"} onClick={() => setRange(k)} className="capitalize">{k}</Button>
