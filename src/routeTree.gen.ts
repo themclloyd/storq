@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppExpensesRouteImport } from './routes/_authenticated/app.expenses'
 import { Route as AuthenticatedAppInventoryRouteImport } from './routes/_authenticated/app.inventory'
 import { Route as AuthenticatedAppInvoicesRouteImport } from './routes/_authenticated/app.invoices'
@@ -48,6 +49,12 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppDashboardRoute =
+  AuthenticatedAppDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppExpensesRoute =
   AuthenticatedAppExpensesRouteImport.update({
     id: '/expenses',
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
+  '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/app/inventory': typeof AuthenticatedAppInventoryRoute
   '/app/invoices': typeof AuthenticatedAppInvoicesRoute
@@ -116,6 +124,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/app/inventory': typeof AuthenticatedAppInventoryRoute
   '/app/invoices': typeof AuthenticatedAppInvoicesRoute
@@ -133,6 +142,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/_authenticated/app/inventory': typeof AuthenticatedAppInventoryRoute
   '/_authenticated/app/invoices': typeof AuthenticatedAppInvoicesRoute
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/app'
+    | '/app/dashboard'
     | '/app/expenses'
     | '/app/inventory'
     | '/app/invoices'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/dashboard'
     | '/app/expenses'
     | '/app/inventory'
     | '/app/invoices'
@@ -180,6 +192,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/app'
+    | '/_authenticated/app/dashboard'
     | '/_authenticated/app/expenses'
     | '/_authenticated/app/inventory'
     | '/_authenticated/app/invoices'
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/dashboard': {
+      id: '/_authenticated/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/expenses': {
@@ -302,6 +322,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppExpensesRoute: typeof AuthenticatedAppExpensesRoute
   AuthenticatedAppInventoryRoute: typeof AuthenticatedAppInventoryRoute
   AuthenticatedAppInvoicesRoute: typeof AuthenticatedAppInvoicesRoute
@@ -315,6 +336,7 @@ interface AuthenticatedAppRouteChildren {
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppExpensesRoute: AuthenticatedAppExpensesRoute,
   AuthenticatedAppInventoryRoute: AuthenticatedAppInventoryRoute,
   AuthenticatedAppInvoicesRoute: AuthenticatedAppInvoicesRoute,
