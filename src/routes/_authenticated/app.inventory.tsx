@@ -60,7 +60,7 @@ function Inventory() {
           </table>
         </div>
       )}
-      {edit && <ProductDialog p={edit} currentQty={adj ? undefined : stock.data?.[edit.id!] ?? 0} onClose={() => { setEdit(null); setAdj(null); }} />}
+      {edit && <ProductDialog p={edit} currentQty={stock.data?.[edit.id!] ?? 0} onClose={() => setEdit(null)} />}
       {adj && <StockDialog p={adj} onClose={() => setAdj(null)} />}
     </>
   );
