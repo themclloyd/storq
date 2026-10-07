@@ -28,6 +28,7 @@ function Stores() {
           </div>
         ))}
       </div>
+      <TaxSettings />
       {edit && <StoreDialog s={edit} onClose={() => setEdit(null)} />}
     </>
   );
@@ -62,5 +63,30 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
         <Button size="lg" disabled={!name} onClick={save}>Save store</Button>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TaxSettings() {
+  const { business, rpc } = usePos();
+  const qc = useQueryClient();
+  const [rate, setRate] = useState(String(business?.tax_rate ?? 0));
+  const [incl, setIncl] = useState(business?.tax_inclusive ?? true);
+  async function save() {
+    try { await rpc("save_tax_settings", { p_rate: Number(rate || 0), p_inclusive: incl }); toast.success("Tax settings saved"); qc.invalidateQueries(); }
+    catch (e) { toast.error((e as Error).message); }
+  }
+  return (
+    <div className="pos-card mt-8 max-w-xl space-y-4 p-6">
+      <div><h3 className="text-lg font-bold">VAT / sales tax</h3><p className="text-sm text-muted-foreground">Applies to all stores. Set 0 if you are not VAT registered. Past sales keep the tax they were sold with.</p></div>
+      <Field label="Tax rate (%)"><Input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></Field>
+      <div className="grid grid-cols-2 gap-2">
+        {[[true, "Prices include VAT", "Shelf price is what the customer pays."], [false, "Add VAT at till", "VAT is added on top of the shelf price."]].map(([v, t, d]) => (
+          <button key={String(v)} onClick={() => setIncl(v as boolean)} className={cn("rounded-lg border p-3 text-left", incl === v ? "border-accent bg-accent/10" : "bg-card")}>
+            <div className="text-sm font-semibold">{t as string}</div><div className="text-xs text-muted-foreground">{d as string}</div>
+          </button>
+        ))}
+      </div>
+      <Button onClick={save}>Save tax settings</Button>
+    </div>
   );
 }
