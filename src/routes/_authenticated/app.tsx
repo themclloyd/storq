@@ -65,7 +65,7 @@ function Setup() {
       p_name: f.name, p_currency: f.currency, p_store_name: f.store, p_store_type: f.type, p_owner_name: f.owner, p_pin: f.pin,
     });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Business ready. Enter your PIN.");
     qc.invalidateQueries();
   }

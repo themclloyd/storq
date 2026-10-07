@@ -8,7 +8,7 @@ export type SaleRow = {
   sale_items: { name: string; qty: number; price: number }[];
 };
 
-export function useSales(key: string, filter: { storeId?: string; statuses?: string[]; since?: string }) {
+export function useSales(key: string, filter: { storeId?: string | undefined; statuses?: string[]; since?: string }) {
   return useQuery({
     queryKey: ["sales", key, filter],
     queryFn: async () => {
