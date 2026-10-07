@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, Tick01Icon, ArrowDown01Icon, SmartPhone01Icon, WifiOffIcon, ShieldCheckIcon, FlashIcon, StoreIcon, BoxesIcon, UserMultipleIcon, BarChartIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
+import { PRICES } from "@/lib/billing";
 import heroShop from "@/assets/hero-shop.jpg";
 import counter from "@/assets/counter.jpg";
 import stocktake from "@/assets/stocktake.jpg";
@@ -57,7 +58,7 @@ function Landing() {
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+          <Link to="/" className="flex items-center gap-2 text-lg font-light tracking-tight">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">T</span>
             Storq
           </Link>
@@ -81,7 +82,7 @@ function Landing() {
       {/* Hero — Shopify style: eyebrow, huge headline, dual CTA, full-width photo */}
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-16 text-center md:pt-24">
         <Eyebrow>Point of sale</Eyebrow>
-        <h1 className="mx-auto mt-4 max-w-4xl text-5xl font-extrabold leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+        <h1 className="mx-auto mt-4 max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
           The point of sale for every sale
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
@@ -99,7 +100,7 @@ function Landing() {
           <img src={heroShop} alt="Shop owner ringing up a sale on Storq" width={1600} height={1104} className="h-[460px] w-full object-cover md:h-[620px]" />
           <div className="absolute bottom-5 left-5 rounded-2xl bg-card/95 p-5 text-left shadow-xl backdrop-blur md:bottom-8 md:left-8">
             <p className="text-xs font-medium text-muted-foreground">Today · Rosebank store</p>
-            <p className="mt-1 text-3xl font-extrabold">R 18 450</p>
+            <p className="mt-1 text-3xl font-light">MK 18 450</p>
             <p className="text-sm font-semibold text-success">▲ 24% vs last Wednesday</p>
           </div>
         </div>
@@ -108,7 +109,7 @@ function Landing() {
       {/* Who it's for — Square style photo tiles */}
       <section id="shops" className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-24">
-          <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+          <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
             Created for every kind of shop
           </h2>
           <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
@@ -124,7 +125,7 @@ function Landing() {
               <div key={t.label} className="group relative overflow-hidden rounded-3xl">
                 <img src={t.img} alt={t.label} loading="lazy" width={800} height={1008} className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 pt-16">
-                  <p className="text-lg font-bold text-white">{t.label}</p>
+                  <p className="text-lg font-light text-white">{t.label}</p>
                 </div>
               </div>
             ))}
@@ -135,21 +136,21 @@ function Landing() {
       {/* Single store / multiple stores — Shopify style split */}
       <section className="bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
-          <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+          <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
             Powering shops of every size
           </h2>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl bg-card p-10 shadow-sm">
               <HugeiconsIcon icon={StoreIcon} className="h-9 w-9 text-accent" />
-              <h3 className="mt-6 text-3xl font-bold">Single store</h3>
+              <h3 className="mt-6 text-3xl font-light">Single store</h3>
               <p className="mt-3 text-lg text-muted-foreground">
                 Sell at the counter with one login for the shop. Every staff member unlocks the till
-                with their own 4-digit PIN — so every rand is traceable to a person.
+                with their own 4-digit PIN — so every kwacha is traceable to a person.
               </p>
             </div>
             <div className="rounded-3xl bg-card p-10 shadow-sm">
               <HugeiconsIcon icon={BoxesIcon} className="h-9 w-9 text-accent" />
-              <h3 className="mt-6 text-3xl font-bold">Multiple stores</h3>
+              <h3 className="mt-6 text-3xl font-light">Multiple stores</h3>
               <p className="mt-3 text-lg text-muted-foreground">
                 Run every branch from one account. Stock, sales and staff sync across all your
                 stores — see the whole business from your phone.
@@ -164,14 +165,14 @@ function Landing() {
         <img src={counter} alt="Cashier completing a sale" loading="lazy" width={1200} height={1200} className="aspect-square w-full rounded-3xl object-cover" />
         <div>
           <Eyebrow>Checkout</Eyebrow>
-          <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">The fastest till at the counter.</h2>
+          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">The fastest till at the counter.</h2>
           <p className="mt-5 text-lg text-muted-foreground">
             Tap products, take cash, card or mobile money, and you're done. Every sale updates stock instantly, on every device.
           </p>
           <ul className="mt-8 space-y-4">
             {[
               "Cash, card and mobile money in one checkout",
-              "Each cashier signs in with their own PIN — every rand is traceable",
+              "Each cashier signs in with their own PIN — every kwacha is traceable",
               "Works for one shop or ten, from the same account",
             ].map((t) => (
               <li key={t} className="flex gap-3 text-base">
@@ -185,19 +186,19 @@ function Landing() {
       {/* Two store types — dark band */}
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24">
-          <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+          <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
             Run your shop your way. Not ours.
           </h2>
           <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Storq enforces it — no shortcuts, no leaks.</p>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
               <HugeiconsIcon icon={FlashIcon} className="h-8 w-8" />
-              <h3 className="mt-6 text-3xl font-bold">Direct sale</h3>
+              <h3 className="mt-6 text-3xl font-light">Direct sale</h3>
               <p className="mt-3 opacity-70">Cashier rings it up, customer pays, stock drops. Perfect for busy counters and spazas.</p>
             </div>
             <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
               <HugeiconsIcon icon={ShieldCheckIcon} className="h-8 w-8" />
-              <h3 className="mt-6 text-3xl font-bold">Approval-based</h3>
+              <h3 className="mt-6 text-3xl font-light">Approval-based</h3>
               <p className="mt-3 opacity-70">Cashier creates an invoice, a manager approves it before stock moves. Built for wholesale and high-value goods.</p>
             </div>
           </div>
@@ -211,17 +212,17 @@ function Landing() {
         </div>
         <div>
           <Eyebrow>Inventory</Eyebrow>
-          <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Know exactly what's on the shelf.</h2>
+          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Know exactly what's on the shelf.</h2>
           <p className="mt-5 text-lg text-muted-foreground">
             Run stock takes with your whole team on their phones. Storq shows what's missing, who counted it, and what it cost you.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4">
             <div className="rounded-2xl bg-muted p-6">
-              <p className="text-3xl font-extrabold">Live</p>
+              <p className="text-3xl font-light">Live</p>
               <p className="text-sm text-muted-foreground">stock across all stores</p>
             </div>
             <div className="rounded-2xl bg-muted p-6">
-              <p className="text-3xl font-extrabold">Every</p>
+              <p className="text-3xl font-light">Every</p>
               <p className="text-sm text-muted-foreground">adjustment logged to a PIN</p>
             </div>
           </div>
@@ -233,7 +234,7 @@ function Landing() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
           <div>
             <Eyebrow>Layby</Eyebrow>
-            <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Say yes to customers who pay over time.</h2>
+            <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Say yes to customers who pay over time.</h2>
             <p className="mt-5 text-lg text-muted-foreground">
               Reserve the goods, take a deposit, record each payment. The item is held out of stock until it's paid off.
             </p>
@@ -243,7 +244,7 @@ function Landing() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Layby #1042 · Thandi M.</p>
-                <p className="mt-1 text-2xl font-bold">Couch set — R 9 600</p>
+                <p className="mt-1 text-2xl font-light">Couch set — MK 9 600</p>
               </div>
               <span className="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">On track</span>
             </div>
@@ -251,11 +252,11 @@ function Landing() {
               <div className="h-full w-[62%] rounded-full bg-accent" />
             </div>
             <div className="mt-3 flex justify-between text-sm">
-              <span className="font-semibold">R 5 950 paid</span>
-              <span className="text-muted-foreground">R 3 650 left</span>
+              <span className="font-semibold">MK 5 950 paid</span>
+              <span className="text-muted-foreground">MK 3 650 left</span>
             </div>
             <div className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
-              {[["12 Sep", "Deposit · Cash", "R 2 000"], ["26 Sep", "Mobile money", "R 1 950"], ["03 Oct", "Card", "R 2 000"]].map(([d, m, a]) => (
+              {[["12 Sep", "Deposit · Cash", "MK 2 000"], ["26 Sep", "Mobile money", "MK 1 950"], ["03 Oct", "Card", "MK 2 000"]].map(([d, m, a]) => (
                 <div key={d} className="flex justify-between">
                   <span className="text-muted-foreground">{d} · {m}</span>
                   <span className="font-semibold">{a}</span>
@@ -272,7 +273,7 @@ function Landing() {
           <img src={ownerPortrait} alt="Shop owner in her store" loading="lazy" width={800} height={1008} className="aspect-[4/5] w-full rounded-3xl object-cover md:col-span-2" />
           <div className="md:col-span-3">
             <Eyebrow>Shop owners</Eyebrow>
-            <blockquote className="mt-6 text-3xl font-bold leading-snug tracking-tight md:text-4xl">
+            <blockquote className="mt-6 text-3xl font-light leading-snug tracking-tight md:text-4xl">
               "Before Storq I never knew what left the shop. Now every sale, every layby,
               every stock count has a name on it. My staff trust it and so do I."
             </blockquote>
@@ -284,11 +285,11 @@ function Landing() {
         <div className="mt-20 grid gap-10 border-t border-border pt-16 text-center sm:grid-cols-3">
           {[
             ["5 min", "to set up your first till"],
-            ["R0", "hardware to buy"],
+            ["MK0", "hardware to buy"],
             ["100%", "of sales traced to a staff PIN"],
           ].map(([n, l]) => (
             <div key={n}>
-              <p className="text-5xl font-extrabold tracking-tight text-accent md:text-6xl">{n}</p>
+              <p className="text-5xl font-light tracking-tight text-accent md:text-6xl">{n}</p>
               <p className="mt-2 text-muted-foreground">{l}</p>
             </div>
           ))}
@@ -299,7 +300,7 @@ function Landing() {
       <section className="bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Eyebrow>Features</Eyebrow>
-          <h2 className="mt-3 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+          <h2 className="mt-3 max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
             All the features. All in one place.
           </h2>
           <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
@@ -315,7 +316,7 @@ function Landing() {
               return (
                 <div key={t as string}>
                   <HugeiconsIcon icon={I} className="h-8 w-8 text-accent" />
-                  <h3 className="mt-5 text-2xl font-bold">{t as string}</h3>
+                  <h3 className="mt-5 text-2xl font-light">{t as string}</h3>
                   <p className="mt-2 text-muted-foreground">{d as string}</p>
                 </div>
               );
@@ -326,7 +327,7 @@ function Landing() {
 
       {/* How to get started — Shopify style 3 steps */}
       <section className="mx-auto max-w-7xl px-6 py-24">
-        <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+        <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
           How to get started with Storq
         </h2>
         <div className="mt-14 grid gap-10 md:grid-cols-3">
@@ -336,8 +337,8 @@ function Landing() {
             ["3", "Start selling", "Open the till on any phone or laptop and ring up your first sale."],
           ].map(([n, t, d]) => (
             <div key={n}>
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-xl font-extrabold text-primary-foreground">{n}</span>
-              <h3 className="mt-6 text-2xl font-bold">{t}</h3>
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-xl font-light text-primary-foreground">{n}</span>
+              <h3 className="mt-6 text-2xl font-light">{t}</h3>
               <p className="mt-2 text-muted-foreground">{d}</p>
             </div>
           ))}
@@ -348,7 +349,7 @@ function Landing() {
       {/* Why Africa */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-24">
-          <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Built for how Africa actually trades.</h2>
+          <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">Built for how Africa actually trades.</h2>
           <div className="mt-14 grid gap-10 md:grid-cols-3">
             {[
               [SmartPhone01Icon, "Any device", "Android phone, old laptop, tablet — sign in once and every staff member uses their PIN."],
@@ -359,7 +360,7 @@ function Landing() {
               return (
                 <div key={t as string}>
                   <HugeiconsIcon icon={I} className="h-8 w-8 text-accent" />
-                  <h3 className="mt-5 text-2xl font-bold">{t as string}</h3>
+                  <h3 className="mt-5 text-2xl font-light">{t as string}</h3>
                   <p className="mt-2 text-muted-foreground">{d as string}</p>
                 </div>
               );
@@ -371,15 +372,15 @@ function Landing() {
       {/* Pricing */}
       <section id="pricing" className="border-t border-border bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
-          <h2 className="text-center text-4xl font-extrabold tracking-tight md:text-6xl">Simple pricing. Start free.</h2>
+          <h2 className="text-center text-4xl font-light tracking-tight md:text-6xl">Simple pricing. Start free.</h2>
           <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-2">
             {[
-              { n: "Starter", p: "R0", s: "/month", f: ["1 store", "Up to 3 staff PINs", "Direct sale, layby, stock"], hi: false },
-              { n: "Growth", p: "R299", s: "/month", f: ["Unlimited stores", "Unlimited staff PINs", "Approval-based stores", "Team stock takes & reports"], hi: true },
+              { n: "Starter", p: `MK0`, s: "/store /month", f: ["1 store", "Up to 3 staff PINs", "Direct sale, layby, stock"], hi: false },
+              { n: "Growth", p: `MK${PRICES.MWK.toLocaleString()}`, s: "/store /month", f: ["Unlimited stores", "Unlimited staff PINs", "Approval-based stores", "Team stock takes & reports"], hi: true },
             ].map((t) => (
               <div key={t.n} className={`rounded-3xl p-10 ${t.hi ? "bg-primary text-primary-foreground" : "bg-card shadow-sm"}`}>
                 <p className="text-lg font-semibold">{t.n}</p>
-                <p className="mt-4 text-6xl font-extrabold tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
+                <p className="mt-4 text-6xl font-light tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
                 <ul className="mt-8 space-y-3">
                   {t.f.map((x) => (
                     <li key={x} className="flex gap-3"><HugeiconsIcon icon={Tick01Icon} className="h-5 w-5 shrink-0" /> {x}</li>
@@ -397,7 +398,7 @@ function Landing() {
       {/* Final CTA */}
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center">
-          <h2 className="mx-auto max-w-4xl text-5xl font-extrabold leading-[0.95] tracking-tight md:text-7xl">Open your till in the next 5 minutes.</h2>
+          <h2 className="mx-auto max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl">Open your till in the next 5 minutes.</h2>
           <div className="mt-10 flex justify-center"><Cta label="Get started free" invert /></div>
         </div>
       </section>
@@ -420,7 +421,7 @@ function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">
-      <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">Frequently asked questions</h2>
+      <h2 className="text-3xl font-light tracking-tight md:text-4xl">Frequently asked questions</h2>
       <div className="mt-8 divide-y divide-border border-y border-border">
         {items.map(([q, a], i) => (
           <button key={q} onClick={() => setOpen(open === i ? null : i)} className="block w-full py-6 text-left">
