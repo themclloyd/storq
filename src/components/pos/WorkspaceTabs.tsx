@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { visibleWorkspacePages, workspacePageAt } from "@/lib/workspace-navigation";
 import type { Role, Store } from "@/lib/pos";
 
-export function WorkspaceTabs({ path, role, storeType }: { path: string; role: Role; storeType?: Store["store_type"] }) {
+export function WorkspaceTabs({ path, role, storeType }: { path: string; role: Role; storeType?: Store["store_type"] | undefined }) {
   const current = workspacePageAt(path);
   const pages = visibleWorkspacePages(role, storeType).filter((page) => page.group === current?.group);
   if (pages.length < 2) return null;
