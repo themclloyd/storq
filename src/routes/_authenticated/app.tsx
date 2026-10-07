@@ -152,6 +152,7 @@ function PinPad() {
 
 type NavItem = { to: string; label: string; icon: typeof BoxesIcon; roles: Role[] };
 const nav: NavItem[] = [
+  { to: "/app/dashboard", label: "Dashboard", icon: DashboardSquare01Icon, roles: ["admin", "manager", "cashier"] },
   { to: "/app", label: "Register", icon: ShoppingBag01Icon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/invoices", label: "Invoices", icon: FileCheckIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/laybys", label: "Laybys", icon: Wallet01Icon, roles: ["admin", "manager", "cashier"] },

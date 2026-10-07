@@ -107,7 +107,7 @@ function Dashboard() {
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-8">
       <PageHeader title="Dashboard" sub={store?.name ?? ""}
-        right={
+        actions={
           <div className="flex gap-1 rounded-lg border bg-card p-1">
             {ranges.map((r) => (
               <button key={r.key} onClick={() => setRange(r.key)}
