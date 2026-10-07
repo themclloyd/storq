@@ -60,43 +60,43 @@ function Shifts() {
     <>
       <PageHeader title="Cash drawer" sub={store?.name ?? ""} />
       {!open ? (
-        <div className="pos-card mb-6 max-w-md space-y-4 p-6">
-          <div><h3 className="text-lg font-bold">Open a shift</h3><p className="text-sm text-muted-foreground">Count the cash in the drawer before you start selling.</p></div>
+        <div className="pos-card mb-4 max-w-md space-y-3 p-4">
+          <div><h3 className="text-sm font-bold">Open a shift</h3><p className="text-[13px] text-muted-foreground">Count the cash in the drawer before you start selling.</p></div>
           <Field label="Starting cash (float)"><Input inputMode="decimal" value={float} onChange={(e) => setFloat(e.target.value)} placeholder="0.00" /></Field>
-          <Button size="lg" variant="accent" className="w-full" onClick={openShift}>Open shift</Button>
+          <Button variant="accent" className="w-full" onClick={openShift}>Open shift</Button>
         </div>
       ) : (
-        <div className="mb-6 grid gap-6 lg:grid-cols-3">
-          <div className="pos-card p-6 lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <div>
+        <div className="mb-4 grid gap-3 lg:grid-cols-3">
+          <div className="pos-card min-w-0 p-4 lg:col-span-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Shift open</div>
-                <div className="text-sm text-muted-foreground">Since {fmtDate(open.opened_at)} · {names.data?.[open.opened_by ?? ""]}</div>
+                <div className="truncate text-[13px] text-muted-foreground">Since {fmtDate(open.opened_at)} · {names.data?.[open.opened_by ?? ""]}</div>
               </div>
               <Status s="open" />
             </div>
-            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cash expected in drawer</div>
-            <div className="tabular text-4xl font-extrabold">{money(live.data?.expected_cash ?? open.opening_float)}</div>
-            {live.data && <div className="mt-4"><SummaryRows s={live.data} money={money} /></div>}
+            <div className="mt-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cash expected in drawer</div>
+            <div className="tabular truncate text-xl font-extrabold">{money(live.data?.expected_cash ?? open.opening_float)}</div>
+            {live.data && <div className="mt-2.5"><SummaryRows s={live.data} money={money} /></div>}
           </div>
-          <div className="pos-card space-y-3 p-6">
-            <h3 className="font-bold">Drawer actions</h3>
+          <div className="pos-card space-y-1.5 p-4">
+            <h3 className="text-sm font-bold">Drawer actions</h3>
             <Button variant="outline" className="w-full" onClick={() => setMove("in")}>Cash in (add change)</Button>
             <Button variant="outline" className="w-full" onClick={() => setMove("out")}>Cash out (drop / payout)</Button>
-            <Button variant="default" size="lg" className="w-full" onClick={() => setClosing(true)}>Close shift & count</Button>
+            <Button variant="default" className="w-full" onClick={() => setClosing(true)}>Close shift & count</Button>
           </div>
         </div>
       )}
 
-      <h3 className="mb-3 font-bold">Past shifts</h3>
+      <h3 className="mb-2.5 text-sm font-bold">Past shifts</h3>
       {(shifts.data ?? []).filter((s) => s.status === "closed").length === 0 ? <Empty>No closed shifts yet.</Empty> : (
         <div className="pos-card divide-y">
           {(shifts.data ?? []).filter((s) => s.status === "closed").map((s) => (
-            <button key={s.id} onClick={() => setReport(s)} className="flex w-full items-center gap-4 px-5 py-3 text-left text-sm hover:bg-secondary/60">
-              <span className="w-40 text-muted-foreground">{fmtDate(s.opened_at)}</span>
-              <span className="flex-1 truncate">{names.data?.[s.closed_by ?? ""]}</span>
-              <span className="tabular">Expected {money(s.expected_cash)}</span>
-              <span className="tabular">Counted {money(s.counted_cash)}</span>
+            <button key={s.id} onClick={() => setReport(s)} className="flex w-full items-center gap-3 px-4 py-2 text-left text-[13px] hover:bg-secondary/60">
+              <span className="w-36 shrink-0 text-muted-foreground">{fmtDate(s.opened_at)}</span>
+              <span className="min-w-0 flex-1 truncate">{names.data?.[s.closed_by ?? ""]}</span>
+              <span className="tabular shrink-0">Expected {money(s.expected_cash)}</span>
+              <span className="tabular shrink-0">Counted {money(s.counted_cash)}</span>
               <Variance v={Number(s.variance)} money={money} />
             </button>
           ))}
@@ -126,14 +126,14 @@ function SummaryRows({ s, money }: { s: Summary; money: (n: number) => string })
     ["Expected cash", s.expected_cash, true],
   ];
   return (
-    <div className="space-y-1.5 text-sm">
+    <div className="space-y-1 text-[13px]">
       {rows.map(([k, v, b]) => (
-        <div key={k} className={cn("flex justify-between", b && "border-t pt-2 font-bold")}><span className="text-muted-foreground">{k}</span><span className="tabular">{money(v)}</span></div>
+        <div key={k} className={cn("flex justify-between gap-3", b && "border-t pt-2 font-bold")}><span className="truncate text-muted-foreground">{k}</span><span className="tabular shrink-0">{money(v)}</span></div>
       ))}
       {Object.keys(s.by_method ?? {}).length > 0 && (
-        <div className="pt-3">
+        <div className="pt-2.5">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All takings by method · {s.transactions} sales</div>
-          {Object.entries(s.by_method).map(([m, v]) => <div key={m} className="flex justify-between capitalize"><span className="text-muted-foreground">{m}</span><span className="tabular">{money(v)}</span></div>)}
+          {Object.entries(s.by_method).map(([m, v]) => <div key={m} className="flex justify-between gap-3 capitalize"><span className="truncate text-muted-foreground">{m}</span><span className="tabular shrink-0">{money(v)}</span></div>)}
         </div>
       )}
     </div>
@@ -154,7 +154,7 @@ function MoveDialog({ kind, shift, onClose }: { kind: "in" | "out"; shift: strin
         <DialogHeader><DialogTitle>{kind === "in" ? "Cash in" : "Cash out"}</DialogTitle></DialogHeader>
         <Field label="Amount"><Input inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} /></Field>
         <Field label="Reason"><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={kind === "in" ? "Added change" : "Cash drop to safe"} /></Field>
-        <Button size="lg" disabled={!Number(amt) || !reason.trim()} onClick={save}>Save</Button>
+        <Button disabled={!Number(amt) || !reason.trim()} onClick={save}>Save</Button>
       </DialogContent>
     </Dialog>
   );
@@ -180,7 +180,7 @@ function CloseDialog({ shift, expected, onClose, onDone }: { shift: Shift; expec
         <p className="text-sm text-muted-foreground">Count every note and coin in the drawer and enter the total. You will see the difference after closing.</p>
         <Field label="Cash counted"><Input autoFocus inputMode="decimal" value={counted} onChange={(e) => setCounted(e.target.value)} /></Field>
         <Field label="Notes (optional)"><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
-        <Button size="lg" disabled={busy || counted === ""} onClick={save}>Close shift</Button>
+        <Button disabled={busy || counted === ""} onClick={save}>Close shift</Button>
       </DialogContent>
     </Dialog>
   );
@@ -193,7 +193,7 @@ function ZReport({ s, names, onClose }: { s: Shift; names: Record<string, string
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>End of shift report</DialogTitle></DialogHeader>
-        <div id="zreport" className="space-y-3 text-sm">
+        <div id="zreport" className="space-y-2 text-[13px]">
           <div className="text-center"><div className="font-bold">{business?.name}</div><div className="text-muted-foreground">{stores.find((x) => x.id === s.store_id)?.name}</div></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Opened</span><span>{fmtDate(s.opened_at)} · {names[s.opened_by ?? ""]}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Closed</span><span>{s.closed_at && fmtDate(s.closed_at)} · {names[s.closed_by ?? ""] ?? ""}</span></div>

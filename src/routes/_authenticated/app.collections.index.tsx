@@ -32,15 +32,15 @@ function Collections() {
         actions={<Button variant="accent" asChild><Link to="/app/collections/$id" params={{ id: "new" }}><HugeiconsIcon icon={PlusSignIcon} /> New collection</Link></Button>}
       />
       {list.length === 0 ? <Empty>No collections yet.</Empty> : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((c) => (
-            <div key={c.id} className="pos-card flex flex-col gap-3 p-5">
+            <div key={c.id} className="pos-card flex min-w-0 flex-col gap-2 p-3">
               <Link to="/app/collections/$id" params={{ id: c.id }} className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-bold hover:underline">{c.name}</div>
+                <div className="min-w-0">
+                  <div className="truncate font-bold hover:underline">{c.name}</div>
                   <div className="text-xs text-muted-foreground">{count(c.id)} items</div>
                 </div>
-                {c.discount_pct > 0 && <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-accent-foreground">−{c.discount_pct}%</span>}
+                {c.discount_pct > 0 && <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">−{c.discount_pct}%</span>}
               </Link>
               <div className="mt-auto flex gap-2">
                 <Button size="sm" variant="outline" asChild><Link to="/app/collections/$id" params={{ id: c.id }}>Open</Link></Button>

@@ -40,7 +40,7 @@ function Sales() {
           </>
         }
       />
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Net sales", money(revenue)],
           ["Collected", money(collected)],
@@ -48,9 +48,9 @@ function Sales() {
           ["Transactions", String(done.length)],
           ...((all ? stores.some((s) => s.store_type === "approval") : store?.store_type === "approval") ? [["Awaiting approval", String(pending)]] : []),
         ].map(([k, v]) => (
-          <div key={k} className="pos-card p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
-            <div className="tabular mt-2 text-2xl font-extrabold">{v}</div>
+          <div key={k} className="pos-card p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
+            <div className="tabular mt-1 truncate text-base font-extrabold">{v}</div>
           </div>
         ))}
       </div>
@@ -58,7 +58,7 @@ function Sales() {
         <div className="pos-card divide-y">
           {rows.map((s) => (
             <div key={s.id}>
-              <Link to="/app/sales/$id" params={{ id: s.id }} className="flex w-full items-center gap-4 px-5 py-3 text-left text-sm hover:bg-secondary/60">
+              <Link to="/app/sales/$id" params={{ id: s.id }} className="flex w-full items-center gap-3 px-4 py-2 text-[13px] hover:bg-secondary/60">
                 <span className="w-14 font-bold">#{s.number}</span>
                 <span className="w-28 text-muted-foreground">{fmtDate(s.created_at)}</span>
                 <Status s={s.status} />

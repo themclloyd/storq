@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content: "Point of sale, stock and layby for single and multi-store businesses.",
       },
-      { name: "theme-color", content: "#5a31f4" },
+      { name: "theme-color", content: "#ff5722" },
       { name: "robots", content: PUBLIC_ROBOTS },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE_NAME },

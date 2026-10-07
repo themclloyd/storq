@@ -32,34 +32,34 @@ function Laybys() {
   return (
     <>
       <PageHeader title="Laybys" sub="Stock is reserved while the customer pays it off." />
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {(["open", "done"] as const).map((t) => (
-          <Button key={t} variant={tab === t ? "default" : "outline"} onClick={() => setTab(t)}>{t === "open" ? `Open (${open.data?.length ?? 0})` : "Closed"}</Button>
+          <Button key={t} size="sm" variant={tab === t ? "default" : "outline"} onClick={() => setTab(t)}>{t === "open" ? `Open (${open.data?.length ?? 0})` : "Closed"}</Button>
         ))}
-        <Input className="ml-auto w-64 bg-card" placeholder="Search customer or number" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input className="ml-auto h-8 w-56 bg-card" placeholder="Search customer or number" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {rows?.length === 0 && <Empty>No laybys here.</Empty>}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {rows?.map((s) => {
           const pct = Math.min(100, (Number(s.paid) / Number(s.total)) * 100);
           return (
-            <div key={s.id} className="pos-card p-5">
-              <div className="flex justify-between">
-                <div>
-                  <div className="font-bold">{s.customer_name}</div>
-                  <div className="text-xs text-muted-foreground">#{s.number} · {s.customer_phone ?? "no phone"} · {fmtDate(s.created_at)}</div>
+            <div key={s.id} className="pos-card min-w-0 p-3">
+              <div className="flex min-w-0 justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate font-bold">{s.customer_name}</div>
+                  <div className="truncate text-xs text-muted-foreground">#{s.number} · {s.customer_phone ?? "no phone"} · {fmtDate(s.created_at)}</div>
                 </div>
                 <Status s={s.status} />
               </div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>
-              <div className="tabular mt-2 flex justify-between text-sm">
-                <span>Paid {money(s.paid)}</span><span className="font-bold">Owing {money(Number(s.total) - Number(s.paid))}</span>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>
+              <div className="tabular mt-1.5 flex justify-between gap-2 text-[13px]">
+                <span className="truncate">Paid {money(s.paid)}</span><span className="truncate font-bold">Owing {money(Number(s.total) - Number(s.paid))}</span>
               </div>
-              <p className="mt-2 truncate text-xs text-muted-foreground">{s.sale_items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
+              <p className="mt-1.5 truncate text-xs text-muted-foreground">{s.sale_items.map((i) => `${i.qty}× ${i.name}`).join(", ")}</p>
               {s.status === "layby_open" && (
-                <div className="mt-4 flex gap-2">
-                  {can("admin", "manager") && <Button variant="outline" onClick={() => cancel(s)}>Cancel</Button>}
-                  <Button variant="accent" className="flex-1" onClick={() => setPaying(s)}>Take payment</Button>
+                <div className="mt-3 flex gap-2">
+                  {can("admin", "manager") && <Button size="sm" variant="outline" onClick={() => cancel(s)}>Cancel</Button>}
+                  <Button size="sm" variant="accent" className="flex-1" onClick={() => setPaying(s)}>Take payment</Button>
                 </div>
               )}
             </div>
@@ -94,7 +94,7 @@ function PayDialog({ s, onClose, onPaid }: { s: SaleRow; onClose: () => void; on
             <option value="cash">Cash</option><option value="card">Card</option><option value="mobile">Mobile money</option>
           </NativeSelect>
         </Field>
-        <Button size="lg" variant="success" onClick={pay}>Record payment</Button>
+        <Button variant="success" onClick={pay}>Record payment</Button>
       </DialogContent>
     </Dialog>
   );

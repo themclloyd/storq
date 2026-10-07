@@ -38,25 +38,25 @@ function Inventory() {
         sub={`${store?.name} · stock value at cost ${money(value)}`}
         actions={<Button variant="accent" onClick={() => setEdit({ active: true, price: 0, cost: 0 })}><HugeiconsIcon icon={PlusSignIcon} /> New item</Button>}
       />
-      <Input className="mb-4 max-w-sm bg-card" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
+      <Input className="mb-3 max-w-xs bg-card" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
       {rows.length === 0 ? <Empty>No items yet.</Empty> : (
         <div className="pos-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr className="border-b"><th className="px-5 py-3">Item</th><th>SKU</th><th>Collections</th><th className="text-right">Cost</th><th className="text-right">Price</th><th className="text-right">In stock</th><th className="px-5" /></tr>
+          <table className="w-full text-[13px]">
+            <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b"><th className="px-4 py-2">Item</th><th>SKU</th><th>Collections</th><th className="text-right">Cost</th><th className="text-right">Price</th><th className="text-right">In stock</th><th className="px-4" /></tr>
             </thead>
             <tbody className="divide-y">
               {rows.map((p) => {
                 const s = stock.data?.[p.id] ?? 0;
                 return (
                   <tr key={p.id} className={cn(!p.active && "opacity-50")}>
-                    <td className="px-5 py-3 font-semibold">{p.name}</td>
+                    <td className="px-4 py-2 font-semibold">{p.name}</td>
                     <td className="text-muted-foreground">{p.sku}</td>
-                    <td className="max-w-48 truncate text-muted-foreground">{colName(p.id)}</td>
+                    <td className="max-w-40 truncate text-muted-foreground">{colName(p.id)}</td>
                     <td className="tabular text-right">{money(p.cost)}</td>
                     <td className="tabular text-right font-semibold">{money(p.price)}</td>
                     <td className={cn("tabular text-right font-bold", s <= 0 && "text-destructive")}>{s}</td>
-                    <td className="space-x-1 whitespace-nowrap px-5 text-right">
+                    <td className="space-x-1 whitespace-nowrap px-4 text-right">
                       <Button size="sm" variant="outline" onClick={() => setAdj(p)}>Stock</Button>
                       <Button size="sm" variant="ghost" onClick={() => setEdit(p)}>Edit</Button>
                     </td>
@@ -97,18 +97,18 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
       <DialogContent>
         <DialogHeader><DialogTitle>{p.id ? "Edit item" : "New item"}</DialogTitle></DialogHeader>
         <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <Field label="SKU / barcode"><Input value={f.sku} onChange={(e) => setF({ ...f, sku: e.target.value })} /></Field>
           <Field label="Cost price"><Input inputMode="decimal" value={f.cost} onChange={(e) => setF({ ...f, cost: e.target.value })} /></Field>
           <Field label="Selling price"><Input inputMode="decimal" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} /></Field>
         </div>
         <Field label="Collections">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {(cols.data?.list ?? []).map((c) => {
               const on = chosen.includes(c.id);
               return (
                 <button type="button" key={c.id} onClick={() => setSel(on ? chosen.filter((x) => x !== c.id) : [...chosen, c.id])}
-                  className={cn("rounded-full border px-3 py-1 text-xs font-semibold", on ? "border-primary bg-primary text-primary-foreground" : "bg-card")}>
+                  className={cn("rounded-full border px-2.5 py-0.5 text-xs font-semibold", on ? "border-primary bg-primary text-primary-foreground" : "bg-card")}>
                   {c.name}{c.discount_pct > 0 ? ` −${c.discount_pct}%` : ""}
                 </button>
               );
@@ -117,8 +117,8 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
           </div>
         </Field>
         {stockEditable && (
-          <div className="rounded-lg border bg-muted/40 p-3">
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quantity — {store?.name}</div>
+          <div className="rounded-lg border bg-muted/40 p-2.5">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Quantity — {store?.name}</div>
             <div className="flex items-center gap-2">
               <Input className="max-w-32" inputMode="decimal" placeholder={p.id ? String(currentQty) : "0"} value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} />
               <span className="text-xs text-muted-foreground">{p.id ? `currently ${currentQty} in stock — leave blank to keep` : "starting stock for this store"}</span>
@@ -126,7 +126,7 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
           </div>
         )}
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} /> Available for sale</label>
-        <Button size="lg" disabled={!f.name} onClick={save}>Save item</Button>
+        <Button disabled={!f.name} onClick={save}>Save item</Button>
       </DialogContent>
     </Dialog>
   );
@@ -170,9 +170,9 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{p.name} — {store?.name}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-secondary p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
           {(["adjust", "history"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={cn("rounded-md py-1.5 text-sm font-semibold", tab === t && "bg-card shadow-sm")}>{t === "adjust" ? "Change stock" : "History"}</button>
+            <button key={t} onClick={() => setTab(t)} className={cn("rounded-full py-1.5 text-[13px] font-semibold", tab === t && "bg-card shadow-sm")}>{t === "adjust" ? "Change stock" : "History"}</button>
           ))}
         </div>
         {tab === "adjust" ? (<>
@@ -185,12 +185,12 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
           </NativeSelect></Field>
           <Field label="Quantity"><Input inputMode="decimal" value={n} onChange={(e) => setN(e.target.value)} /></Field>
           <Field label="Note (optional)"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Invoice no., who delivered…" /></Field>
-          <Button size="lg" disabled={!Number(n)} onClick={save}>Save</Button>
+          <Button disabled={!Number(n)} onClick={save}>Save</Button>
         </>) : (
-          <div className="max-h-96 divide-y overflow-y-auto rounded-lg border text-sm">
-            {(hist.data ?? []).length === 0 ? <p className="p-4 text-muted-foreground">{hist.isLoading ? "Loading…" : "No movements yet."}</p> :
+          <div className="max-h-80 divide-y overflow-y-auto rounded-lg border text-[13px]">
+            {(hist.data ?? []).length === 0 ? <p className="p-3 text-muted-foreground">{hist.isLoading ? "Loading…" : "No movements yet."}</p> :
               hist.data!.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 px-3 py-2">
+                <div key={m.id} className="flex items-center gap-3 px-3 py-1.5">
                   <div className="flex-1">
                     <div className="font-semibold">{reasonText[m.reason] ?? m.reason}</div>
                     <div className="text-xs text-muted-foreground">{fmtDate(m.created_at)}{m.staff_id && ` · ${names.data?.[m.staff_id] ?? ""}`}{m.note && ` · ${m.note}`}</div>

@@ -3,20 +3,20 @@ import { cn } from "@/lib/utils";
 
 export function PageHeader({ title, sub, actions }: { title: string; sub?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 className="text-3xl font-semibold">{title}</h1>
-        {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
+        <h1 className="text-xl font-semibold">{title}</h1>
+        {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap gap-1.5">{actions}</div>}
     </div>
   );
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <label className="block space-y-1">
+      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
   );
@@ -67,7 +67,7 @@ export function Status({ s }: { s: string }) {
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="pos-card p-10 text-center text-sm text-muted-foreground">{children}</div>;
+  return <div className="pos-card p-6 text-center text-sm text-muted-foreground">{children}</div>;
 }
 
 export function StoreTypeTag({ type }: { type: string }) {

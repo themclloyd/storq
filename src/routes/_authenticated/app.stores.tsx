@@ -22,14 +22,14 @@ function Stores() {
   return (
     <>
       <PageHeader title="Locations" actions={<Button variant="accent" disabled={!subscription.data?.canAddStore} onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add location</Button>} />
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4 text-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3 text-[13px]">
         <p className="text-muted-foreground">{subscription.data?.trial ? "Free trial" : `${stores.length} locations · ${subscription.data?.capacity ?? 0} paid location slots`}</p>
         {!subscription.data?.canAddStore && <Link to="/app/billing" className="font-medium underline">Pay for more locations</Link>}
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-2">
         {stores.map((s) => (
-          <div key={s.id} className="pos-card flex items-center justify-between p-5">
-            <div><div className="font-bold">{s.name}</div><div className="mt-1"><StoreTypeTag type={s.store_type} /></div></div>
+          <div key={s.id} className="pos-card flex min-w-0 items-center justify-between gap-3 p-3">
+            <div className="min-w-0"><div className="truncate font-bold">{s.name}</div><div className="mt-1"><StoreTypeTag type={s.store_type} /></div></div>
             <Button size="sm" variant="outline" onClick={() => setEdit(s)}>Edit</Button>
           </div>
         ))}
@@ -61,12 +61,12 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
         <Field label="Location name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <div className="space-y-2">
           {types.map((t) => (
-            <button key={t.v} onClick={() => setType(t.v)} className={cn("w-full rounded-lg border p-4 text-left", type === t.v ? "border-accent bg-accent/10" : "bg-card")}>
-              <div className="font-semibold">{t.t}</div><div className="text-sm text-muted-foreground">{t.d}</div>
+            <button key={t.v} onClick={() => setType(t.v)} className={cn("w-full rounded-lg border p-3 text-left", type === t.v ? "border-accent bg-accent/10" : "bg-card")}>
+              <div className="text-sm font-semibold">{t.t}</div><div className="text-xs text-muted-foreground">{t.d}</div>
             </button>
           ))}
         </div>
-        <Button size="lg" disabled={!name} onClick={save}>Save location</Button>
+        <Button disabled={!name} onClick={save}>Save location</Button>
       </DialogContent>
     </Dialog>
   );
@@ -82,8 +82,8 @@ function TaxSettings() {
     catch (e) { toast.error((e as Error).message); }
   }
   return (
-    <div className="pos-card mt-8 max-w-xl space-y-4 p-6">
-      <div><h3 className="text-lg font-bold">VAT / sales tax</h3><p className="text-sm text-muted-foreground">Applies to all locations. Set 0 if you are not VAT registered. Past sales keep the tax they were sold with.</p></div>
+    <div className="pos-card mt-5 max-w-xl space-y-3 p-4">
+      <div><h3 className="text-sm font-bold">VAT / sales tax</h3><p className="text-[13px] text-muted-foreground">Applies to all locations. Set 0 if you are not VAT registered. Past sales keep the tax they were sold with.</p></div>
       <Field label="Tax rate (%)"><Input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></Field>
       <div className="grid grid-cols-2 gap-2">
         {[[true, "Prices include VAT", "Shelf price is what the customer pays."], [false, "Add VAT at till", "VAT is added on top of the shelf price."]].map(([v, t, d]) => (

@@ -79,17 +79,17 @@ function CollectionPage() {
         title={isNew ? "New collection" : f.name || "Collection"}
         sub={`${sel.size} items${pct > 0 ? ` · −${pct}% off` : ""}`}
         actions={
-          <div className="flex gap-2">
-            {c && c.is_shared && <Button variant="outline" onClick={share}><HugeiconsIcon icon={Share01Icon} /> Share</Button>}
-            {c && <Button variant="ghost" onClick={remove}><HugeiconsIcon icon={Delete02Icon} /> Delete</Button>}
-            <Button variant="accent" disabled={!f.name || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button>
+          <div className="flex gap-1.5">
+            {c && c.is_shared && <Button size="sm" variant="outline" onClick={share}><HugeiconsIcon icon={Share01Icon} /> Share</Button>}
+            {c && <Button size="sm" variant="ghost" onClick={remove}><HugeiconsIcon icon={Delete02Icon} /> Delete</Button>}
+            <Button size="sm" variant="accent" disabled={!f.name || saving} onClick={save}>{saving ? "Saving…" : "Save"}</Button>
           </div>
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <div className="pos-card flex flex-col gap-4 self-start p-5">
-          <div className="font-bold">Details</div>
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        <div className="pos-card flex flex-col gap-3 self-start p-4">
+          <div className="text-sm font-bold">Details</div>
           <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
           <Field label="Discount %"><Input inputMode="decimal" value={f.discount} onChange={(e) => setF({ ...f, discount: e.target.value })} /></Field>
           <p className="text-xs text-muted-foreground">Applies to every item in this collection at checkout. If an item is in several collections, the biggest discount is used.</p>
@@ -98,34 +98,34 @@ function CollectionPage() {
 
         <div className="flex flex-col gap-4">
           <div className="pos-card">
-            <div className="border-b p-4 font-bold">Items in this collection ({inCol.length})</div>
+            <div className="border-b px-4 py-2.5 text-sm font-bold">Items in this collection ({inCol.length})</div>
             <div className="divide-y">
               {inCol.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                <div key={p.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
                   <span className="flex-1 truncate font-medium">{p.name}</span>
                   {pct > 0 && <span className="tabular text-muted-foreground line-through">{money(p.price)}</span>}
                   <span className="tabular font-semibold">{money(p.price * (1 - pct / 100))}</span>
                   <Button size="sm" variant="ghost" onClick={() => toggle(p.id)} aria-label="Remove"><HugeiconsIcon icon={Cancel01Icon} size={16} /></Button>
                 </div>
               ))}
-              {inCol.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No items yet. Add some below.</p>}
+              {inCol.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">No items yet. Add some below.</p>}
             </div>
           </div>
 
           <div className="pos-card">
-            <div className="flex items-center justify-between gap-2 border-b p-4">
-              <div className="font-bold">Add items</div>
-              <Input className="h-9 max-w-xs" placeholder="Search items" value={q} onChange={(e) => setQ(e.target.value)} />
+            <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
+              <div className="text-sm font-bold">Add items</div>
+              <Input className="h-8 max-w-56" placeholder="Search items" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
-            <div className="max-h-96 divide-y overflow-y-auto">
+            <div className="max-h-80 divide-y overflow-y-auto">
               {available.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <div key={p.id} className="flex items-center gap-3 px-4 py-1.5 text-[13px]">
                   <span className="flex-1 truncate">{p.name}</span>
                   <span className="tabular text-muted-foreground">{money(p.price)}</span>
                   <Button size="sm" variant="outline" onClick={() => toggle(p.id)}>Add</Button>
                 </div>
               ))}
-              {available.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No more items to add.</p>}
+              {available.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">No more items to add.</p>}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">Changes are kept when you press Save.</p>

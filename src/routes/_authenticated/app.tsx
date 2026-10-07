@@ -12,6 +12,14 @@ import { useSubscription } from "@/lib/billing";
 import { Billing } from "@/components/pos/Billing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 
@@ -77,16 +85,16 @@ function Setup() {
   }
   return (
     <div className="grid min-h-screen place-items-center bg-background p-4">
-      <form onSubmit={submit} className="pos-card w-full max-w-lg space-y-4 p-8">
+      <form onSubmit={submit} className="pos-card w-full max-w-lg space-y-3 p-5">
         <div>
-          <h1 className="text-2xl font-bold">Set up your business</h1>
+          <h1 className="text-xl font-bold">Set up your business</h1>
           <p className="mt-1 text-sm text-muted-foreground">You can add more stores and staff later.</p>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           <div className="col-span-2"><Field label="Business name"><Input required value={f.name} onChange={set("name")} /></Field></div>
           <Field label="Currency"><Input required value={f.currency} onChange={set("currency")} /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           <Field label="First store"><Input required value={f.store} onChange={set("store")} /></Field>
           <Field label="Store type">
             <NativeSelect value={f.type} onChange={set("type")}>
@@ -95,13 +103,13 @@ function Setup() {
             </NativeSelect>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           <Field label="Your name"><Input required value={f.owner} onChange={set("owner")} /></Field>
           <Field label="Your admin PIN">
             <Input required inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={f.pin} onChange={set("pin")} />
           </Field>
         </div>
-        <Button className="w-full" size="lg" disabled={busy}>Create business</Button>
+        <Button className="w-full" disabled={busy}>Create business</Button>
         <button type="button" onClick={signOut} className="w-full text-sm text-muted-foreground">Sign out of this device</button>
       </form>
     </div>
@@ -168,6 +176,7 @@ function Shell() {
   const navigate = useNavigate();
   const items = staff ? workspaceNavigation(staff.role, store?.store_type) : [];
   const current = workspacePageAt(path);
+  const groupNav = items.find((n) => n.group === current?.group);
   const lockedToStore = staff?.role === "cashier" && !!staff.store_id;
   const unavailableApproval = current?.approvalOnly && store?.store_type !== "approval";
 
@@ -177,9 +186,9 @@ function Shell() {
 
   return (
     <div className="storq-workspace flex min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r bg-rail md:flex">
-        <div className="flex items-center gap-3 px-6 py-7 text-2xl font-semibold">
-          <img src="/logo.svg" alt="Storq logo" className="size-9 rounded-lg" />
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-52 flex-col border-r bg-rail md:flex">
+        <div className="flex items-center gap-2 px-4 py-4 text-lg font-semibold">
+          <img src="/logo.svg" alt="Storq logo" className="size-7 rounded-lg" />
           Storq
         </div>
         <div className="px-4">
@@ -188,28 +197,44 @@ function Shell() {
           </NativeSelect>
           {store && <div className="mt-2 px-1"><StoreTypeTag type={store.store_type} /></div>}
         </div>
-        <nav className="mt-6 flex-1 space-y-1 overflow-y-auto px-3 pb-5">
+        <nav className="mt-3 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
           {items.map((n) => {
             const active = current?.group === n.group;
             return (
-              <Link key={n.to} to={n.to} aria-current={active ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>
-                <HugeiconsIcon icon={navIcons[n.group]} className="size-[18px]" /> {n.label}
+              <Link key={n.to} to={n.to} aria-current={active ? "page" : undefined} className={cn("flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors", active ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>
+                <HugeiconsIcon icon={navIcons[n.group]} className="size-4" /> {n.label}
               </Link>
             );
           })}
         </nav>
-        <div className="border-t p-3">
-          <div className="px-2 pb-2">
-            <div className="text-sm font-bold">{staff?.name}</div>
-            <div className="text-xs text-muted-foreground">{staff && roleLabel[staff.role]}</div>
+        <div className="border-t p-2">
+          <div className="px-2 pb-1.5">
+            <div className="text-[13px] font-bold">{staff?.name}</div>
+            <div className="text-[11px] text-muted-foreground">{staff && roleLabel[staff.role]}</div>
           </div>
           <Button variant="outline" className="w-full" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /> Lock</Button>
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col md:pl-60">
-        <header className="hidden h-20 items-center justify-between border-b px-8 md:flex lg:px-10">
-          <div className="flex items-center gap-3 text-sm"><span className="text-muted-foreground">{items.find((n) => n.group === current?.group)?.label ?? "Workspace"}</span><span className="text-muted-foreground">/</span><span className="font-medium">{current?.label ?? "Storq"}</span></div>
+      <div className="flex min-w-0 flex-1 flex-col md:pl-52">
+        <header className="hidden h-12 items-center justify-between border-b px-5 text-[13px] md:flex lg:px-6">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                {groupNav ? (
+                  <BreadcrumbLink asChild>
+                    <Link to={groupNav.to}>{groupNav.label}</Link>
+                  </BreadcrumbLink>
+                ) : (
+                  <BreadcrumbPage>Workspace</BreadcrumbPage>
+                )}
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{current?.label ?? "Storq"}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-secondary text-xs font-semibold">{staff?.name.slice(0, 2).toUpperCase()}</span><span className="text-sm text-muted-foreground">{staff?.name}</span><Button size="icon" variant="ghost" aria-label="Lock workspace" title="Lock workspace" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button></div>
         </header>
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
@@ -219,7 +244,7 @@ function Shell() {
           <span className="text-sm font-semibold">{staff?.name}</span>
           <Button size="icon" variant="outline" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] flex-1 p-5 pb-24 md:p-8 md:pb-8 lg:p-10">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 md:p-5 md:pb-6 lg:p-6">
           {staff && <WorkspaceTabs path={path} role={staff.role} storeType={store?.store_type} />}
           <div key={store?.id}><Outlet /></div>
         </main>

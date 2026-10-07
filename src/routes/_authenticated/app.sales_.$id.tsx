@@ -34,7 +34,7 @@ function SaleDetail() {
   });
   const refunds = useRefunds({ saleId: id });
   const s = sale.data;
-  if (sale.isLoading) return <div className="p-10 text-sm text-muted-foreground">Loading…</div>;
+  if (sale.isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
   if (!s) return <Empty>Sale not found. <Link to="/app/sales" className="underline">Back to sales</Link></Empty>;
 
   const subtotal = s.sale_items.reduce((a, i) => a + Number(i.qty) * Number(i.price), 0);
@@ -45,49 +45,49 @@ function SaleDetail() {
   return (
     <div className="mx-auto max-w-5xl">
       <Link to="/app/sales" className="text-sm text-muted-foreground hover:text-foreground">← Sales</Link>
-      <div className="mt-3 mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mt-2 mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold">Sale #{s.number}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold">Sale #{s.number}</h1>
             <Status s={s.status} />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {fmtDate(s.created_at)} · {storeName}{s.created_by && ` · by ${names.data?.[s.created_by] ?? "staff"}`}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.print()}>Print</Button>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => window.print()}>Print</Button>
           {can("admin", "manager") && REFUNDABLE.includes(s.status) && (
-            <Button variant="destructive" onClick={() => setRefundOpen(true)}>Return / refund</Button>
+            <Button variant="destructive" size="sm" onClick={() => setRefundOpen(true)}>Return / refund</Button>
           )}
         </div>
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid gap-2 sm:grid-cols-4">
         {[["Total", money(s.total)], ["Paid", money(s.paid)], ["Refunded", money(s.refunded)], ["Net", money(Number(s.total) - Number(s.refunded))]].map(([k, v]) => (
-          <div key={k} className="pos-card p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
-            <div className="tabular mt-1 text-xl font-bold">{v}</div>
+          <div key={k} className="pos-card p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
+            <div className="tabular mt-1 truncate text-base font-bold">{v}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid gap-3 lg:grid-cols-3">
+        <div className="space-y-3 lg:col-span-2">
           <section className="pos-card">
-            <h2 className="border-b px-5 py-3 font-semibold">Items</h2>
+            <h2 className="border-b px-4 py-2.5 text-sm font-semibold">Items</h2>
             <div className="divide-y">
               {s.sale_items.map((i) => (
-                <div key={i.id} className="flex items-center gap-4 px-5 py-3 text-sm">
-                  <div className="flex-1">
-                    <div className="font-medium">{i.name}</div>
-                    <div className="text-xs text-muted-foreground">{money(i.price)} × {i.qty}{Number(i.refunded_qty) > 0 && <span className="text-destructive"> · {i.refunded_qty} returned</span>}</div>
+                <div key={i.id} className="flex min-w-0 items-center gap-3 px-4 py-2 text-[13px]">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{i.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{money(i.price)} × {i.qty}{Number(i.refunded_qty) > 0 && <span className="text-destructive"> · {i.refunded_qty} returned</span>}</div>
                   </div>
-                  <div className="tabular font-semibold">{money(Number(i.qty) * Number(i.price))}</div>
+                  <div className="tabular shrink-0 font-semibold">{money(Number(i.qty) * Number(i.price))}</div>
                 </div>
               ))}
             </div>
-            <div className="space-y-1 border-t px-5 py-4 text-sm">
+            <div className="space-y-1 border-t px-4 py-3 text-[13px]">
               <Row k="Subtotal" v={money(subtotal)} />
               {tax > 0 && <Row k="VAT" v={money(tax)} />}
               <Row k="Total" v={money(s.total)} bold />
@@ -96,14 +96,14 @@ function SaleDetail() {
           </section>
 
           <section className="pos-card">
-            <h2 className="border-b px-5 py-3 font-semibold">Refunds</h2>
+            <h2 className="border-b px-4 py-2.5 text-sm font-semibold">Refunds</h2>
             {(refunds.data ?? []).length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted-foreground">No refunds on this sale.</p>
+              <p className="px-4 py-3 text-[13px] text-muted-foreground">No refunds on this sale.</p>
             ) : (
               <div className="divide-y">
                 {refunds.data!.map((r) => (
-                  <div key={r.id} className="px-5 py-3 text-sm">
-                    <div className="flex justify-between">
+                  <div key={r.id} className="px-4 py-2 text-[13px]">
+                    <div className="flex justify-between gap-3">
                       <span className="font-semibold">Refund #{r.number} · {methodLabel[r.method] ?? r.method}</span>
                       <span className="tabular font-semibold text-destructive">− {money(r.amount)}</span>
                     </div>
@@ -120,21 +120,21 @@ function SaleDetail() {
           </section>
         </div>
 
-        <aside className="space-y-6">
-          <section className="pos-card p-5 text-sm">
-            <h2 className="mb-3 font-semibold">Payment</h2>
+        <aside className="space-y-3">
+          <section className="pos-card p-3 text-[13px]">
+            <h2 className="mb-2 text-sm font-semibold">Payment</h2>
             <Row k="Method" v={s.payment_method ? (methodLabel[s.payment_method] ?? s.payment_method) : "—"} />
             <Row k="Paid" v={money(s.paid)} />
             {balance > 0.009 && <Row k="Balance due" v={money(balance)} className="text-destructive" />}
             {s.approved_by && <Row k="Approved by" v={names.data?.[s.approved_by] ?? "—"} />}
           </section>
-          <section className="pos-card p-5 text-sm">
-            <h2 className="mb-3 font-semibold">Customer</h2>
+          <section className="pos-card p-3 text-[13px]">
+            <h2 className="mb-2 text-sm font-semibold">Customer</h2>
             {s.customer_name || s.customer_phone ? (
               <><div className="font-medium">{s.customer_name}</div><div className="text-muted-foreground">{s.customer_phone}</div></>
             ) : <p className="text-muted-foreground">Walk-in customer</p>}
           </section>
-          {s.note && <section className="pos-card p-5 text-sm"><h2 className="mb-2 font-semibold">Note</h2><p className="text-muted-foreground">{s.note}</p></section>}
+          {s.note && <section className="pos-card p-3 text-[13px]"><h2 className="mb-2 text-sm font-semibold">Note</h2><p className="text-muted-foreground">{s.note}</p></section>}
         </aside>
       </div>
       {refundOpen && <RefundDialog sale={s} onClose={() => setRefundOpen(false)} />}
@@ -174,23 +174,23 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
           {sale.sale_items.map((i) => {
             const left = Number(i.qty) - Number(i.refunded_qty ?? 0);
             return (
-              <div key={i.id} className="flex items-center gap-3 p-3 text-sm">
-                <div className="flex-1"><div className="font-semibold">{i.name}</div><div className="text-xs text-muted-foreground">{left} of {i.qty} returnable · {money(i.price)} each</div></div>
-                <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={restock[i.id] ?? true} onChange={(e) => setRestock({ ...restock, [i.id]: e.target.checked })} /> Back to shelf</label>
-                <Input className="w-16" inputMode="decimal" disabled={left <= 0} value={qty[i.id] ?? ""} placeholder="0"
+              <div key={i.id} className="flex min-w-0 items-center gap-3 p-2.5 text-[13px]">
+                <div className="min-w-0 flex-1"><div className="truncate font-semibold">{i.name}</div><div className="truncate text-xs text-muted-foreground">{left} of {i.qty} returnable · {money(i.price)} each</div></div>
+                <label className="flex shrink-0 items-center gap-1 text-xs"><input type="checkbox" checked={restock[i.id] ?? true} onChange={(e) => setRestock({ ...restock, [i.id]: e.target.checked })} /> Back to shelf</label>
+                <Input className="h-8 w-16 shrink-0" inputMode="decimal" disabled={left <= 0} value={qty[i.id] ?? ""} placeholder="0"
                   onChange={(e) => setQty({ ...qty, [i.id]: String(Math.min(left, Number(e.target.value) || 0) || "") })} />
               </div>
             );
           })}
         </div>
         <p className="text-xs text-muted-foreground">Refund amount includes any VAT the customer paid. Untick "Back to shelf" for damaged items.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <Field label="Refund by"><NativeSelect value={method} onChange={(e) => setMethod(e.target.value)}>
             <option value="cash">Cash</option><option value="card">Card</option><option value="mobile">Mobile money</option><option value="store_credit">Store credit</option>
           </NativeSelect></Field>
           <Field label="Reason"><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Faulty, wrong size…" /></Field>
         </div>
-        <Button size="lg" variant="destructive" disabled={busy || amount <= 0 || !reason.trim()} onClick={submit}>Refund {money(amount)}</Button>
+        <Button variant="destructive" disabled={busy || amount <= 0 || !reason.trim()} onClick={submit}>Refund {money(amount)}</Button>
       </DialogContent>
     </Dialog>
   );

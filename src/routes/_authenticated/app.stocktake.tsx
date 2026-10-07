@@ -44,13 +44,13 @@ function StockTake() {
       {open ? <Counting take={open} /> : (
         <>
           {!can("admin", "manager") && <Empty>No stock take is open. Ask a manager to start one.</Empty>}
-          <div className="pos-card mt-4 divide-y">
+          <div className="pos-card mt-4 divide-y text-[13px]">
             {takes.data?.filter((t) => t.status === "closed").map((t) => (
-              <div key={t.id} className="flex items-center gap-4 px-5 py-3 text-sm">
+              <div key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-2">
                 <Status s={t.status} /><span>Started {fmtDate(t.created_at)}</span><span className="text-muted-foreground">Closed {t.closed_at && fmtDate(t.closed_at)}</span>
               </div>
             ))}
-            {!takes.data?.some((t) => t.status === "closed") && <p className="p-6 text-center text-sm text-muted-foreground">No past stock takes.</p>}
+            {!takes.data?.some((t) => t.status === "closed") && <p className="p-4 text-center text-sm text-muted-foreground">No past stock takes.</p>}
           </div>
         </>
       )}
@@ -92,22 +92,22 @@ function Counting({ take }: { take: Take }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Input className="w-64 bg-card" placeholder="Find item" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Button variant={onlyLeft ? "default" : "outline"} onClick={() => setOnlyLeft(!onlyLeft)}>Not counted yet</Button>
-        <span className="text-sm text-muted-foreground">{counted} / {lines.data?.length ?? 0} counted</span>
-        {can("admin", "manager") && <Button variant="success" className="ml-auto" onClick={close}>Finish & update stock</Button>}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Input className="w-56 bg-card" placeholder="Find item" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Button size="sm" variant={onlyLeft ? "default" : "outline"} onClick={() => setOnlyLeft(!onlyLeft)}>Not counted yet</Button>
+        <span className="text-[13px] text-muted-foreground">{counted} / {lines.data?.length ?? 0} counted</span>
+        {can("admin", "manager") && <Button size="sm" variant="success" className="ml-auto" onClick={close}>Finish & update stock</Button>}
       </div>
       <div className="pos-card divide-y">
         {rows.map((l) => {
           const diff = l.counted === null ? null : Number(l.counted) - Number(l.expected);
           return (
-            <div key={l.product_id} className="flex items-center gap-4 px-5 py-3">
-              <span className="flex-1 font-semibold">{name(l.product_id)}</span>
-              {can("admin", "manager") && <span className="tabular w-24 text-right text-sm text-muted-foreground">System {Number(l.expected)}</span>}
+            <div key={l.product_id} className="flex items-center gap-3 px-4 py-1.5 text-[13px]">
+              <span className="min-w-0 flex-1 truncate font-semibold">{name(l.product_id)}</span>
+              {can("admin", "manager") && <span className="tabular w-20 shrink-0 text-right text-muted-foreground">System {Number(l.expected)}</span>}
               <Input
                 key={`${l.product_id}-${l.counted}`}
-                className="tabular w-24 text-right"
+                className="tabular h-8 w-20 shrink-0 text-right"
                 inputMode="decimal"
                 defaultValue={l.counted ?? ""}
                 placeholder="Count"
@@ -115,14 +115,14 @@ function Counting({ take }: { take: Take }) {
                 onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
               />
               {can("admin", "manager") && (
-                <span className={cn("tabular w-16 text-right text-sm font-bold", diff === null ? "text-muted-foreground" : diff < 0 ? "text-destructive" : diff > 0 ? "text-success" : "")}>
+                <span className={cn("tabular w-12 shrink-0 text-right font-bold", diff === null ? "text-muted-foreground" : diff < 0 ? "text-destructive" : diff > 0 ? "text-success" : "")}>
                   {diff === null ? "—" : diff > 0 ? `+${diff}` : diff}
                 </span>
               )}
             </div>
           );
         })}
-        {rows.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Nothing to show.</p>}
+        {rows.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">Nothing to show.</p>}
       </div>
     </>
   );

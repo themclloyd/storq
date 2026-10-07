@@ -88,7 +88,7 @@ function Reports() {
         </>}
       />
       {loading ? <Empty>Loading report…</Empty> : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="pos-card overflow-hidden">
             <div className="grid divide-y sm:grid-cols-5 sm:divide-x sm:divide-y-0">
               <Stat k="Net sales" v={money(r.revenue)} sub={`${r.count} sales · ${money(r.refunds)} refunded`} />
@@ -99,7 +99,7 @@ function Reports() {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Card title="Till cash check">
               <Row k="Cash taken from sales" v={money(r.cashIn)} />
               <Row k="Cash paid out (expenses)" v={`− ${money(r.tillOut)}`} />
@@ -120,20 +120,20 @@ function Reports() {
             </Card>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             <Card title="Most profitable items">
               {r.items.length === 0 ? <p className="text-sm text-muted-foreground">No items sold.</p> : (
-                <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase text-muted-foreground"><tr><th className="pb-2">Item</th><th className="pb-2 text-right">Qty</th><th className="pb-2 text-right">Sales</th><th className="pb-2 text-right">Profit</th><th className="pb-2 text-right">Margin</th></tr></thead>
+                <table className="w-full text-[13px]">
+                  <thead className="text-left text-[11px] uppercase text-muted-foreground"><tr><th className="pb-2">Item</th><th className="pb-2 text-right">Qty</th><th className="pb-2 text-right">Sales</th><th className="pb-2 text-right">Profit</th><th className="pb-2 text-right">Margin</th></tr></thead>
                   <tbody className="divide-y">
                     {r.items.slice(0, 10).map((i) => (
-                      <tr key={i.name}><td className="py-2 font-medium">{i.name}</td><td className="tabular text-right">{i.qty}</td><td className="tabular text-right">{money(i.revenue)}</td><td className="tabular text-right font-semibold">{money(i.profit)}</td><td className="tabular text-right text-muted-foreground">{i.revenue ? ((i.profit / i.revenue) * 100).toFixed(0) : 0}%</td></tr>
+                      <tr key={i.name}><td className="max-w-40 truncate py-1.5 font-medium">{i.name}</td><td className="tabular text-right">{i.qty}</td><td className="tabular text-right">{money(i.revenue)}</td><td className="tabular text-right font-semibold">{money(i.profit)}</td><td className="tabular text-right text-muted-foreground">{i.revenue ? ((i.profit / i.revenue) * 100).toFixed(0) : 0}%</td></tr>
                     ))}
                   </tbody>
                 </table>
               )}
             </Card>
-            <div className="space-y-6">
+            <div className="space-y-3">
               <Card title="Staff performance">
                 {Object.keys(r.byStaff).length === 0 ? <p className="text-sm text-muted-foreground">No sales.</p> :
                   Object.entries(r.byStaff).sort((a, b) => b[1].revenue - a[1].revenue).map(([id, v]) => <Row key={id} k={`${names.data?.[id] ?? "Unknown"} · ${v.sales} sales`} v={money(v.revenue)} />)}
@@ -149,11 +149,11 @@ function Reports() {
 
           {all && stores.length > 1 && (
             <Card title="By store">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground"><tr><th className="pb-2">Store</th><th className="pb-2 text-right">Sales</th><th className="pb-2 text-right">Gross profit</th><th className="pb-2 text-right">Expenses</th><th className="pb-2 text-right">Net profit</th></tr></thead>
+              <table className="w-full text-[13px]">
+                <thead className="text-left text-[11px] uppercase text-muted-foreground"><tr><th className="pb-2">Store</th><th className="pb-2 text-right">Sales</th><th className="pb-2 text-right">Gross profit</th><th className="pb-2 text-right">Expenses</th><th className="pb-2 text-right">Net profit</th></tr></thead>
                 <tbody className="divide-y">
                   {stores.map((s) => { const v = r.byStore[s.id] ?? { revenue: 0, profit: 0, expenses: 0 }; return (
-                    <tr key={s.id}><td className="py-2 font-medium">{s.name}</td><td className="tabular text-right">{money(v.revenue)}</td><td className="tabular text-right">{money(v.profit)}</td><td className="tabular text-right">{money(v.expenses)}</td><td className="tabular text-right font-semibold">{money(v.profit - v.expenses)}</td></tr>
+                    <tr key={s.id}><td className="max-w-40 truncate py-1.5 font-medium">{s.name}</td><td className="tabular text-right">{money(v.revenue)}</td><td className="tabular text-right">{money(v.profit)}</td><td className="tabular text-right">{money(v.expenses)}</td><td className="tabular text-right font-semibold">{money(v.profit - v.expenses)}</td></tr>
                   ); })}
                 </tbody>
               </table>
@@ -168,23 +168,23 @@ function Reports() {
 
 function Stat({ k, v, sub, strong, tone }: { k: string; v: string; sub: string; strong?: boolean; tone?: "pos" | "neg" }) {
   return (
-    <div className={cn("p-5", strong && "bg-secondary/60")}>
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
-      <div className={cn("tabular mt-2 text-2xl font-extrabold", tone === "neg" && "text-destructive", tone === "pos" && "text-accent")}>{v}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{sub}</div>
+    <div className={cn("p-3", strong && "bg-secondary/60")}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
+      <div className={cn("tabular mt-1 truncate text-base font-extrabold", tone === "neg" && "text-destructive", tone === "pos" && "text-accent")}>{v}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>
     </div>
   );
 }
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="pos-card p-5"><h3 className="mb-3 font-bold">{title}</h3><div className="space-y-2">{children}</div></div>;
+  return <div className="pos-card p-4"><h3 className="mb-2 text-sm font-bold">{title}</h3><div className="space-y-1.5 text-[13px]">{children}</div></div>;
 }
 function Row({ k, v, bold }: { k: React.ReactNode; v: string; bold?: boolean }) {
-  return <div className={cn("flex justify-between gap-3 text-sm", bold && "border-t pt-2 font-bold")}><span className="text-muted-foreground">{k}</span><span className="tabular">{v}</span></div>;
+  return <div className={cn("flex justify-between gap-3 text-[13px]", bold && "border-t pt-2 font-bold")}><span className="min-w-0 truncate text-muted-foreground">{k}</span><span className="tabular shrink-0">{v}</span></div>;
 }
 function Bar({ label, value, max, text }: { label: string; value: number; max: number; text: string }) {
   return (
-    <div className="text-sm">
-      <div className="flex justify-between"><span>{label}</span><span className="tabular">{text}</span></div>
+    <div className="text-[13px]">
+      <div className="flex justify-between gap-3"><span className="min-w-0 truncate">{label}</span><span className="tabular shrink-0">{text}</span></div>
       <div className="mt-1 h-1.5 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${max ? (value / max) * 100 : 0}%` }} /></div>
     </div>
   );

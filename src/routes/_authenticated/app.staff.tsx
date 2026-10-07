@@ -31,18 +31,18 @@ function Staff() {
     <>
       <PageHeader title="Staff" sub="Each person unlocks this device with their own 4-digit PIN. Their PIN decides what they can do."
         actions={<Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}><HugeiconsIcon icon={PlusSignIcon} /> Add staff</Button>} />
-      <div className="mb-6 grid gap-3 text-sm sm:grid-cols-3">
-        <div className="pos-card p-4"><b>Admin</b><p className="text-muted-foreground">Everything: staff, stores, stock, approvals.</p></div>
-        <div className="pos-card p-4"><b>Manager / Approver</b><p className="text-muted-foreground">Sell, approve invoices, manage stock and stock takes.</p></div>
-        <div className="pos-card p-4"><b>Cashier</b><p className="text-muted-foreground">Sell, create invoices, take layby payments, count stock.</p></div>
+      <div className="mb-4 grid gap-2 text-[13px] sm:grid-cols-3">
+        <div className="pos-card p-3"><b>Admin</b><p className="text-muted-foreground">Everything: staff, stores, stock, approvals.</p></div>
+        <div className="pos-card p-3"><b>Manager / Approver</b><p className="text-muted-foreground">Sell, approve invoices, manage stock and stock takes.</p></div>
+        <div className="pos-card p-3"><b>Cashier</b><p className="text-muted-foreground">Sell, create invoices, take layby payments, count stock.</p></div>
       </div>
       <div className="pos-card divide-y">
         {staff.data?.map((s) => (
-          <div key={s.id} className="flex items-center gap-4 px-5 py-3">
-            <span className="grid size-9 place-items-center rounded-full bg-secondary text-sm font-bold">{s.name.slice(0, 1).toUpperCase()}</span>
-            <div className="flex-1">
-              <div className="font-semibold">{s.name} {!s.active && <span className="text-xs text-destructive">(inactive)</span>}</div>
-              <div className="text-xs text-muted-foreground">{roleLabel[s.role]} · {stores.find((x) => x.id === s.store_id)?.name ?? "All stores"}</div>
+          <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold">{s.name.slice(0, 1).toUpperCase()}</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-semibold">{s.name} {!s.active && <span className="text-xs text-destructive">(inactive)</span>}</div>
+              <div className="truncate text-xs text-muted-foreground">{roleLabel[s.role]} · {stores.find((x) => x.id === s.store_id)?.name ?? "All stores"}</div>
             </div>
             <Button size="sm" variant="outline" onClick={() => setEdit(s)}>Edit</Button>
           </div>
@@ -68,7 +68,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
       <DialogContent>
         <DialogHeader><DialogTitle>{s.id ? "Edit staff" : "Add staff"}</DialogTitle></DialogHeader>
         <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <Field label="Role">
             <NativeSelect value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>
               <option value="cashier">Cashier</option><option value="manager">Manager / Approver</option><option value="admin">Admin</option>
@@ -85,7 +85,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
           <Input inputMode="numeric" maxLength={4} value={f.pin} onChange={(e) => setF({ ...f, pin: e.target.value.replace(/\D/g, "") })} />
         </Field>
         {s.id && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} /> Active</label>}
-        <Button size="lg" disabled={!f.name || (!s.id && f.pin.length !== 4) || (f.pin.length > 0 && f.pin.length !== 4)} onClick={save}>Save</Button>
+        <Button disabled={!f.name || (!s.id && f.pin.length !== 4) || (f.pin.length > 0 && f.pin.length !== 4)} onClick={save}>Save</Button>
       </DialogContent>
     </Dialog>
   );
