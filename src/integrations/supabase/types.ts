@@ -826,6 +826,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      require_staff_nosub: {
+        Args: { p_roles: string[]; p_token: string }
+        Returns: {
+          active: boolean
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          pin_hash: string
+          role: string
+          store_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       review_invoice: {
         Args: {
           p_approve: boolean
@@ -902,6 +921,7 @@ export type Database = {
         Args: { p_currency: string; p_period: string; p_token: string }
         Returns: Json
       }
+      subscription_active: { Args: { p_business: string }; Returns: boolean }
       unlock_with_pin: { Args: { p_pin: string }; Returns: Json }
     }
     Enums: {
