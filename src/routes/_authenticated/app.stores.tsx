@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,16 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, PageHeader, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/lib/billing";
 
 export const Route = createFileRoute("/_authenticated/app/stores")({ head: () => ({ meta: [{ title: "Stores — Storq" }, { name: "description", content: "Manage your Storq stores and tax settings." }, { property: "og:title", content: "Stores — Storq" }, { property: "og:description", content: "Manage your Storq stores and tax settings." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Stores });
 
 function Stores() {
-  const { stores, can } = usePos();
+  const { stores, can, business } = usePos();
+  const subscription = useSubscription(business?.id, stores.length);
   const [edit, setEdit] = useState<Partial<Store> | null>(null);
   if (!can("admin")) return <Empty>Only admins can manage stores.</Empty>;
   return (
     <>
-      <PageHeader title="Stores" actions={<Button variant="accent" onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add store</Button>} />
+      <PageHeader title="Stores" actions={<Button variant="accent" disabled={!subscription.data?.canAddStore} onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add store</Button>} />
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4 text-sm">
+        <p className="text-muted-foreground">{subscription.data?.trial ? "Free trial" : `${stores.length} stores · ${subscription.data?.capacity ?? 0} paid store slots`}</p>
+        {!subscription.data?.canAddStore && <Link to="/app/billing" className="font-medium underline">Pay for more stores</Link>}
+      </div>
       <div className="grid gap-3 md:grid-cols-2">
         {stores.map((s) => (
           <div key={s.id} className="pos-card flex items-center justify-between p-5">

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PRICES, YEARLY_FACTOR, loadPaychangu, useSubscription } from "@/lib/billing";
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CreditCardIcon, Download01Icon, ReceiptIcon, StoreIcon } from "@hugeicons/core-free-icons";
@@ -18,14 +19,16 @@ const fmt = (c: "MWK" | "USD", n: number) => c === "MWK" ? `MK${Math.round(n).to
 export function Billing({ locked }: { locked?: boolean }) {
   const { business, stores, can, rpc, lock } = usePos();
   const qc = useQueryClient();
-  const sub = useSubscription(business?.id);
+  const sub = useSubscription(business?.id, stores.length);
   const getKey = useServerFn(getPaychanguKey);
   const verify = useServerFn(verifySubscriptionPayment);
   const [currency, setCurrency] = useState<"MWK" | "USD">("MWK");
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [busy, setBusy] = useState(false);
   const checked = useRef(false);
-  const n = Math.max(stores.length, 1);
+  const [requestedStores, setRequestedStores] = useState(0);
+  const minimumStores = Math.max(stores.length, sub.data?.paid ? sub.data.capacity : 0, 1);
+  const n = Math.max(requestedStores, minimumStores);
   const monthly = PRICES[currency] * n;
   const total = period === "yearly" ? monthly * YEARLY_FACTOR : monthly;
 
@@ -46,7 +49,7 @@ export function Billing({ locked }: { locked?: boolean }) {
     setBusy(true);
     try {
       const [{ key }, start, { data: u }] = await Promise.all([
-        getKey(), rpc<{ tx_ref: string; amount: number }>("start_subscription_payment", { p_period: period, p_currency: currency }), supabase.auth.getUser(), loadPaychangu(),
+        getKey(), rpc<{ tx_ref: string; amount: number }>("start_store_subscription_payment", { p_period: period, p_currency: currency, p_stores: n }), supabase.auth.getUser(), loadPaychangu(),
       ]);
       if (!key) throw new Error("Payments are not configured yet.");
       const url = `${window.location.origin}/app/billing`;
@@ -55,7 +58,8 @@ export function Billing({ locked }: { locked?: boolean }) {
         w.id = "wrapper";
         document.body.appendChild(w);
       }
-      window.PaychanguCheckout?.({
+      if (!window.PaychanguCheckout) throw new Error("PayChangu could not open. Please try again.");
+      window.PaychanguCheckout({
         public_key: key, tx_ref: start.tx_ref, amount: start.amount, currency,
         callback_url: url, return_url: url,
         customer: { email: u.user?.email ?? "", first_name: business?.name ?? "Storq", last_name: "" },
@@ -77,13 +81,13 @@ export function Billing({ locked }: { locked?: boolean }) {
       return data as Inv[];
     },
   });
-  const status = until ? { label: "Active", cls: "bg-accent/15 text-accent" } : s?.trial ? { label: "Free trial", cls: "bg-secondary text-foreground" } : { label: "Expired", cls: "bg-destructive/15 text-destructive" };
+  const status = s?.overLimit ? { label: "Store limit exceeded", cls: "bg-destructive/15 text-destructive" } : until ? { label: "Active", cls: "bg-accent/15 text-accent" } : s?.trial ? { label: "Free trial", cls: "bg-secondary text-foreground" } : { label: "Expired", cls: "bg-destructive/15 text-destructive" };
   const canPay = can("admin", "manager");
 
   return (
     <div className={cn("mx-auto w-full max-w-6xl space-y-10", locked && "py-12")}>
       <div>
-        <h1 className="text-3xl font-semibold">{locked ? "Your free trial has ended" : "Billing & subscription"}</h1>
+        <h1 className="text-3xl font-semibold">{locked ? s?.overLimit ? "Your stores exceed paid capacity" : "Your subscription needs attention" : "Billing & subscription"}</h1>
         <p className="mt-3 text-sm text-muted-foreground">Your plan, payments and invoices.</p>
       </div>
 
@@ -100,7 +104,7 @@ export function Billing({ locked }: { locked?: boolean }) {
             </div>
           </div>
           <dl className="grid grid-cols-2 gap-4 border-t pt-6 text-sm">
-            <div><dt className="flex items-center gap-2 text-xs text-muted-foreground"><HugeiconsIcon icon={StoreIcon} className="size-4" /> Stores</dt><dd className="mt-3 text-2xl font-semibold">{n}</dd></div>
+            <div><dt className="flex items-center gap-2 text-xs text-muted-foreground"><HugeiconsIcon icon={StoreIcon} className="size-4" /> Stores / paid slots</dt><dd className="mt-3 text-2xl font-semibold">{stores.length} / {s?.capacity ?? 0}</dd></div>
             <div><dt className="text-xs text-muted-foreground">Monthly / store</dt><dd className="mt-3 text-xl font-semibold">{fmt(currency, PRICES[currency])}</dd></div>
           </dl>
           {locked && <Button variant="outline" className="w-full" onClick={lock}>Switch staff</Button>}
@@ -116,6 +120,11 @@ export function Billing({ locked }: { locked?: boolean }) {
             </div>
           </div>
           {!canPay ? <p className="text-sm text-muted-foreground">Ask an admin or manager to renew the subscription.</p> : <>
+            <div className="space-y-2">
+              <label htmlFor="billing-stores" className="text-sm font-medium">Store slots to subscribe</label>
+              <Input id="billing-stores" type="number" min={minimumStores} max={1000} step={1} value={n} onChange={(e) => setRequestedStores(Math.max(minimumStores, Math.min(1000, Math.trunc(Number(e.target.value) || minimumStores))))} />
+              <p className="text-xs text-muted-foreground">Each store needs a paid slot. Buy extra slots before adding stores.{s?.paid && n > s.capacity ? " Remaining prepaid time is credited across the larger store count; your expiry date is recalculated after payment." : ""}</p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {(["monthly", "yearly"] as const).map((p) => {
                 const amt = p === "yearly" ? monthly * YEARLY_FACTOR : monthly;
