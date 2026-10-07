@@ -150,17 +150,17 @@ function PinPad() {
   );
 }
 
-type NavItem = { to: string; label: string; icon: typeof Boxes; roles: Role[] };
+type NavItem = { to: string; label: string; icon: typeof BoxesIcon; roles: Role[] };
 const nav: NavItem[] = [
-  { to: "/app", label: "Register", icon: ShoppingBag, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/invoices", label: "Invoices", icon: FileCheck2, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/laybys", label: "Laybys", icon: Wallet, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/sales", label: "Sales", icon: Receipt, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/expenses", label: "Expenses", icon: Banknote, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
-  { to: "/app/inventory", label: "Inventory", icon: Package, roles: ["admin", "manager"] },
-  { to: "/app/stocktake", label: "Stock take", icon: ClipboardCheck, roles: ["admin", "manager", "cashier"] },
-  { to: "/app/staff", label: "Staff", icon: Users, roles: ["admin"] },
+  { to: "/app", label: "Register", icon: ShoppingBag01Icon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/invoices", label: "Invoices", icon: FileCheckIcon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/laybys", label: "Laybys", icon: Wallet01Icon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/sales", label: "Sales", icon: ReceiptIcon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/expenses", label: "Expenses", icon: BanknoteIcon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/reports", label: "Reports", icon: BarChartIcon, roles: ["admin", "manager"] },
+  { to: "/app/inventory", label: "Inventory", icon: PackageIcon, roles: ["admin", "manager"] },
+  { to: "/app/stocktake", label: "Stock take", icon: ClipboardCheckIcon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/staff", label: "Staff", icon: UserMultipleIcon, roles: ["admin"] },
   { to: "/app/stores", label: "Stores", icon: StoreIcon, roles: ["admin"] },
 ];
 
