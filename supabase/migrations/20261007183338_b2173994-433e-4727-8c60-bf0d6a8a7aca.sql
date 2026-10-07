@@ -1,0 +1,2 @@
+ALTER TABLE public.sales DROP CONSTRAINT sales_status_check;
+ALTER TABLE public.sales ADD CONSTRAINT sales_status_check CHECK (status = ANY (ARRAY['completed','pending_approval','rejected','layby_open','layby_completed','layby_cancelled','partially_refunded','refunded']));
