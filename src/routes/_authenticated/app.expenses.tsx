@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Empty, Field, NativeSelect, PageHeader } from "@/components/pos/bits";
 
 export const Route = createFileRoute("/_authenticated/app/expenses")({
-  head: () => ({ meta: [{ title: "Expenses — Storq" }, { name: "description", content: "Record and review business expenses." }] }),
+  head: () => ({ meta: [{ title: "Expenses — Storq" }, { name: "description", content: "Record and review business expenses." }, { property: "og:title", content: "Expenses — Storq" }, { property: "og:description", content: "Record and review business expenses." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Expenses,
 });
 

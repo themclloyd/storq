@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Empty, Field, PageHeader } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/collections/$id")({ component: CollectionPage });
+export const Route = createFileRoute("/_authenticated/app/collections/$id")({ head: () => ({ meta: [{ title: "Edit collection — Storq" }, { name: "description", content: "Edit collection details, discounts and product membership." }, { property: "og:title", content: "Edit collection — Storq" }, { property: "og:description", content: "Edit collection details, discounts and product membership." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: CollectionPage });
 
 function CollectionPage() {
   const { id } = Route.useParams();

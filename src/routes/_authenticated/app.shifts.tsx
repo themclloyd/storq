@@ -12,7 +12,7 @@ import { Empty, Field, PageHeader, Status, fmtDate } from "@/components/pos/bits
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/shifts")({
-  head: () => ({ meta: [{ title: "Cash drawer — Storq" }, { name: "description", content: "Open and close till shifts with end-of-day cash count." }] }),
+  head: () => ({ meta: [{ title: "Cash drawer — Storq" }, { name: "description", content: "Open and close till shifts and reconcile counted cash." }, { property: "og:title", content: "Cash drawer — Storq" }, { property: "og:description", content: "Open and close till shifts and reconcile counted cash." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Shifts,
 });
 

@@ -8,6 +8,8 @@ import { PRICES, YEARLY_FACTOR, loadPaychangu, useSubscription } from "@/lib/bil
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CreditCardIcon, Download01Icon, ReceiptIcon, StoreIcon } from "@hugeicons/core-free-icons";
 
 declare global { interface Window { PaychanguCheckout?: (o: Record<string, unknown>) => void } }
 
@@ -79,68 +81,67 @@ export function Billing({ locked }: { locked?: boolean }) {
   const canPay = can("admin", "manager");
 
   return (
-    <div className={cn("mx-auto w-full max-w-5xl space-y-6", locked && "py-12")}>
+    <div className={cn("mx-auto w-full max-w-6xl space-y-10", locked && "py-12")}>
       <div>
-        <h1 className="text-2xl font-bold">{locked ? "Your free trial has ended" : "Billing"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your Storq plan, payments and invoices.</p>
+        <h1 className="text-3xl font-semibold">{locked ? "Your free trial has ended" : "Billing & subscription"}</h1>
+        <p className="mt-3 text-sm text-muted-foreground">Your plan, payments and invoices.</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="pos-card space-y-5 p-6 lg:col-span-2">
+      <div className="grid gap-8 lg:grid-cols-5 lg:gap-12">
+        <section className="space-y-7 border-b pb-8 lg:col-span-2 lg:border-b-0 lg:border-r lg:pr-10">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-muted-foreground">Current plan</span>
+            <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground"><HugeiconsIcon icon={CreditCardIcon} className="size-4" /> Current subscription</span>
             <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", status.cls)}>{status.label}</span>
           </div>
           <div>
-            <div className="text-2xl font-bold capitalize">{until ? `${s?.sub?.plan ?? "Storq"} plan` : s?.trial ? "Free trial" : "No active plan"}</div>
+            <div className="text-3xl font-semibold capitalize">{sub.isPending ? "Loading…" : until ? `${s?.sub?.plan ?? "Storq"} plan` : s?.trial ? "Free trial" : "No active plan"}</div>
             <div className="mt-1 text-sm text-muted-foreground">
               {until ? `Renews / expires ${until.toLocaleDateString(undefined, { dateStyle: "long" })}` : s?.trial && trialEnd ? `Trial ends ${trialEnd.toLocaleString()}` : "Subscribe to keep selling."}
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-lg bg-muted p-3"><dt className="text-xs text-muted-foreground">Stores</dt><dd className="font-bold">{n}</dd></div>
-            <div className="rounded-lg bg-muted p-3"><dt className="text-xs text-muted-foreground">Per store</dt><dd className="font-bold">{fmt(currency, PRICES[currency])}/mo</dd></div>
+          <dl className="grid grid-cols-2 gap-4 border-t pt-6 text-sm">
+            <div><dt className="flex items-center gap-2 text-xs text-muted-foreground"><HugeiconsIcon icon={StoreIcon} className="size-4" /> Stores</dt><dd className="mt-3 text-2xl font-semibold">{n}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Monthly / store</dt><dd className="mt-3 text-xl font-semibold">{fmt(currency, PRICES[currency])}</dd></div>
           </dl>
           {locked && <Button variant="outline" className="w-full" onClick={lock}>Switch staff</Button>}
-        </div>
+        </section>
 
-        <div className="pos-card space-y-5 p-6 lg:col-span-3">
+        <section className="space-y-6 lg:col-span-3">
           <div className="flex items-center justify-between">
             <span className="font-semibold">{until ? "Renew or extend" : "Choose a plan"}</span>
             <div className="flex gap-1 rounded-lg bg-muted p-1">
               {(["MWK", "USD"] as const).map((c) => (
-                <button key={c} onClick={() => setCurrency(c)} className={cn("rounded-md px-3 py-1 text-xs font-semibold", currency === c ? "bg-background shadow-sm" : "text-muted-foreground")}>{c}</button>
+                <Button key={c} size="sm" variant="ghost" aria-pressed={currency === c} onClick={() => setCurrency(c)} className={cn("text-xs font-semibold", currency === c ? "bg-secondary text-foreground" : "text-muted-foreground")}>{c}</Button>
               ))}
             </div>
           </div>
           {!canPay ? <p className="text-sm text-muted-foreground">Ask an admin or manager to renew the subscription.</p> : <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               {(["monthly", "yearly"] as const).map((p) => {
                 const amt = p === "yearly" ? monthly * YEARLY_FACTOR : monthly;
                 return (
-                  <button key={p} onClick={() => setPeriod(p)} className={cn("relative rounded-xl border p-4 text-left transition", period === p && "border-primary ring-2 ring-primary")}>
-                    {p === "yearly" && <span className="absolute right-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">SAVE 15%</span>}
-                    <div className="text-sm font-semibold capitalize">{p}</div>
-                    <div className="mt-2 text-xl font-bold">{fmt(currency, amt)}</div>
-                    <div className="text-xs text-muted-foreground">{p === "yearly" ? "billed every year" : "billed every month"}</div>
-                  </button>
+                  <Button key={p} variant="outline" aria-pressed={period === p} onClick={() => setPeriod(p)} className={cn("billing-plan h-auto flex-col items-stretch justify-start gap-0 whitespace-normal p-5 text-left shadow-none", period === p && "border-accent")}>
+                    <span className="flex items-center justify-between gap-2"><span className="text-sm font-medium capitalize">{p}</span>{p === "yearly" && <span className="rounded bg-accent/15 px-2 py-1 text-[10px] font-semibold text-accent">Save 15%</span>}</span>
+                    <span className="mt-5 text-2xl font-semibold tabular">{fmt(currency, amt)}</span>
+                    <span className="mt-2 text-xs font-normal text-muted-foreground">{p === "yearly" ? "Billed every year" : "Billed every month"}</span>
+                  </Button>
                 );
               })}
             </div>
-            <div className="space-y-1 rounded-lg bg-muted p-4 text-sm">
+            <div className="space-y-3 border-y py-5 text-sm">
               <div className="flex justify-between"><span>{fmt(currency, PRICES[currency])} × {n} store{n > 1 ? "s" : ""} / month</span><span>{fmt(currency, monthly)}</span></div>
               {period === "yearly" && <div className="flex justify-between text-muted-foreground"><span>12 months, 15% off</span><span>−{fmt(currency, monthly * 12 - total)}</span></div>}
               <div className="flex justify-between border-t pt-2 text-base font-bold"><span>Total</span><span>{fmt(currency, total)}</span></div>
             </div>
-            <Button size="lg" variant="accent" className="w-full" disabled={busy} onClick={pay}>{busy ? "Opening…" : `Pay ${fmt(currency, total)}`}</Button>
+            <Button size="lg" variant="accent" className="w-full" disabled={busy} onClick={pay}><HugeiconsIcon icon={CreditCardIcon} />{busy ? "Opening…" : `Pay ${fmt(currency, total)}`}</Button>
             <p className="text-center text-xs text-muted-foreground">Airtel Money, TNM Mpamba or card via PayChangu.</p>
           </>}
-        </div>
+        </section>
       </div>
 
-      <div className="pos-card overflow-hidden">
-        <div className="border-b p-4 font-semibold">Billing history</div>
-        {!history.data?.length ? <p className="p-6 text-sm text-muted-foreground">No payments yet.</p> : (
+      <section className="overflow-hidden border-t pt-8">
+        <div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-semibold">Billing history</h2><span className="text-xs text-muted-foreground">{history.data?.length ?? 0} payments</span></div>
+        {history.isPending ? <p className="py-8 text-sm text-muted-foreground">Loading payments…</p> : history.isError ? <p className="py-8 text-sm text-destructive">Payments could not be loaded.</p> : !history.data?.length ? <div className="flex flex-col items-center gap-3 border-y py-12"><HugeiconsIcon icon={ReceiptIcon} className="size-7 text-muted-foreground" /><p className="font-medium">No payments yet</p><p className="text-sm text-muted-foreground">Your paid invoices will appear here.</p></div> : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted text-left text-xs text-muted-foreground"><tr><th className="p-3">Date</th><th className="p-3">Invoice</th><th className="p-3">Plan</th><th className="p-3">Stores</th><th className="p-3">Amount</th><th className="p-3">Status</th><th className="p-3" /></tr></thead>
@@ -153,14 +154,14 @@ export function Billing({ locked }: { locked?: boolean }) {
                     <td className="p-3">{r.stores}</td>
                     <td className="p-3 font-semibold">{fmt(r.currency as "MWK" | "USD", Number(r.amount))}</td>
                     <td className="p-3"><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold capitalize", r.status === "paid" ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground")}>{r.status}</span></td>
-                    <td className="p-3 text-right">{r.status === "paid" ? <Button size="sm" variant="outline" onClick={() => printInvoice(r, business?.name ?? "")}>Download</Button> : <span className="text-xs text-muted-foreground">Not paid</span>}</td>
+                    <td className="p-3 text-right">{r.status === "paid" ? <Button size="sm" variant="ghost" aria-label={`Download invoice ${r.tx_ref}`} title="Download invoice" onClick={() => printInvoice(r, business?.name ?? "")}><HugeiconsIcon icon={Download01Icon} /> Invoice</Button> : <span className="text-xs text-muted-foreground">Not paid</span>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
@@ -170,7 +171,7 @@ type Inv = { tx_ref: string; period: string; currency: string; amount: number; s
 function printInvoice(r: Inv, biz: string) {
   const c = r.currency as "MWK" | "USD";
   const d = new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, { dateStyle: "long" });
-  const esc = (t: string) => t.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+  const esc = (t: string) => t.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch] ?? ch));
   const w = window.open("", "_blank");
   if (!w) { toast.error("Allow pop-ups to download the invoice."); return; }
   w.document.write(`<!doctype html><html><head><title>Invoice ${esc(r.tx_ref)}</title><style>body{font-family:Inter,system-ui,sans-serif;max-width:720px;margin:40px auto;color:#111;padding:0 24px}h1{margin:0;font-size:28px}.m{color:#666;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:32px}td,th{padding:12px 0;border-bottom:1px solid #eee;text-align:left}.r{text-align:right}.t{font-weight:700;font-size:18px}.paid{display:inline-block;background:#e7f6ec;color:#147a3d;padding:4px 10px;border-radius:99px;font-weight:600;font-size:12px}</style></head><body>

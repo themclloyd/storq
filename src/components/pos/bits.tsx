@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 
 export function PageHeader({ title, sub, actions }: { title: string; sub?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="text-3xl font-semibold">{title}</h1>
         {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
       </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }
@@ -16,7 +16,7 @@ export function PageHeader({ title, sub, actions }: { title: string; sub?: strin
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
   );

@@ -30,7 +30,7 @@ function AppLayout() {
   const { user } = Route.useRouteContext();
   return (
     <PosProvider userId={user.id}>
-      <Gate />
+      <div className="storq-workspace min-h-screen"><Gate /></div>
     </PosProvider>
   );
 }
@@ -182,22 +182,22 @@ function Shell() {
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r bg-rail md:flex">
-        <div className="flex items-center gap-2 px-5 py-5 text-lg font-extrabold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-4" /></span>
+        <div className="flex items-center gap-3 px-6 py-7 text-2xl font-semibold">
+          <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-5" /></span>
           Storq
         </div>
-        <div className="px-3">
+        <div className="px-4">
           <NativeSelect value={store?.id ?? ""} disabled={lockedToStore} onChange={(e) => setStoreId(e.target.value)}>
             {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </NativeSelect>
           {store && <div className="mt-2 px-1"><StoreTypeTag type={store.store_type} /></div>}
         </div>
-        <nav className="mt-4 flex-1 space-y-0.5 px-3">
+        <nav className="mt-6 flex-1 space-y-1 overflow-y-auto px-3 pb-5">
           {items.map((n) => {
             const active = n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to);
             return (
-              <Link key={n.to} to={n.to} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold", active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary")}>
-                <HugeiconsIcon icon={n.icon} className="size-4" /> {n.label}
+              <Link key={n.to} to={n.to} aria-current={active ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>
+                <HugeiconsIcon icon={n.icon} className="size-[18px]" /> {n.label}
               </Link>
             );
           })}
@@ -212,6 +212,10 @@ function Shell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col md:pl-60">
+        <header className="hidden h-20 items-center justify-between border-b px-8 md:flex lg:px-10">
+          <div className="flex items-center gap-3 text-sm"><span className="text-muted-foreground">Workspace</span><span className="text-muted-foreground">/</span><span className="font-medium">{items.find((n) => n.to === "/app" ? path === "/app" || path === "/app/" : path.startsWith(n.to))?.label ?? "Storq"}</span></div>
+          <div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-full bg-secondary text-xs font-semibold">{staff?.name.slice(0, 2).toUpperCase()}</span><span className="text-sm text-muted-foreground">{staff?.name}</span><Button size="icon" variant="ghost" aria-label="Lock workspace" title="Lock workspace" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button></div>
+        </header>
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
           <NativeSelect className="flex-1" value={store?.id ?? ""} disabled={lockedToStore} onChange={(e) => setStoreId(e.target.value)}>
             {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -219,7 +223,7 @@ function Shell() {
           <span className="text-sm font-semibold">{staff?.name}</span>
           <Button size="icon" variant="outline" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button>
         </header>
-        <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
+        <main className="mx-auto w-full max-w-[1600px] flex-1 p-5 pb-24 md:p-8 md:pb-8 lg:p-10">
           <Outlet />
         </main>
         <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-rail md:hidden">

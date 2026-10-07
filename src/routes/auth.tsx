@@ -56,11 +56,14 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background px-4">
-      <div className="pos-card w-full max-w-sm p-8">
-        <div className="mb-6 flex items-center gap-2 text-lg font-extrabold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-4" /></span>
-          Storq
+    <div className="storq-workspace flex min-h-screen flex-col px-6 py-8 sm:px-12">
+      <div className="flex items-center gap-3 text-2xl font-semibold">
+        <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-5" /></span>
+        Storq
+      </div>
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-16">
+        <div className="mb-8 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-accent" /> Business account
         </div>
         {sent ? (
           <div>
@@ -68,20 +71,21 @@ function AuthPage() {
             <p className="mt-2 text-sm text-muted-foreground">We sent a confirmation link to {email}. Open it on this device to continue.</p>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <h1 className="text-xl font-bold">{mode === "in" ? "Sign in this device" : "Create business account"}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">One email & password for the whole business. Staff use their PIN after this.</p>
+          <form onSubmit={submit} className="space-y-6">
+            <div className="pb-4">
+              <h1 className="text-3xl font-semibold">{mode === "in" ? "Welcome back." : "Create your account."}</h1>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">One account for your business. Your staff PIN comes next.</p>
             </div>
-            <Field label="Business email"><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-            <Field label="Password"><Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-            <Button className="w-full" size="lg" disabled={busy}>{mode === "in" ? "Sign in" : "Create account"}</Button>
-            <button type="button" className="w-full text-sm font-medium text-accent" onClick={() => setMode(mode === "in" ? "up" : "in")}>
+            <Field label="Business email"><Input className="h-12 bg-card" autoComplete="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+            <Field label="Password"><Input className="h-12 bg-card" autoComplete={mode === "in" ? "current-password" : "new-password"} type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+            <Button className="h-12 w-full" size="lg" disabled={busy}>{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</Button>
+            <Button variant="link" type="button" className="h-auto w-full whitespace-normal text-sm font-medium text-muted-foreground" onClick={() => setMode(mode === "in" ? "up" : "in")}>
               {mode === "in" ? "New business? Create an account" : "Already have an account? Sign in"}
-            </button>
+            </Button>
           </form>
         )}
       </div>
+      <div className="text-xs text-muted-foreground">Storq · Business workspace</div>
     </div>
   );
 }

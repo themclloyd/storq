@@ -7,7 +7,7 @@ import { useCollections, shareUrl, type Collection } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Empty, PageHeader } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/collections/")({ component: Collections });
+export const Route = createFileRoute("/_authenticated/app/collections/")({ head: () => ({ meta: [{ title: "Collections — Storq" }, { name: "description", content: "Manage shared product collections and collection discounts." }, { property: "og:title", content: "Collections — Storq" }, { property: "og:description", content: "Manage shared product collections and collection discounts." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Collections });
 
 function Collections() {
   const { can } = usePos();
