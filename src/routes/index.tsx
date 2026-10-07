@@ -219,7 +219,7 @@ function RegisterMock() {
       </div>
       <div className="grid grid-cols-3 gap-1.5 p-3">
         {tiles.map((t) => (
-          <div key={t.n} className={`pos-tile bg-${t.c} p-2.5 text-white`}>
+          <div key={t.n} className={`pos-tile ${t.c} p-2.5 text-white`}>
             <div className="text-[11px] font-bold leading-tight">{t.n}</div>
             <div className="mt-3 text-[11px] font-semibold opacity-90 tabular">{t.p}</div>
           </div>
