@@ -21,6 +21,8 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          tax_inclusive: boolean
+          tax_rate: number
         }
         Insert: {
           created_at?: string
@@ -28,6 +30,8 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          tax_inclusive?: boolean
+          tax_rate?: number
         }
         Update: {
           created_at?: string
@@ -35,8 +39,135 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          tax_inclusive?: boolean
+          tax_rate?: number
         }
         Relationships: []
+      }
+      cash_movements: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          kind: string
+          reason: string | null
+          shift_id: string
+          staff_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          kind: string
+          reason?: string | null
+          shift_id: string
+          staff_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          reason?: string | null
+          shift_id?: string
+          staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "cash_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_shifts: {
+        Row: {
+          business_id: string
+          closed_at: string | null
+          closed_by: string | null
+          counted_cash: number | null
+          expected_cash: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          opening_float: number
+          status: string
+          store_id: string
+          summary: Json | null
+          variance: number | null
+        }
+        Insert: {
+          business_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash?: number | null
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_float?: number
+          status?: string
+          store_id: string
+          summary?: Json | null
+          variance?: number | null
+        }
+        Update: {
+          business_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash?: number | null
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_float?: number
+          status?: string
+          store_id?: string
+          summary?: Json | null
+          variance?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_shifts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_shifts_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_shifts_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_shifts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collections: {
         Row: {
@@ -253,6 +384,148 @@ export type Database = {
           },
         ]
       }
+      refund_items: {
+        Row: {
+          amount: number
+          cost: number
+          id: string
+          name: string
+          product_id: string | null
+          qty: number
+          refund_id: string
+          restock: boolean
+          sale_item_id: string
+        }
+        Insert: {
+          amount: number
+          cost?: number
+          id?: string
+          name: string
+          product_id?: string | null
+          qty: number
+          refund_id: string
+          restock?: boolean
+          sale_item_id: string
+        }
+        Update: {
+          amount?: number
+          cost?: number
+          id?: string
+          name?: string
+          product_id?: string | null
+          qty?: number
+          refund_id?: string
+          restock?: boolean
+          sale_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_items_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "refunds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_items_sale_item_id_fkey"
+            columns: ["sale_item_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refunds: {
+        Row: {
+          amount: number
+          business_id: string
+          cost: number
+          created_at: string
+          id: string
+          method: string
+          number: number
+          reason: string | null
+          sale_id: string
+          shift_id: string | null
+          staff_id: string | null
+          store_id: string
+          tax: number
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          cost?: number
+          created_at?: string
+          id?: string
+          method?: string
+          number?: number
+          reason?: string | null
+          sale_id: string
+          shift_id?: string | null
+          staff_id?: string | null
+          store_id: string
+          tax?: number
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          cost?: number
+          created_at?: string
+          id?: string
+          method?: string
+          number?: number
+          reason?: string | null
+          sale_id?: string
+          shift_id?: string | null
+          staff_id?: string | null
+          store_id?: string
+          tax?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "cash_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           cost: number
@@ -261,6 +534,7 @@ export type Database = {
           price: number
           product_id: string | null
           qty: number
+          refunded_qty: number
           sale_id: string
         }
         Insert: {
@@ -270,6 +544,7 @@ export type Database = {
           price: number
           product_id?: string | null
           qty: number
+          refunded_qty?: number
           sale_id: string
         }
         Update: {
@@ -279,6 +554,7 @@ export type Database = {
           price?: number
           product_id?: string | null
           qty?: number
+          refunded_qty?: number
           sale_id?: string
         }
         Relationships: [
@@ -313,8 +589,11 @@ export type Database = {
           number: number
           paid: number
           payment_method: string | null
+          refunded: number
+          shift_id: string | null
           status: string
           store_id: string
+          tax: number
           total: number
         }
         Insert: {
@@ -331,8 +610,11 @@ export type Database = {
           number?: number
           paid?: number
           payment_method?: string | null
+          refunded?: number
+          shift_id?: string | null
           status: string
           store_id: string
+          tax?: number
           total?: number
         }
         Update: {
@@ -349,8 +631,11 @@ export type Database = {
           number?: number
           paid?: number
           payment_method?: string | null
+          refunded?: number
+          shift_id?: string | null
           status?: string
           store_id?: string
+          tax?: number
           total?: number
         }
         Relationships: [
@@ -454,6 +739,67 @@ export type Database = {
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          balance_after: number
+          created_at: string
+          delta: number
+          id: string
+          note: string | null
+          product_id: string
+          reason: string
+          ref_id: string | null
+          staff_id: string | null
+          store_id: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          delta: number
+          id?: string
+          note?: string | null
+          product_id: string
+          reason?: string
+          ref_id?: string | null
+          staff_id?: string | null
+          store_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          delta?: number
+          id?: string
+          note?: string | null
+          product_id?: string
+          reason?: string
+          ref_id?: string | null
+          staff_id?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -735,8 +1081,29 @@ export type Database = {
         }
         Returns: undefined
       }
+      adjust_stock_reason: {
+        Args: {
+          p_delta: number
+          p_note: string
+          p_product: string
+          p_reason: string
+          p_store: string
+          p_token: string
+        }
+        Returns: undefined
+      }
       cancel_layby: {
         Args: { p_sale: string; p_token: string }
+        Returns: undefined
+      }
+      cash_move: {
+        Args: {
+          p_amount: number
+          p_kind: string
+          p_reason: string
+          p_shift: string
+          p_token: string
+        }
         Returns: undefined
       }
       checkout: {
@@ -749,6 +1116,15 @@ export type Database = {
           p_note: string
           p_payment: number
           p_store: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      close_shift: {
+        Args: {
+          p_counted: number
+          p_notes: string
+          p_shift: string
           p_token: string
         }
         Returns: Json
@@ -780,6 +1156,10 @@ export type Database = {
       }
       effective_price: { Args: { p_product: string }; Returns: number }
       get_shared_collection: { Args: { p_slug: string }; Returns: Json }
+      get_shift_summary: {
+        Args: { p_shift: string; p_token: string }
+        Returns: Json
+      }
       layby_pay: {
         Args: {
           p_amount: number
@@ -791,9 +1171,28 @@ export type Database = {
       }
       lock_session: { Args: { p_token: string }; Returns: undefined }
       my_business_id: { Args: never; Returns: string }
+      open_shift: {
+        Args: {
+          p_float: number
+          p_notes: string
+          p_store: string
+          p_token: string
+        }
+        Returns: string
+      }
       pin_taken: {
         Args: { p_business: string; p_except: string; p_pin: string }
         Returns: boolean
+      }
+      process_refund: {
+        Args: {
+          p_items: Json
+          p_method: string
+          p_reason: string
+          p_sale: string
+          p_token: string
+        }
+        Returns: Json
       }
       record_expense: {
         Args: {
@@ -893,6 +1292,10 @@ export type Database = {
       save_store: {
         Args: { p_id: string; p_name: string; p_token: string; p_type: string }
         Returns: string
+      }
+      save_tax_settings: {
+        Args: { p_inclusive: boolean; p_rate: number; p_token: string }
+        Returns: undefined
       }
       set_collection_products: {
         Args: { p_collection: string; p_products: string[]; p_token: string }
