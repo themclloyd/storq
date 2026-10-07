@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Minus, Plus, Search, Trash2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { MinusSignIcon, PlusSignIcon, Search01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 import { useProducts, useStock, type Product } from "@/lib/products";
 import { usePos } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ function Register() {
       <section className="min-w-0">
         <div className="mb-4 flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <HugeiconsIcon icon={Search01Icon} className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="h-11 bg-card pl-9" placeholder="Search items or SKU" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <StoreTypeTag type={store.store_type} />
@@ -119,9 +120,9 @@ function Register() {
                 <div className="tabular text-xs text-muted-foreground">{money(l.p.price)} each</div>
               </div>
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty - 1)}>{l.qty === 1 ? <Trash2 /> : <Minus />}</Button>
+                <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty - 1)}>{l.qty === 1 ? <HugeiconsIcon icon={Delete02Icon} /> : <HugeiconsIcon icon={MinusSignIcon} />}</Button>
                 <span className="tabular w-7 text-center text-sm font-bold">{l.qty}</span>
-                <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty + 1)}><Plus /></Button>
+                <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty + 1)}><HugeiconsIcon icon={PlusSignIcon} /></Button>
               </div>
               <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * Number(l.p.price))}</div>
             </div>

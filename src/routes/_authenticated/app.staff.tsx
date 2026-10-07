@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { roleLabel, usePos, type Role } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ function Staff() {
   return (
     <>
       <PageHeader title="Staff" sub="Each person unlocks this device with their own 4-digit PIN. Their PIN decides what they can do."
-        actions={<Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}><Plus /> Add staff</Button>} />
+        actions={<Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}><HugeiconsIcon icon={PlusSignIcon} /> Add staff</Button>} />
       <div className="mb-6 grid gap-3 text-sm sm:grid-cols-3">
         <div className="pos-card p-4"><b>Admin</b><p className="text-muted-foreground">Everything: staff, stores, stock, approvals.</p></div>
         <div className="pos-card p-4"><b>Manager / Approver</b><p className="text-muted-foreground">Sell, approve invoices, manage stock and stock takes.</p></div>
