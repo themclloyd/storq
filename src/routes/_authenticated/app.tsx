@@ -15,10 +15,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/app")({
   head: () => ({
     meta: [
-      { title: "Register — Tillpoint" },
-      { name: "description", content: "Tillpoint point of sale register." },
-      { property: "og:title", content: "Register — Tillpoint" },
-      { property: "og:description", content: "Tillpoint point of sale register." },
+      { title: "Register — Storq" },
+      { name: "description", content: "Storq point of sale register." },
+      { property: "og:title", content: "Register — Storq" },
+      { property: "og:description", content: "Storq point of sale register." },
     ],
   }),
   component: AppLayout,
@@ -174,7 +174,7 @@ function Shell() {
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r bg-rail md:flex">
         <div className="flex items-center gap-2 px-5 py-5 text-lg font-extrabold">
           <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><Boxes className="size-4" /></span>
-          Tillpoint
+          Storq
         </div>
         <div className="px-3">
           <NativeSelect value={store?.id ?? ""} disabled={lockedToStore} onChange={(e) => setStoreId(e.target.value)}>

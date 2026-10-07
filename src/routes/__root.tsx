@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tillpoint POS" },
+      { title: "Storq POS" },
       { name: "description", content: "Point of sale, stock and layby for single and multi-store businesses." },
     ],
     links: [
