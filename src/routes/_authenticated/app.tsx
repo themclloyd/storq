@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
 import { useSubscription } from "@/lib/billing";
 import { Billing } from "@/components/pos/Billing";
-import { CreditCardIcon } from "@hugeicons/core-free-icons";
+import { CreditCardIcon, CashierIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
@@ -161,6 +161,7 @@ const nav: NavItem[] = [
   { to: "/app", label: "Register", icon: ShoppingBag01Icon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/invoices", label: "Invoices", icon: FileCheckIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/laybys", label: "Laybys", icon: Wallet01Icon, roles: ["admin", "manager", "cashier"] },
+  { to: "/app/shifts", label: "Cash drawer", icon: CashierIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/sales", label: "Sales", icon: ReceiptIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/expenses", label: "Expenses", icon: BanknoteIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/reports", label: "Reports", icon: BarChartIcon, roles: ["admin", "manager"] },

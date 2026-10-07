@@ -22,7 +22,7 @@ const tileFor = (s: string) => tiles[[...s].reduce((a, c) => a + c.charCodeAt(0)
 type Line = { p: Product; qty: number };
 
 function Register() {
-  const { store, money, rpc } = usePos();
+  const { store, money, rpc, business } = usePos();
   const qc = useQueryClient();
   const products = useProducts();
   const stock = useStock(store?.id);
@@ -39,7 +39,11 @@ function Register() {
   const shown = list.filter(
     (p) => (!cat || (cols.data?.byProduct[p.id] ?? []).includes(cat)) && (!q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku?.toLowerCase().includes(q.toLowerCase())),
   );
-  const total = useMemo(() => cart.reduce((a, l) => a + l.qty * price(l.p), 0), [cart, cols.data]);
+  const sub = useMemo(() => cart.reduce((a, l) => a + l.qty * price(l.p), 0), [cart, cols.data]);
+  const rate = Number(business?.tax_rate ?? 0);
+  const incl = business?.tax_inclusive ?? true;
+  const tax = rate > 0 ? (incl ? sub - sub / (1 + rate / 100) : sub * rate / 100) : 0;
+  const total = rate > 0 && !incl ? sub + tax : sub;
   const approval = store?.store_type === "approval";
 
   const add = (p: Product) =>
@@ -133,6 +137,12 @@ function Register() {
           ))}
         </div>
         <div className="space-y-3 border-t p-5">
+          {rate > 0 && (
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>VAT {rate}% {incl ? "(included)" : "(added)"}</span>
+              <span className="tabular">{money(tax)}</span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">Total</span>
             <span className="tabular text-3xl font-extrabold">{money(total)}</span>
