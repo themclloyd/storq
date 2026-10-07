@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { useCollections, salePrice } from "@/lib/collections";
 
 export const Route = createFileRoute("/_authenticated/app/")({ component: Register });
 
@@ -31,11 +32,14 @@ function Register() {
   const [dlg, setDlg] = useState<null | "sale" | "layby">(null);
 
   const list = (products.data ?? []).filter((p) => p.active);
-  const cats = [...new Set(list.map((p) => p.category).filter(Boolean))] as string[];
+  const cols = useCollections();
+  const price = (p: Product) => salePrice(p, cols.data);
+  const cats = (cols.data?.list ?? []).map((c) => c.id);
+  const catName = (id: string) => cols.data?.list.find((c) => c.id === id)?.name ?? "";
   const shown = list.filter(
-    (p) => (!cat || p.category === cat) && (!q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku?.toLowerCase().includes(q.toLowerCase())),
+    (p) => (!cat || (cols.data?.byProduct[p.id] ?? []).includes(cat)) && (!q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku?.toLowerCase().includes(q.toLowerCase())),
   );
-  const total = useMemo(() => cart.reduce((a, l) => a + l.qty * Number(l.p.price), 0), [cart]);
+  const total = useMemo(() => cart.reduce((a, l) => a + l.qty * price(l.p), 0), [cart, cols.data]);
   const approval = store?.store_type === "approval";
 
   const add = (p: Product) =>
@@ -76,7 +80,7 @@ function Register() {
           <div className="mb-4 flex gap-2 overflow-x-auto">
             {[null, ...cats].map((c) => (
               <button key={c ?? "all"} onClick={() => setCat(c)} className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold", cat === c ? "bg-primary text-primary-foreground" : "bg-card shadow-[var(--shadow-card)]")}>
-                {c ?? "All"}
+                {c ? catName(c) : "All"}
               </button>
             ))}
           </div>
@@ -95,7 +99,7 @@ function Register() {
                   <div className="p-3">
                     <div className="truncate text-sm font-semibold">{p.name}</div>
                     <div className="mt-1 flex justify-between text-xs">
-                      <span className="tabular font-semibold">{money(p.price)}</span>
+                      <span className="tabular font-semibold">{price(p) < Number(p.price) && <span className="mr-1 font-normal text-muted-foreground line-through">{money(p.price)}</span>}{money(price(p))}</span>
                       <span className={cn("tabular", s <= 0 ? "text-destructive" : "text-muted-foreground")}>{s} in stock</span>
                     </div>
                   </div>
@@ -117,14 +121,14 @@ function Register() {
             <div key={l.p.id} className="flex items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold">{l.p.name}</div>
-                <div className="tabular text-xs text-muted-foreground">{money(l.p.price)} each</div>
+                <div className="tabular text-xs text-muted-foreground">{money(price(l.p))} each</div>
               </div>
               <div className="flex items-center gap-1">
                 <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty - 1)}>{l.qty === 1 ? <HugeiconsIcon icon={Delete02Icon} /> : <HugeiconsIcon icon={MinusSignIcon} />}</Button>
                 <span className="tabular w-7 text-center text-sm font-bold">{l.qty}</span>
                 <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty + 1)}><HugeiconsIcon icon={PlusSignIcon} /></Button>
               </div>
-              <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * Number(l.p.price))}</div>
+              <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * price(l.p))}</div>
             </div>
           ))}
         </div>

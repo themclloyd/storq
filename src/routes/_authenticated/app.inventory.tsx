@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, PageHeader } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { useCollections } from "@/lib/collections";
 
 export const Route = createFileRoute("/_authenticated/app/inventory")({ component: Inventory });
 
@@ -18,6 +19,8 @@ function Inventory() {
   const { store, money, can } = usePos();
   const products = useProducts();
   const stock = useStock(store?.id);
+  const cols = useCollections();
+  const colName = (pid: string) => (cols.data?.byProduct[pid] ?? []).map((id) => cols.data?.list.find((c) => c.id === id)?.name).filter(Boolean).join(", ");
   const [edit, setEdit] = useState<Partial<Product> | null>(null);
   const [adj, setAdj] = useState<Product | null>(null);
   const [q, setQ] = useState("");
@@ -37,7 +40,7 @@ function Inventory() {
         <div className="pos-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr className="border-b"><th className="px-5 py-3">Item</th><th>SKU</th><th>Category</th><th className="text-right">Cost</th><th className="text-right">Price</th><th className="text-right">In stock</th><th className="px-5" /></tr>
+              <tr className="border-b"><th className="px-5 py-3">Item</th><th>SKU</th><th>Collections</th><th className="text-right">Cost</th><th className="text-right">Price</th><th className="text-right">In stock</th><th className="px-5" /></tr>
             </thead>
             <tbody className="divide-y">
               {rows.map((p) => {
@@ -46,7 +49,7 @@ function Inventory() {
                   <tr key={p.id} className={cn(!p.active && "opacity-50")}>
                     <td className="px-5 py-3 font-semibold">{p.name}</td>
                     <td className="text-muted-foreground">{p.sku}</td>
-                    <td className="text-muted-foreground">{p.category}</td>
+                    <td className="max-w-48 truncate text-muted-foreground">{colName(p.id)}</td>
                     <td className="tabular text-right">{money(p.cost)}</td>
                     <td className="tabular text-right font-semibold">{money(p.price)}</td>
                     <td className={cn("tabular text-right font-bold", s <= 0 && "text-destructive")}>{s}</td>
@@ -70,10 +73,14 @@ function Inventory() {
 function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; currentQty: number; onClose: () => void }) {
   const { rpc, store, can } = usePos();
   const qc = useQueryClient();
+  const cols = useCollections();
+  const [sel, setSel] = useState<string[] | null>(null);
+  const chosen = sel ?? (p.id ? cols.data?.byProduct[p.id] ?? [] : []);
   const [f, setF] = useState({ name: p.name ?? "", sku: p.sku ?? "", category: p.category ?? "", price: String(p.price ?? ""), cost: String(p.cost ?? ""), qty: p.id ? String(currentQty) : "", active: p.active ?? true });
   async function save() {
     try {
-      const pid = ((await rpc("save_product", { p_id: p.id ?? null, p_name: f.name, p_sku: f.sku || null, p_category: f.category || null, p_price: Number(f.price || 0), p_cost: Number(f.cost || 0), p_active: f.active })) as string | null) ?? p.id;
+      const pid = ((await rpc("save_product", { p_id: p.id ?? null, p_name: f.name, p_sku: f.sku || null, p_category: null, p_price: Number(f.price || 0), p_cost: Number(f.cost || 0), p_active: f.active })) as string | null) ?? p.id;
+      if (pid) await rpc("set_product_collections", { p_product: pid, p_collections: chosen });
       const qty = f.qty === "" ? null : Number(f.qty);
       if (pid && qty !== null && qty !== currentQty && store?.id) {
         await rpc("adjust_stock", { p_store: store.id, p_product: pid, p_delta: qty - currentQty });
@@ -89,10 +96,23 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
         <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="SKU / barcode"><Input value={f.sku} onChange={(e) => setF({ ...f, sku: e.target.value })} /></Field>
-          <Field label="Category"><Input value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} /></Field>
           <Field label="Cost price"><Input inputMode="decimal" value={f.cost} onChange={(e) => setF({ ...f, cost: e.target.value })} /></Field>
           <Field label="Selling price"><Input inputMode="decimal" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} /></Field>
         </div>
+        <Field label="Collections">
+          <div className="flex flex-wrap gap-2">
+            {(cols.data?.list ?? []).map((c) => {
+              const on = chosen.includes(c.id);
+              return (
+                <button type="button" key={c.id} onClick={() => setSel(on ? chosen.filter((x) => x !== c.id) : [...chosen, c.id])}
+                  className={cn("rounded-full border px-3 py-1 text-xs font-semibold", on ? "border-primary bg-primary text-primary-foreground" : "bg-card")}>
+                  {c.name}{c.discount_pct > 0 ? ` −${c.discount_pct}%` : ""}
+                </button>
+              );
+            })}
+            {(cols.data?.list ?? []).length === 0 && <span className="text-xs text-muted-foreground">No collections yet — create them under Collections.</span>}
+          </div>
+        </Field>
         {stockEditable && (
           <div className="rounded-lg border bg-muted/40 p-3">
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quantity — {store?.name}</div>

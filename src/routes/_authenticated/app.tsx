@@ -160,6 +160,7 @@ const nav: NavItem[] = [
   { to: "/app/expenses", label: "Expenses", icon: BanknoteIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/reports", label: "Reports", icon: BarChartIcon, roles: ["admin", "manager"] },
   { to: "/app/inventory", label: "Inventory", icon: PackageIcon, roles: ["admin", "manager"] },
+  { to: "/app/collections", label: "Collections", icon: BoxesIcon, roles: ["admin", "manager"] },
   { to: "/app/stocktake", label: "Stock take", icon: ClipboardCheckIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/staff", label: "Staff", icon: UserMultipleIcon, roles: ["admin"] },
   { to: "/app/stores", label: "Stores", icon: StoreIcon, roles: ["admin"] },

@@ -38,6 +38,44 @@ export type Database = {
         }
         Relationships: []
       }
+      collections: {
+        Row: {
+          business_id: string
+          created_at: string
+          discount_pct: number
+          id: string
+          is_shared: boolean
+          name: string
+          share_slug: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          is_shared?: boolean
+          name: string
+          share_slug?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          is_shared?: boolean
+          name?: string
+          share_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collections_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -137,6 +175,36 @@ export type Database = {
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_collections: {
+        Row: {
+          collection_id: string
+          product_id: string
+        }
+        Insert: {
+          collection_id: string
+          product_id: string
+        }
+        Update: {
+          collection_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_collections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_collections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -612,10 +680,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_collection: {
+        Args: { p_id: string; p_token: string }
+        Returns: undefined
+      }
       delete_expense: {
         Args: { p_id: string; p_token: string }
         Returns: undefined
       }
+      effective_price: { Args: { p_product: string }; Returns: number }
+      get_shared_collection: { Args: { p_slug: string }; Returns: Json }
       layby_pay: {
         Args: {
           p_amount: number
@@ -672,6 +746,16 @@ export type Database = {
         }
         Returns: string
       }
+      save_collection: {
+        Args: {
+          p_discount: number
+          p_id: string
+          p_name: string
+          p_shared: boolean
+          p_token: string
+        }
+        Returns: string
+      }
       save_product: {
         Args: {
           p_active: boolean
@@ -700,6 +784,14 @@ export type Database = {
       save_store: {
         Args: { p_id: string; p_name: string; p_token: string; p_type: string }
         Returns: string
+      }
+      set_collection_products: {
+        Args: { p_collection: string; p_products: string[]; p_token: string }
+        Returns: undefined
+      }
+      set_product_collections: {
+        Args: { p_collections: string[]; p_product: string; p_token: string }
+        Returns: undefined
       }
       setup_business: {
         Args: {
