@@ -18,7 +18,7 @@ export function useSubscription(businessId?: string) {
       const now = Date.now();
       const trial = s ? new Date(s.trial_ends_at).getTime() > now : false;
       const paid = s?.paid_until ? new Date(s.paid_until).getTime() > now : false;
-      return { sub: s, trial, paid, active: trial || paid || !s };
+      return { sub: s, trial, paid, active: trial || paid };
     },
   });
 }
