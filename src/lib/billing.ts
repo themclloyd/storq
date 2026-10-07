@@ -1,24 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-export type Subscription = { trial_ends_at: string; paid_until: string | null; plan: string | null };
+import { subscriptionAccess, type Subscription } from "@/lib/subscription-policy";
+export type { Subscription } from "@/lib/subscription-policy";
 
 export const PRICES = { MWK: 60000, USD: 35 } as const;
 export const YEARLY_FACTOR = 12 * 0.85;
 
-export function useSubscription(businessId?: string) {
+export function useSubscription(businessId?: string, storeCount = 0) {
   return useQuery({
-    queryKey: ["subscription", businessId],
+    queryKey: ["subscription", businessId, storeCount],
     enabled: !!businessId,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("subscriptions").select("trial_ends_at,paid_until,plan").maybeSingle();
+      const { data, error } = await (supabase as any).from("subscriptions").select("trial_ends_at,paid_until,plan,paid_store_limit").eq("business_id", businessId).maybeSingle();
       if (error) throw error;
       const s = data as Subscription | null;
-      const now = Date.now();
-      const trial = s ? new Date(s.trial_ends_at).getTime() > now : false;
-      const paid = s?.paid_until ? new Date(s.paid_until).getTime() > now : false;
-      return { sub: s, trial, paid, active: trial || paid };
+      return subscriptionAccess(s, storeCount);
     },
   });
 }
