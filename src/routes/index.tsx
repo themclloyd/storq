@@ -305,16 +305,16 @@ function Landing() {
           <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {[
               [FlashIcon, "Fast checkout", "Ring up sales in seconds with cash, card or mobile money."],
-              [Users, "Staff management", "One login per shop, a 4-digit PIN per person. Roles come from the PIN."],
-              [Boxes, "Inventory management", "Live stock across every store, with quantity tracking on every item."],
+              [UserMultipleIcon, "Staff management", "One login per shop, a 4-digit PIN per person. Roles come from the PIN."],
+              [BoxesIcon, "Inventory management", "Live stock across every store, with quantity tracking on every item."],
               [ShieldCheckIcon, "Invoice approvals", "Approval-based stores: cashiers invoice, managers approve before stock moves."],
-              [BarChart3, "Reports & analytics", "See what sells best, when you're busiest, and what each store makes."],
+              [BarChartIcon, "Reports & analytics", "See what sells best, when you're busiest, and what each store makes."],
               [SmartPhone01Icon, "Stock takes with staff", "Count together on your phones. Variances and losses shown instantly."],
             ].map(([Icon, t, d]) => {
               const I = Icon as typeof FlashIcon;
               return (
                 <div key={t as string}>
-                  <I className="h-8 w-8 text-accent" />
+                  <HugeiconsIcon icon={I} className="h-8 w-8 text-accent" />
                   <h3 className="mt-5 text-2xl font-bold">{t as string}</h3>
                   <p className="mt-2 text-muted-foreground">{d as string}</p>
                 </div>
@@ -358,7 +358,7 @@ function Landing() {
               const I = Icon as typeof SmartPhone01Icon;
               return (
                 <div key={t as string}>
-                  <I className="h-8 w-8 text-accent" />
+                  <HugeiconsIcon icon={I} className="h-8 w-8 text-accent" />
                   <h3 className="mt-5 text-2xl font-bold">{t as string}</h3>
                   <p className="mt-2 text-muted-foreground">{d as string}</p>
                 </div>
