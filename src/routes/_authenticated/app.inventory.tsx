@@ -60,22 +60,27 @@ function Inventory() {
           </table>
         </div>
       )}
-      {edit && <ProductDialog p={edit} onClose={() => setEdit(null)} />}
+      {edit && <ProductDialog p={edit} currentQty={stock.data?.[edit.id!] ?? 0} onClose={() => setEdit(null)} />}
       {adj && <StockDialog p={adj} onClose={() => setAdj(null)} />}
     </>
   );
 }
 
-function ProductDialog({ p, onClose }: { p: Partial<Product>; onClose: () => void }) {
-  const { rpc } = usePos();
+function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; currentQty: number; onClose: () => void }) {
+  const { rpc, store, can } = usePos();
   const qc = useQueryClient();
-  const [f, setF] = useState({ name: p.name ?? "", sku: p.sku ?? "", category: p.category ?? "", price: String(p.price ?? ""), cost: String(p.cost ?? ""), active: p.active ?? true });
+  const [f, setF] = useState({ name: p.name ?? "", sku: p.sku ?? "", category: p.category ?? "", price: String(p.price ?? ""), cost: String(p.cost ?? ""), qty: p.id ? String(currentQty) : "", active: p.active ?? true });
   async function save() {
     try {
-      await rpc("save_product", { p_id: p.id ?? null, p_name: f.name, p_sku: f.sku || null, p_category: f.category || null, p_price: Number(f.price || 0), p_cost: Number(f.cost || 0), p_active: f.active });
+      const pid = ((await rpc("save_product", { p_id: p.id ?? null, p_name: f.name, p_sku: f.sku || null, p_category: f.category || null, p_price: Number(f.price || 0), p_cost: Number(f.cost || 0), p_active: f.active })) as string | null) ?? p.id;
+      const qty = f.qty === "" ? null : Number(f.qty);
+      if (pid && qty !== null && qty !== currentQty && store?.id) {
+        await rpc("adjust_stock", { p_store: store.id, p_product: pid, p_delta: qty - currentQty });
+      }
       toast.success("Saved"); qc.invalidateQueries(); onClose();
     } catch (e) { toast.error((e as Error).message); }
   }
+  const stockEditable = can("admin", "manager") && !!store;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
@@ -87,6 +92,15 @@ function ProductDialog({ p, onClose }: { p: Partial<Product>; onClose: () => voi
           <Field label="Cost price"><Input inputMode="decimal" value={f.cost} onChange={(e) => setF({ ...f, cost: e.target.value })} /></Field>
           <Field label="Selling price"><Input inputMode="decimal" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} /></Field>
         </div>
+        {stockEditable && (
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quantity — {store?.name}</div>
+            <div className="flex items-center gap-2">
+              <Input className="max-w-32" inputMode="decimal" placeholder={p.id ? String(currentQty) : "0"} value={f.qty} onChange={(e) => setF({ ...f, qty: e.target.value })} />
+              <span className="text-xs text-muted-foreground">{p.id ? `currently ${currentQty} in stock — leave blank to keep` : "starting stock for this store"}</span>
+            </div>
+          </div>
+        )}
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} /> Available for sale</label>
         <Button size="lg" disabled={!f.name} onClick={save}>Save item</Button>
       </DialogContent>
