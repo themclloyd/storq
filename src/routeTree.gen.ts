@@ -14,9 +14,11 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppExpensesRouteImport } from './routes/_authenticated/app.expenses'
 import { Route as AuthenticatedAppInventoryRouteImport } from './routes/_authenticated/app.inventory'
 import { Route as AuthenticatedAppInvoicesRouteImport } from './routes/_authenticated/app.invoices'
 import { Route as AuthenticatedAppLaybysRouteImport } from './routes/_authenticated/app.laybys'
+import { Route as AuthenticatedAppReportsRouteImport } from './routes/_authenticated/app.reports'
 import { Route as AuthenticatedAppSalesRouteImport } from './routes/_authenticated/app.sales'
 import { Route as AuthenticatedAppStaffRouteImport } from './routes/_authenticated/app.staff'
 import { Route as AuthenticatedAppStocktakeRouteImport } from './routes/_authenticated/app.stocktake'
@@ -46,6 +48,12 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppExpensesRoute =
+  AuthenticatedAppExpensesRouteImport.update({
+    id: '/expenses',
+    path: '/expenses',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppInventoryRoute =
   AuthenticatedAppInventoryRouteImport.update({
     id: '/inventory',
@@ -61,6 +69,11 @@ const AuthenticatedAppInvoicesRoute =
 const AuthenticatedAppLaybysRoute = AuthenticatedAppLaybysRouteImport.update({
   id: '/laybys',
   path: '/laybys',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppReportsRoute = AuthenticatedAppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppSalesRoute = AuthenticatedAppSalesRouteImport.update({
@@ -89,9 +102,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
+  '/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/app/inventory': typeof AuthenticatedAppInventoryRoute
   '/app/invoices': typeof AuthenticatedAppInvoicesRoute
   '/app/laybys': typeof AuthenticatedAppLaybysRoute
+  '/app/reports': typeof AuthenticatedAppReportsRoute
   '/app/sales': typeof AuthenticatedAppSalesRoute
   '/app/staff': typeof AuthenticatedAppStaffRoute
   '/app/stocktake': typeof AuthenticatedAppStocktakeRoute
@@ -101,9 +116,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/app/inventory': typeof AuthenticatedAppInventoryRoute
   '/app/invoices': typeof AuthenticatedAppInvoicesRoute
   '/app/laybys': typeof AuthenticatedAppLaybysRoute
+  '/app/reports': typeof AuthenticatedAppReportsRoute
   '/app/sales': typeof AuthenticatedAppSalesRoute
   '/app/staff': typeof AuthenticatedAppStaffRoute
   '/app/stocktake': typeof AuthenticatedAppStocktakeRoute
@@ -116,9 +133,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/_authenticated/app/inventory': typeof AuthenticatedAppInventoryRoute
   '/_authenticated/app/invoices': typeof AuthenticatedAppInvoicesRoute
   '/_authenticated/app/laybys': typeof AuthenticatedAppLaybysRoute
+  '/_authenticated/app/reports': typeof AuthenticatedAppReportsRoute
   '/_authenticated/app/sales': typeof AuthenticatedAppSalesRoute
   '/_authenticated/app/staff': typeof AuthenticatedAppStaffRoute
   '/_authenticated/app/stocktake': typeof AuthenticatedAppStocktakeRoute
@@ -131,9 +150,11 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/app'
+    | '/app/expenses'
     | '/app/inventory'
     | '/app/invoices'
     | '/app/laybys'
+    | '/app/reports'
     | '/app/sales'
     | '/app/staff'
     | '/app/stocktake'
@@ -143,9 +164,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/expenses'
     | '/app/inventory'
     | '/app/invoices'
     | '/app/laybys'
+    | '/app/reports'
     | '/app/sales'
     | '/app/staff'
     | '/app/stocktake'
@@ -157,9 +180,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/app'
+    | '/_authenticated/app/expenses'
     | '/_authenticated/app/inventory'
     | '/_authenticated/app/invoices'
     | '/_authenticated/app/laybys'
+    | '/_authenticated/app/reports'
     | '/_authenticated/app/sales'
     | '/_authenticated/app/staff'
     | '/_authenticated/app/stocktake'
@@ -210,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/expenses': {
+      id: '/_authenticated/app/expenses'
+      path: '/expenses'
+      fullPath: '/app/expenses'
+      preLoaderRoute: typeof AuthenticatedAppExpensesRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/inventory': {
       id: '/_authenticated/app/inventory'
       path: '/inventory'
@@ -229,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/laybys'
       fullPath: '/app/laybys'
       preLoaderRoute: typeof AuthenticatedAppLaybysRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/reports': {
+      id: '/_authenticated/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AuthenticatedAppReportsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/sales': {
@@ -263,9 +302,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppExpensesRoute: typeof AuthenticatedAppExpensesRoute
   AuthenticatedAppInventoryRoute: typeof AuthenticatedAppInventoryRoute
   AuthenticatedAppInvoicesRoute: typeof AuthenticatedAppInvoicesRoute
   AuthenticatedAppLaybysRoute: typeof AuthenticatedAppLaybysRoute
+  AuthenticatedAppReportsRoute: typeof AuthenticatedAppReportsRoute
   AuthenticatedAppSalesRoute: typeof AuthenticatedAppSalesRoute
   AuthenticatedAppStaffRoute: typeof AuthenticatedAppStaffRoute
   AuthenticatedAppStocktakeRoute: typeof AuthenticatedAppStocktakeRoute
@@ -274,9 +315,11 @@ interface AuthenticatedAppRouteChildren {
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppExpensesRoute: AuthenticatedAppExpensesRoute,
   AuthenticatedAppInventoryRoute: AuthenticatedAppInventoryRoute,
   AuthenticatedAppInvoicesRoute: AuthenticatedAppInvoicesRoute,
   AuthenticatedAppLaybysRoute: AuthenticatedAppLaybysRoute,
+  AuthenticatedAppReportsRoute: AuthenticatedAppReportsRoute,
   AuthenticatedAppSalesRoute: AuthenticatedAppSalesRoute,
   AuthenticatedAppStaffRoute: AuthenticatedAppStaffRoute,
   AuthenticatedAppStocktakeRoute: AuthenticatedAppStocktakeRoute,
