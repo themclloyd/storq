@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppCollectionsRouteImport } from './routes/_authenticated/app.collections'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppExpensesRouteImport } from './routes/_authenticated/app.expenses'
@@ -56,6 +57,11 @@ const CSlugRoute = CSlugRouteImport.update({
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppCollectionsRoute =
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/c/$slug': typeof CSlugRoute
+  '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/collections': typeof AuthenticatedAppCollectionsRouteWithChildren
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/c/$slug': typeof CSlugRoute
+  '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/app/inventory': typeof AuthenticatedAppInventoryRoute
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/c/$slug': typeof CSlugRoute
+  '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/collections': typeof AuthenticatedAppCollectionsRouteWithChildren
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/expenses': typeof AuthenticatedAppExpensesRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app'
     | '/c/$slug'
+    | '/app/billing'
     | '/app/collections'
     | '/app/dashboard'
     | '/app/expenses'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/c/$slug'
+    | '/app/billing'
     | '/app/dashboard'
     | '/app/expenses'
     | '/app/inventory'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/app'
     | '/c/$slug'
+    | '/_authenticated/app/billing'
     | '/_authenticated/app/collections'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/expenses'
@@ -303,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/billing': {
+      id: '/_authenticated/app/billing'
+      path: '/billing'
+      fullPath: '/app/billing'
+      preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/collections': {
@@ -417,6 +436,7 @@ const AuthenticatedAppCollectionsRouteWithChildren =
   )
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
   AuthenticatedAppCollectionsRoute: typeof AuthenticatedAppCollectionsRouteWithChildren
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppExpensesRoute: typeof AuthenticatedAppExpensesRoute
@@ -432,6 +452,7 @@ interface AuthenticatedAppRouteChildren {
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
   AuthenticatedAppCollectionsRoute:
     AuthenticatedAppCollectionsRouteWithChildren,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
