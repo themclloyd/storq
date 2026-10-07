@@ -39,11 +39,13 @@ function AppLayout() {
 }
 
 function Gate() {
-  const { business, staff } = usePos();
-  const sub = useSubscription(business?.id);
+  const { business, staff, stores } = usePos();
+  const sub = useSubscription(business?.id, stores.length);
   if (business === undefined) return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading…</div>;
   if (business === null) return <Setup />;
   if (!staff) return <PinPad />;
+  if (sub.isPending) return <div className="grid min-h-screen place-items-center text-muted-foreground">Checking subscription…</div>;
+  if (sub.isError) return <div className="grid min-h-screen place-items-center"><div className="space-y-4 text-center"><p>Subscription could not be checked.</p><Button onClick={() => sub.refetch()}>Try again</Button></div></div>;
   if (sub.data && !sub.data.active) return <div className="min-h-screen bg-background p-4"><Billing locked /></div>;
   return <Shell />;
 }

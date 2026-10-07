@@ -25,7 +25,7 @@ export const verifySubscriptionPayment = createServerFn({ method: "POST" })
       console.error("PayChangu verify failed", res.status, body);
       return { ok: false, message: "Payment not confirmed yet." };
     }
-    if (Number(t.amount) < Number(pay.amount) || (t.currency && t.currency !== pay.currency)) {
+    if (!Number.isFinite(Number(t.amount)) || Number(t.amount) !== Number(pay.amount) || t.currency?.toUpperCase() !== pay.currency) {
       return { ok: false, message: "Payment amount does not match." };
     }
     const { error } = await supabaseAdmin.rpc("complete_subscription_payment" as never, { p_tx_ref: data.tx_ref } as never);

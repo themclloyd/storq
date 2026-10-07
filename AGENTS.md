@@ -1,4 +1,6 @@
 # Project rules
+- Enforce paid store capacity and expiry in SQL; confirmed payment snapshots grant capacity, and store creation serializes on the subscription row. Why: clients and concurrent requests cannot create unpaid stores.
+- Credit remaining prepaid store-time proportionally when paid capacity changes; activation is service-role-only and idempotent. Why: increasing locations neither gifts free time nor discards prepaid value.
 - Keep workspace navigation policy in a client-safe shared module and group existing URLs with shell-level page tabs; filter by staff role and selected store type. Why: fewer sidebar entries without broken deep links or lost staff tools.
 - Define workspace theme tokens once for `.storq-workspace` and `body:has(.storq-workspace)` so portaled dialogs inherit the same theme; leave public pages independent. Why: operations and their overlays stay consistent without changing public marketing or shared collections.
 - All writes go through Postgres SECURITY DEFINER RPCs that take a staff session token (`p_token`) and check role via `require_staff`; tables are read-only via RLS. Why: one shared business login per device, so staff role must be verified server-side from the PIN session, not the client.
