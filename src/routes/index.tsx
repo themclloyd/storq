@@ -13,13 +13,13 @@ import ownerPortrait from "@/assets/owner-portrait.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Tillpoint POS — The point of sale for every sale" },
+      { title: "Storq POS — The point of sale for every sale" },
       {
         name: "description",
         content:
           "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop. Free to start.",
       },
-      { property: "og:title", content: "Tillpoint POS — The point of sale for every sale" },
+      { property: "og:title", content: "Storq POS — The point of sale for every sale" },
       {
         property: "og:description",
         content: "Point of sale, layby and stock control for one shop or many — on the phone you already own.",
@@ -58,7 +58,7 @@ function Landing() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">T</span>
-            Tillpoint
+            Storq
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
             <a href="#shops" className="hover:text-accent">Who it's for</a>
@@ -84,7 +84,7 @@ function Landing() {
           The point of sale for every sale
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-          From first sale to full scale, Tillpoint runs your till, your stock and your staff —
+          From first sale to full scale, Storq runs your till, your stock and your staff —
           on the phone or laptop you already own.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -95,7 +95,7 @@ function Landing() {
         </div>
         <p className="mt-4 text-sm text-muted-foreground">No credit card. No hardware. Set up in 5 minutes.</p>
         <div className="relative mt-14 overflow-hidden rounded-3xl">
-          <img src={heroShop} alt="Shop owner ringing up a sale on Tillpoint" width={1600} height={1104} className="h-[460px] w-full object-cover md:h-[620px]" />
+          <img src={heroShop} alt="Shop owner ringing up a sale on Storq" width={1600} height={1104} className="h-[460px] w-full object-cover md:h-[620px]" />
           <div className="absolute bottom-5 left-5 rounded-2xl bg-card/95 p-5 text-left shadow-xl backdrop-blur md:bottom-8 md:left-8">
             <p className="text-xs font-medium text-muted-foreground">Today · Rosebank store</p>
             <p className="mt-1 text-3xl font-extrabold">R 18 450</p>
@@ -111,7 +111,7 @@ function Landing() {
             Created for every kind of shop
           </h2>
           <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            One till or ten stores. Clothing, groceries, hardware — Tillpoint fits the way you trade.
+            One till or ten stores. Clothing, groceries, hardware — Storq fits the way you trade.
           </p>
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -187,7 +187,7 @@ function Landing() {
           <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
             Run your shop your way. Not ours.
           </h2>
-          <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Tillpoint enforces it — no shortcuts, no leaks.</p>
+          <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Storq enforces it — no shortcuts, no leaks.</p>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
               <Zap className="h-8 w-8" />
@@ -212,7 +212,7 @@ function Landing() {
           <Eyebrow>Inventory</Eyebrow>
           <h2 className="mt-3 text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">Know exactly what's on the shelf.</h2>
           <p className="mt-5 text-lg text-muted-foreground">
-            Run stock takes with your whole team on their phones. Tillpoint shows what's missing, who counted it, and what it cost you.
+            Run stock takes with your whole team on their phones. Storq shows what's missing, who counted it, and what it cost you.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4">
             <div className="rounded-2xl bg-muted p-6">
@@ -272,7 +272,7 @@ function Landing() {
           <div className="md:col-span-3">
             <Eyebrow>Shop owners</Eyebrow>
             <blockquote className="mt-6 text-3xl font-bold leading-snug tracking-tight md:text-4xl">
-              "Before Tillpoint I never knew what left the shop. Now every sale, every layby,
+              "Before Storq I never knew what left the shop. Now every sale, every layby,
               every stock count has a name on it. My staff trust it and so do I."
             </blockquote>
             <p className="mt-6 text-lg font-semibold">Naledi K.</p>
@@ -326,7 +326,7 @@ function Landing() {
       {/* How to get started — Shopify style 3 steps */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
-          How to get started with Tillpoint
+          How to get started with Storq
         </h2>
         <div className="mt-14 grid gap-10 md:grid-cols-3">
           {[
@@ -402,7 +402,7 @@ function Landing() {
       </section>
 
       <footer className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-6 py-10 text-sm text-muted-foreground md:flex-row">
-        <span>© {new Date().getFullYear()} Tillpoint</span>
+        <span>© {new Date().getFullYear()} Storq</span>
         <span>Point of sale · Inventory · Layby</span>
       </footer>
     </div>
@@ -411,7 +411,7 @@ function Landing() {
 
 function Faq() {
   const items = [
-    ["Do I need to buy hardware?", "No. Tillpoint runs in the browser on any phone, tablet or laptop you already own."],
+    ["Do I need to buy hardware?", "No. Storq runs in the browser on any phone, tablet or laptop you already own."],
     ["How do staff log in?", "You sign each device in once with your business email. After that, every staff member unlocks it with their own 4-digit PIN, which sets what they can do."],
     ["Can I run more than one shop?", "Yes. Add as many stores as you need and choose for each one whether it's direct sale or approval-based."],
     ["Does it support mobile money?", "Yes — cash, card and mobile money are all recorded at checkout and on layby payments."],

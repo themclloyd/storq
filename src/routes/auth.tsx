@@ -10,9 +10,9 @@ import { Field } from "@/components/pos/bits";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Tillpoint" },
+      { title: "Sign in — Storq" },
       { name: "description", content: "Sign this device in to your business account." },
-      { property: "og:title", content: "Sign in — Tillpoint" },
+      { property: "og:title", content: "Sign in — Storq" },
       { property: "og:description", content: "Sign this device in to your business account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -59,7 +59,7 @@ function AuthPage() {
       <div className="pos-card w-full max-w-sm p-8">
         <div className="mb-6 flex items-center gap-2 text-lg font-extrabold">
           <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><Boxes className="size-4" /></span>
-          Tillpoint
+          Storq
         </div>
         {sent ? (
           <div>
