@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos, type Store } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ function Stores() {
   if (!can("admin")) return <Empty>Only admins can manage stores.</Empty>;
   return (
     <>
-      <PageHeader title="Stores" actions={<Button variant="accent" onClick={() => setEdit({ store_type: "direct" })}><Plus /> Add store</Button>} />
+      <PageHeader title="Stores" actions={<Button variant="accent" onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add store</Button>} />
       <div className="grid gap-3 md:grid-cols-2">
         {stores.map((s) => (
           <div key={s.id} className="pos-card flex items-center justify-between p-5">

@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Delete02Icon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
 import { useStaffNames } from "@/lib/sales";
 import { expenseCategories, rangeDays, sinceFor, sourceLabel, useExpenses, type Expense } from "@/lib/expenses";
@@ -89,7 +90,7 @@ function Expenses() {
                     <div className="truncate text-xs text-muted-foreground">{sourceLabel[e.source]} · {names.data?.[e.created_by ?? ""]}{e.note && ` · ${e.note}`}</div>
                   </div>
                   <span className="tabular font-semibold">{money(e.amount)}</span>
-                  {can("admin", "manager") && <button onClick={() => remove(e.id)} className="text-muted-foreground hover:text-destructive" aria-label="Delete expense"><Trash2 className="size-4" /></button>}
+                  {can("admin", "manager") && <button onClick={() => remove(e.id)} className="text-muted-foreground hover:text-destructive" aria-label="Delete expense"><HugeiconsIcon icon={Delete02Icon} className="size-4" /></button>}
                 </div>
               ))}
             </div>

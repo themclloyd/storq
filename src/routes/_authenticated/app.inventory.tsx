@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
 import { useProducts, useStock, type Product } from "@/lib/products";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ function Inventory() {
       <PageHeader
         title="Inventory"
         sub={`${store?.name} · stock value at cost ${money(value)}`}
-        actions={<Button variant="accent" onClick={() => setEdit({ active: true, price: 0, cost: 0 })}><Plus /> New item</Button>}
+        actions={<Button variant="accent" onClick={() => setEdit({ active: true, price: 0, cost: 0 })}><HugeiconsIcon icon={PlusSignIcon} /> New item</Button>}
       />
       <Input className="mb-4 max-w-sm bg-card" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
       {rows.length === 0 ? <Empty>No items yet.</Empty> : (

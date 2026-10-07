@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Boxes } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { BoxesIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,7 @@ function AuthPage() {
     <div className="grid min-h-screen place-items-center bg-background px-4">
       <div className="pos-card w-full max-w-sm p-8">
         <div className="mb-6 flex items-center gap-2 text-lg font-extrabold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><Boxes className="size-4" /></span>
+          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-4" /></span>
           Storq
         </div>
         {sent ? (

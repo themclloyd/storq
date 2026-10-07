@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, ChevronDown, Smartphone, WifiOff, ShieldCheck, Zap, Store, Boxes, Users, BarChart3 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowRight01Icon, Tick01Icon, ArrowDown01Icon, SmartPhone01Icon, WifiOffIcon, ShieldCheckIcon, FlashIcon, StoreIcon, BoxesIcon, UserMultipleIcon, BarChartIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import heroShop from "@/assets/hero-shop.jpg";
 import counter from "@/assets/counter.jpg";
@@ -40,7 +41,7 @@ function Cta({ label = "Start free", invert = false }: { label?: string; invert?
       className="h-14 rounded-full px-8 text-base font-semibold"
     >
       <Link to="/auth">
-        {label} <ArrowRight className="ml-1 h-5 w-5" />
+        {label} <HugeiconsIcon icon={ArrowRight01Icon} className="ml-1 h-5 w-5" />
       </Link>
     </Button>
   );
@@ -139,7 +140,7 @@ function Landing() {
           </h2>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl bg-card p-10 shadow-sm">
-              <Store className="h-9 w-9 text-accent" />
+              <HugeiconsIcon icon={StoreIcon} className="h-9 w-9 text-accent" />
               <h3 className="mt-6 text-3xl font-bold">Single store</h3>
               <p className="mt-3 text-lg text-muted-foreground">
                 Sell at the counter with one login for the shop. Every staff member unlocks the till
@@ -147,7 +148,7 @@ function Landing() {
               </p>
             </div>
             <div className="rounded-3xl bg-card p-10 shadow-sm">
-              <Boxes className="h-9 w-9 text-accent" />
+              <HugeiconsIcon icon={BoxesIcon} className="h-9 w-9 text-accent" />
               <h3 className="mt-6 text-3xl font-bold">Multiple stores</h3>
               <p className="mt-3 text-lg text-muted-foreground">
                 Run every branch from one account. Stock, sales and staff sync across all your
@@ -174,7 +175,7 @@ function Landing() {
               "Works for one shop or ten, from the same account",
             ].map((t) => (
               <li key={t} className="flex gap-3 text-base">
-                <Check className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> {t}
+                <HugeiconsIcon icon={Tick01Icon} className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> {t}
               </li>
             ))}
           </ul>
@@ -190,12 +191,12 @@ function Landing() {
           <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Storq enforces it — no shortcuts, no leaks.</p>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
-              <Zap className="h-8 w-8" />
+              <HugeiconsIcon icon={FlashIcon} className="h-8 w-8" />
               <h3 className="mt-6 text-3xl font-bold">Direct sale</h3>
               <p className="mt-3 opacity-70">Cashier rings it up, customer pays, stock drops. Perfect for busy counters and spazas.</p>
             </div>
             <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
-              <ShieldCheck className="h-8 w-8" />
+              <HugeiconsIcon icon={ShieldCheckIcon} className="h-8 w-8" />
               <h3 className="mt-6 text-3xl font-bold">Approval-based</h3>
               <p className="mt-3 opacity-70">Cashier creates an invoice, a manager approves it before stock moves. Built for wholesale and high-value goods.</p>
             </div>
@@ -381,7 +382,7 @@ function Landing() {
                 <p className="mt-4 text-6xl font-extrabold tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
                 <ul className="mt-8 space-y-3">
                   {t.f.map((x) => (
-                    <li key={x} className="flex gap-3"><Check className="h-5 w-5 shrink-0" /> {x}</li>
+                    <li key={x} className="flex gap-3"><HugeiconsIcon icon={Tick01Icon} className="h-5 w-5 shrink-0" /> {x}</li>
                   ))}
                 </ul>
                 <div className="mt-10"><Cta label={t.hi ? "Start 30-day trial" : "Start free"} invert={t.hi} /></div>
@@ -425,7 +426,7 @@ function Faq() {
           <button key={q} onClick={() => setOpen(open === i ? null : i)} className="block w-full py-6 text-left">
             <div className="flex items-center justify-between text-lg font-semibold">
               {q}
-              <ChevronDown className={`h-5 w-5 transition-transform ${open === i ? "rotate-180" : ""}`} />
+              <HugeiconsIcon icon={ArrowDown01Icon} className={`h-5 w-5 transition-transform ${open === i ? "rotate-180" : ""}`} />
             </div>
             {open === i && <p className="mt-3 text-muted-foreground">{a}</p>}
           </button>

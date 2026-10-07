@@ -2,9 +2,8 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Boxes, ClipboardCheck, Delete, FileCheck2, Lock, LogOut, Package, Receipt, ShoppingBag, Store as StoreIcon, Users, Wallet, BarChart3, Banknote,
-} from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
@@ -144,9 +143,9 @@ function PinPad() {
         ))}
         <span />
         <button disabled={busy} onClick={() => press("0")} className="pos-key size-20 bg-card text-2xl font-semibold shadow-[var(--shadow-card)] hover:bg-secondary">0</button>
-        <button onClick={() => setPin((p) => p.slice(0, -1))} className="pos-key grid size-20 place-items-center text-muted-foreground hover:bg-secondary"><Delete className="size-6" /></button>
+        <button onClick={() => setPin((p) => p.slice(0, -1))} className="pos-key grid size-20 place-items-center text-muted-foreground hover:bg-secondary"><HugeiconsIcon icon={Delete02Icon} className="size-6" /></button>
       </div>
-      <button onClick={signOut} className="mt-10 flex items-center gap-2 text-sm text-muted-foreground"><LogOut className="size-4" /> Sign out of this device</button>
+      <button onClick={signOut} className="mt-10 flex items-center gap-2 text-sm text-muted-foreground"><HugeiconsIcon icon={Logout02Icon} className="size-4" /> Sign out of this device</button>
     </div>
   );
 }
@@ -175,7 +174,7 @@ function Shell() {
     <div className="flex min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r bg-rail md:flex">
         <div className="flex items-center gap-2 px-5 py-5 text-lg font-extrabold">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><Boxes className="size-4" /></span>
+          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><HugeiconsIcon icon={BoxesIcon} className="size-4" /></span>
           Storq
         </div>
         <div className="px-3">
@@ -199,7 +198,7 @@ function Shell() {
             <div className="text-sm font-bold">{staff?.name}</div>
             <div className="text-xs text-muted-foreground">{staff && roleLabel[staff.role]}</div>
           </div>
-          <Button variant="outline" className="w-full" onClick={lock}><Lock /> Lock</Button>
+          <Button variant="outline" className="w-full" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /> Lock</Button>
         </div>
       </aside>
 
@@ -209,7 +208,7 @@ function Shell() {
             {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </NativeSelect>
           <span className="text-sm font-semibold">{staff?.name}</span>
-          <Button size="icon" variant="outline" onClick={lock}><Lock /></Button>
+          <Button size="icon" variant="outline" onClick={lock}><HugeiconsIcon icon={SquareLockIcon} /></Button>
         </header>
         <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
           <Outlet />
