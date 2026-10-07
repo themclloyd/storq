@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { COUNTED, useRefunds } from "@/lib/refunds";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
-  head: () => ({ meta: [{ title: "Reports — Storq" }, { name: "description", content: "Profit, expenses and business performance." }] }),
+  head: () => ({ meta: [{ title: "Reports — Storq" }, { name: "description", content: "Review profit, expenses and store performance." }, { property: "og:title", content: "Reports — Storq" }, { property: "og:description", content: "Review profit, expenses and store performance." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Reports,
 });
 

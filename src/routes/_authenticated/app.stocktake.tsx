@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Empty, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/app/stocktake")({ component: StockTake });
+export const Route = createFileRoute("/_authenticated/app/stocktake")({ head: () => ({ meta: [{ title: "Stock take — Storq" }, { name: "description", content: "Count and reconcile store inventory with your staff." }, { property: "og:title", content: "Stock take — Storq" }, { property: "og:description", content: "Count and reconcile store inventory with your staff." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: StockTake });
 
 type Take = { id: string; status: string; created_at: string; closed_at: string | null };
 type LineRow = { product_id: string; expected: number; counted: number | null };

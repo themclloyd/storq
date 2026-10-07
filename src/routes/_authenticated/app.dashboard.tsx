@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/app/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — Storq" }, { name: "description", content: "Today at a glance: sales, expenses, profit and alerts." }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Storq" }, { name: "description", content: "Sales, expenses, profit and alerts at a glance." }, { property: "og:title", content: "Dashboard — Storq" }, { property: "og:description", content: "Sales, expenses, profit and alerts at a glance." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Dashboard,
 });
 

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Empty, Field, PageHeader, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/app/stores")({ component: Stores });
+export const Route = createFileRoute("/_authenticated/app/stores")({ head: () => ({ meta: [{ title: "Stores — Storq" }, { name: "description", content: "Manage your Storq stores and tax settings." }, { property: "og:title", content: "Stores — Storq" }, { property: "og:description", content: "Manage your Storq stores and tax settings." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Stores });
 
 function Stores() {
   const { stores, can } = usePos();

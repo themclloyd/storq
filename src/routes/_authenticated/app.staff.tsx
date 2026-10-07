@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader } from "@/components/pos/bits";
 
-export const Route = createFileRoute("/_authenticated/app/staff")({ component: Staff });
+export const Route = createFileRoute("/_authenticated/app/staff")({ head: () => ({ meta: [{ title: "Staff — Storq" }, { name: "description", content: "Manage staff access and PINs in Storq." }, { property: "og:title", content: "Staff — Storq" }, { property: "og:description", content: "Manage staff access and PINs in Storq." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Staff });
 
 type StaffRow = { id: string; name: string; role: Role; store_id: string | null; active: boolean };
 

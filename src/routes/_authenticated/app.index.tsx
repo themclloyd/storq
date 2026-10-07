@@ -13,7 +13,7 @@ import { Empty, Field, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { useCollections, salePrice } from "@/lib/collections";
 
-export const Route = createFileRoute("/_authenticated/app/")({ component: Register });
+export const Route = createFileRoute("/_authenticated/app/")({ head: () => ({ meta: [{ title: "Register — Storq" }, { name: "description", content: "Ring up sales and create layby or approval invoices." }, { property: "og:title", content: "Register — Storq" }, { property: "og:description", content: "Ring up sales and create layby or approval invoices." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: Register });
 
 const tiles = ["bg-tile-1", "bg-tile-2", "bg-tile-3", "bg-tile-4", "bg-tile-5", "bg-tile-6"];
 const tileFor = (s: string) => tiles[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % tiles.length];
