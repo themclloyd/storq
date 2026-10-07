@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
-import { useProducts } from "./app.index";
+import { useProducts } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Empty, PageHeader, Status, fmtDate } from "@/components/pos/bits";

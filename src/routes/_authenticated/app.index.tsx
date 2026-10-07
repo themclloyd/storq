@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Minus, Plus, Search, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useProducts, useStock, type Product } from "@/lib/products";
 import { usePos } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,32 +13,9 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/")({ component: Register });
 
-export type Product = { id: string; name: string; sku: string | null; category: string | null; price: number; cost: number; active: boolean };
 const tiles = ["bg-tile-1", "bg-tile-2", "bg-tile-3", "bg-tile-4", "bg-tile-5", "bg-tile-6"];
 const tileFor = (s: string) => tiles[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % tiles.length];
 
-export function useProducts() {
-  const { business } = usePos();
-  return useQuery({
-    queryKey: ["products", business?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").order("name");
-      if (error) throw error;
-      return data as unknown as Product[];
-    },
-  });
-}
-export function useStock(storeId?: string) {
-  return useQuery({
-    queryKey: ["stock", storeId],
-    enabled: !!storeId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("store_stock").select("product_id,qty").eq("store_id", storeId!);
-      if (error) throw error;
-      return Object.fromEntries((data ?? []).map((r) => [r.product_id, Number(r.qty)])) as Record<string, number>;
-    },
-  });
-}
 
 type Line = { p: Product; qty: number };
 
