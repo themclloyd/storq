@@ -204,12 +204,12 @@ function PinPadMock() {
 
 function RegisterMock() {
   const tiles = [
-    { n: "Sneakers", p: "R 899.00", c: "tile-1" },
-    { n: "Denim Jeans", p: "R 549.00", c: "tile-2" },
-    { n: "T-Shirt", p: "R 199.00", c: "tile-3" },
-    { n: "Cap", p: "R 149.00", c: "tile-4" },
-    { n: "Hoodie", p: "R 649.00", c: "tile-5" },
-    { n: "Belt", p: "R 229.00", c: "tile-6" },
+    { n: "Sneakers", p: "R 899.00", c: "bg-tile-1" },
+    { n: "Denim Jeans", p: "R 549.00", c: "bg-tile-2" },
+    { n: "T-Shirt", p: "R 199.00", c: "bg-tile-3" },
+    { n: "Cap", p: "R 149.00", c: "bg-tile-4" },
+    { n: "Hoodie", p: "R 649.00", c: "bg-tile-5" },
+    { n: "Belt", p: "R 229.00", c: "bg-tile-6" },
   ];
   return (
     <div className="pos-card w-full max-w-[380px] overflow-hidden p-0 shadow-pop">
