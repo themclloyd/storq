@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ type: "direct" as "direct" | "approval", rpc: vi.fn() }));
@@ -33,7 +33,7 @@ describe("Store-specific checkout controls", () => {
     expect(screen.getByRole("heading", { name: "Invoice for approval" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mobile money" })).not.toBeInTheDocument();
     expect(screen.queryByText("Cash received")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Send for approval" }));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Send for approval" })); });
     expect(state.rpc).toHaveBeenCalledWith("checkout", expect.objectContaining({ p_store: "store", p_payment: 0, p_kind: "sale" }));
   });
 

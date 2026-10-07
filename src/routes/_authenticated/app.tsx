@@ -3,14 +3,13 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { DashboardSquare01Icon, BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
+import { DashboardSquare01Icon, BoxesIcon, Delete02Icon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, BarChartIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos } from "@/lib/pos";
 import { workspaceNavigation, workspacePageAt, type WorkspaceGroup } from "@/lib/workspace-navigation";
 import { WorkspaceTabs } from "@/components/pos/WorkspaceTabs";
 import { useSubscription } from "@/lib/billing";
 import { Billing } from "@/components/pos/Billing";
-import { CreditCardIcon, CashierIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
@@ -23,6 +22,8 @@ export const Route = createFileRoute("/_authenticated/app")({
       { name: "description", content: "Storq point of sale register." },
       { property: "og:title", content: "Register — Storq" },
       { property: "og:description", content: "Storq point of sale register." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AppLayout,
@@ -221,7 +222,7 @@ function Shell() {
         </header>
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-5 pb-24 md:p-8 md:pb-8 lg:p-10">
           {staff && <WorkspaceTabs path={path} role={staff.role} storeType={store?.store_type} />}
-          {!unavailableApproval && <div key={store?.id}><Outlet /></div>}
+          <div key={store?.id}><Outlet /></div>
         </main>
         <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-rail md:hidden">
           {items.map((n) => {
