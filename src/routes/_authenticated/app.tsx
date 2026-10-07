@@ -6,6 +6,9 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { DashboardSquare01Icon, BoxesIcon, ClipboardCheckIcon, Delete02Icon, FileCheckIcon, SquareLockIcon, Logout02Icon, PackageIcon, ReceiptIcon, ShoppingBag01Icon, StoreIcon, UserMultipleIcon, Wallet01Icon, BarChartIcon, BanknoteIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, roleLabel, usePos, type Role } from "@/lib/pos";
+import { useSubscription } from "@/lib/billing";
+import { Billing } from "@/components/pos/Billing";
+import { CreditCardIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
@@ -34,9 +37,11 @@ function AppLayout() {
 
 function Gate() {
   const { business, staff } = usePos();
+  const sub = useSubscription(business?.id);
   if (business === undefined) return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading…</div>;
   if (business === null) return <Setup />;
   if (!staff) return <PinPad />;
+  if (sub.data && !sub.data.active) return <div className="min-h-screen bg-background p-4"><Billing locked /></div>;
   return <Shell />;
 }
 
@@ -164,6 +169,7 @@ const nav: NavItem[] = [
   { to: "/app/stocktake", label: "Stock take", icon: ClipboardCheckIcon, roles: ["admin", "manager", "cashier"] },
   { to: "/app/staff", label: "Staff", icon: UserMultipleIcon, roles: ["admin"] },
   { to: "/app/stores", label: "Stores", icon: StoreIcon, roles: ["admin"] },
+  { to: "/app/billing", label: "Subscription", icon: CreditCardIcon, roles: ["admin", "manager"] },
 ];
 
 function Shell() {

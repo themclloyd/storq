@@ -631,6 +631,92 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          paid_at: string | null
+          period: string
+          status: string
+          stores: number
+          tx_ref: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          paid_at?: string | null
+          period: string
+          status?: string
+          stores: number
+          tx_ref: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          paid_at?: string | null
+          period?: string
+          status?: string
+          stores?: number
+          tx_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          business_id: string
+          created_at: string
+          paid_until: string | null
+          plan: string | null
+          trial_ends_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          paid_until?: string | null
+          plan?: string | null
+          trial_ends_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          paid_until?: string | null
+          plan?: string | null
+          trial_ends_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -669,6 +755,10 @@ export type Database = {
       }
       close_stock_take: {
         Args: { p_take: string; p_token: string }
+        Returns: undefined
+      }
+      complete_subscription_payment: {
+        Args: { p_tx_ref: string }
         Returns: undefined
       }
       count_stock: {
@@ -807,6 +897,10 @@ export type Database = {
       start_stock_take: {
         Args: { p_store: string; p_token: string }
         Returns: string
+      }
+      start_subscription_payment: {
+        Args: { p_currency: string; p_period: string; p_token: string }
+        Returns: Json
       }
       unlock_with_pin: { Args: { p_pin: string }; Returns: Json }
     }
