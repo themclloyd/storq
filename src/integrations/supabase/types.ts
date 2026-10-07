@@ -14,13 +14,629 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          sale_id: string
+          staff_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          method?: string
+          sale_id: string
+          staff_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          sale_id?: string
+          staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          active: boolean
+          business_id: string
+          category: string | null
+          cost: number
+          created_at: string
+          id: string
+          name: string
+          price: number
+          sku: string | null
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          category?: string | null
+          cost?: number
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          sku?: string | null
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          category?: string | null
+          cost?: number
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
+          id: string
+          name: string
+          price: number
+          product_id: string | null
+          qty: number
+          sale_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          price: number
+          product_id?: string | null
+          qty: number
+          sale_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          price?: number
+          product_id?: string | null
+          qty?: number
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          business_id: string
+          created_at: string
+          created_by: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          kind: string
+          note: string | null
+          number: number
+          paid: number
+          payment_method: string | null
+          status: string
+          store_id: string
+          total: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          number?: number
+          paid?: number
+          payment_method?: string | null
+          status: string
+          store_id: string
+          total?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          number?: number
+          paid?: number
+          payment_method?: string | null
+          status?: string
+          store_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff: {
+        Row: {
+          active: boolean
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          pin_hash: string
+          role: string
+          store_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          created_at?: string
+          id?: string
+          name: string
+          pin_hash: string
+          role: string
+          store_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          pin_hash?: string
+          role?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_sessions: {
+        Row: {
+          expires_at: string
+          staff_id: string
+          token: string
+        }
+        Insert: {
+          expires_at?: string
+          staff_id: string
+          token?: string
+        }
+        Update: {
+          expires_at?: string
+          staff_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_sessions_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_take_lines: {
+        Row: {
+          counted: number | null
+          counted_by: string | null
+          expected: number
+          product_id: string
+          stock_take_id: string
+        }
+        Insert: {
+          counted?: number | null
+          counted_by?: string | null
+          expected?: number
+          product_id: string
+          stock_take_id: string
+        }
+        Update: {
+          counted?: number | null
+          counted_by?: string | null
+          expected?: number
+          product_id?: string
+          stock_take_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_take_lines_counted_by_fkey"
+            columns: ["counted_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_take_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_take_lines_stock_take_id_fkey"
+            columns: ["stock_take_id"]
+            isOneToOne: false
+            referencedRelation: "stock_takes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_takes: {
+        Row: {
+          business_id: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          id: string
+          started_by: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          business_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          started_by?: string | null
+          status?: string
+          store_id: string
+        }
+        Update: {
+          business_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          started_by?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_takes_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_takes_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_takes_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_takes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_stock: {
+        Row: {
+          product_id: string
+          qty: number
+          store_id: string
+        }
+        Insert: {
+          product_id: string
+          qty?: number
+          store_id: string
+        }
+        Update: {
+          product_id?: string
+          qty?: number
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_stock_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          store_type: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          name: string
+          store_type?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          store_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _move_stock: {
+        Args: { p_sale: string; p_sign: number }
+        Returns: undefined
+      }
+      adjust_stock: {
+        Args: {
+          p_delta: number
+          p_product: string
+          p_store: string
+          p_token: string
+        }
+        Returns: undefined
+      }
+      cancel_layby: {
+        Args: { p_sale: string; p_token: string }
+        Returns: undefined
+      }
+      checkout: {
+        Args: {
+          p_customer_name: string
+          p_customer_phone: string
+          p_items: Json
+          p_kind: string
+          p_method: string
+          p_note: string
+          p_payment: number
+          p_store: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      close_stock_take: {
+        Args: { p_take: string; p_token: string }
+        Returns: undefined
+      }
+      count_stock: {
+        Args: {
+          p_counted: number
+          p_product: string
+          p_take: string
+          p_token: string
+        }
+        Returns: undefined
+      }
+      layby_pay: {
+        Args: {
+          p_amount: number
+          p_method: string
+          p_sale: string
+          p_token: string
+        }
+        Returns: string
+      }
+      lock_session: { Args: { p_token: string }; Returns: undefined }
+      my_business_id: { Args: never; Returns: string }
+      pin_taken: {
+        Args: { p_business: string; p_except: string; p_pin: string }
+        Returns: boolean
+      }
+      require_staff: {
+        Args: { p_roles: string[]; p_token: string }
+        Returns: {
+          active: boolean
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          pin_hash: string
+          role: string
+          store_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_invoice: {
+        Args: {
+          p_approve: boolean
+          p_method: string
+          p_payment: number
+          p_sale: string
+          p_token: string
+        }
+        Returns: string
+      }
+      save_product: {
+        Args: {
+          p_active: boolean
+          p_category: string
+          p_cost: number
+          p_id: string
+          p_name: string
+          p_price: number
+          p_sku: string
+          p_token: string
+        }
+        Returns: string
+      }
+      save_staff: {
+        Args: {
+          p_active: boolean
+          p_id: string
+          p_name: string
+          p_pin: string
+          p_role: string
+          p_store: string
+          p_token: string
+        }
+        Returns: string
+      }
+      save_store: {
+        Args: { p_id: string; p_name: string; p_token: string; p_type: string }
+        Returns: string
+      }
+      setup_business: {
+        Args: {
+          p_currency: string
+          p_name: string
+          p_owner_name: string
+          p_pin: string
+          p_store_name: string
+          p_store_type: string
+        }
+        Returns: string
+      }
+      start_stock_take: {
+        Args: { p_store: string; p_token: string }
+        Returns: string
+      }
+      unlock_with_pin: { Args: { p_pin: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
