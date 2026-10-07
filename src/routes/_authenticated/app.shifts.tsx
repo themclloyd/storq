@@ -58,7 +58,7 @@ function Shifts() {
 
   return (
     <>
-      <PageHeader title="Cash drawer" sub={store?.name} />
+      <PageHeader title="Cash drawer" sub={store?.name ?? ""} />
       {!open ? (
         <div className="pos-card mb-6 max-w-md space-y-4 p-6">
           <div><h3 className="text-lg font-bold">Open a shift</h3><p className="text-sm text-muted-foreground">Count the cash in the drawer before you start selling.</p></div>
