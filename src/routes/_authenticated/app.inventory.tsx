@@ -72,8 +72,7 @@ function ProductDialog({ p, currentQty, onClose }: { p: Partial<Product>; curren
   const [f, setF] = useState({ name: p.name ?? "", sku: p.sku ?? "", category: p.category ?? "", price: String(p.price ?? ""), cost: String(p.cost ?? ""), qty: p.id ? String(currentQty) : "", active: p.active ?? true });
   async function save() {
     try {
-      const res = await rpc("save_product", { p_id: p.id ?? null, p_name: f.name, p_sku: f.sku || null, p_category: f.category || null, p_price: Number(f.price || 0), p_cost: Number(f.cost || 0), p_active: f.active });
-      const pid = (res?.data as string | undefined) ?? p.id;
+      const pid = ((await rpc("save_product", { p_id: p.id ?? null, p_name: f.name, p_sku: f.sku || null, p_category: f.category || null, p_price: Number(f.price || 0), p_cost: Number(f.cost || 0), p_active: f.active })) as string | null) ?? p.id;
       const qty = f.qty === "" ? null : Number(f.qty);
       if (pid && qty !== null && qty !== currentQty && store?.id) {
         await rpc("adjust_stock", { p_store: store.id, p_product: pid, p_delta: qty - currentQty });
