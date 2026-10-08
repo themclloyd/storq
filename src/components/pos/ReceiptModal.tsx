@@ -11,8 +11,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { downloadPdf } from "@/lib/pdf";
 import {
-  downloadReceipt,
+  methodLabel,
   printReceipt,
   receiptHtml,
   receiptTitle,
@@ -74,11 +75,18 @@ export function ReceiptModal({
             size="lg"
             className="flex-1"
             onClick={() => {
-              downloadReceipt(receipt, money);
-              toast.success("Receipt exported.");
+              const r = receipt;
+              void downloadPdf({
+                filename: `storq-receipt-${r.number}`, title: `${r.kind === "layby" ? "Layby receipt" : "Receipt"} #${r.number}`,
+                business: r.bizName, subtitle: r.storeName, badge: r.status === "layby_open" ? "LAYBY OPEN" : "PAID",
+                meta: [["Date", r.date], ["Served by", r.cashier], ["Payment", methodLabel(r.method)], ["Customer", r.customerName ? `${r.customerName}${r.customerPhone ? ` · ${r.customerPhone}` : ""}` : "Walk-in"]],
+                sections: [{ type: "table", head: ["Item", "Qty", "Unit price", "Amount"], align: ["left", "right", "right", "right"], body: r.lines.map((l) => [l.name, l.qty, money(l.price), money(l.total)]) }],
+                totals: [["Subtotal", money(r.subtotal)], ...(r.tax > 0 ? [[`VAT ${r.taxRate}%${r.taxInclusive ? " (incl.)" : ""}`, money(r.tax)] as [string, string]] : []), ["Paid", money(r.paid)], ...(r.change > 0 ? [["Change", money(r.change)] as [string, string]] : []), ["Total", money(r.total)]],
+                footerNote: `${r.note ? `Note: ${r.note}\n\n` : ""}Thank you for shopping with us.`,
+              }).then(() => toast.success("Receipt PDF downloaded."));
             }}
           >
-            <HugeiconsIcon icon={Download01Icon} /> Export
+            <HugeiconsIcon icon={Download01Icon} /> PDF
           </Button>
           <Button
             size="lg"
