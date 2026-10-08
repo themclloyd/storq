@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { COUNTED, useRefunds } from "@/lib/refunds";
 import { usePos } from "@/lib/pos";
+import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { useSales, useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +63,7 @@ function StatusBadge({ s }: { s: string }) {
 }
 
 function Sales() {
-  const { store, stores, money, can } = usePos();
+  const { store, stores, money, can, business } = usePos();
   const navigate = useNavigate();
   const [range, setRange] = useState<keyof typeof ranges>("today");
   const [all, setAll] = useState(false);
@@ -87,6 +88,14 @@ function Sales() {
           {(Object.keys(ranges) as (keyof typeof ranges)[]).map((r) => (
             <Button key={r} size="sm" variant={range === r ? "default" : "outline"} onClick={() => setRange(r)} className="capitalize">{r}</Button>
           ))}
+          <Button size="sm" variant="outline" onClick={() => downloadCsv(`storq-sales-${fileStamp()}.csv`, [["number", "date", "store", "status", "staff", "customer", "method", "total", "tax", "paid", "refunded"], ...rows.map((s) => [s.number, s.created_at, storeName(s.store_id) ?? "", s.status, names.data?.[s.created_by ?? ""] ?? "", s.customer_name ?? "", s.payment_method ?? "", s.total, s.tax, s.paid, s.refunded])])}>CSV</Button>
+          <Button size="sm" variant="outline" onClick={() => void downloadPdf({
+            filename: `storq-sales-${fileStamp()}`, title: "Sales report", business: business?.name, orientation: "landscape",
+            subtitle: `${all ? "All stores" : store?.name ?? ""} · ${range}`,
+            kpis: [["Net sales", money(revenue)], ["Collected", money(collected)], ["Refunds", money((refunds.data ?? []).reduce((a, r) => a + Number(r.amount), 0))], ["Transactions", String(done.length)]],
+            sections: [{ type: "table", head: ["#", "Date", "Store", "Status", "Staff", "Customer", "Method", "Total", "Refunded"], align: ["left", "left", "left", "left", "left", "left", "left", "right", "right"],
+              body: rows.map((s) => [s.number, new Date(s.created_at).toLocaleString("en-ZA", { dateStyle: "short", timeStyle: "short" }), storeName(s.store_id) ?? "", s.status.replace(/_/g, " "), names.data?.[s.created_by ?? ""] ?? "", s.customer_name ?? "", s.payment_method ?? "", money(s.total), Number(s.refunded) ? money(s.refunded) : ""]) }],
+          })}>PDF</Button>
           {stores.length > 1 && can("admin", "manager") && <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>All stores</Button>}
         </div>
       </div>

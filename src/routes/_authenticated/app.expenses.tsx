@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
+import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { useStaffNames } from "@/lib/sales";
 import {
   expenseCategories,
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/app/expenses")({
 const today = () => new Date().toISOString().slice(0, 10);
 
 function Expenses() {
-  const { store, rpc, money, can } = usePos();
+  const { store, rpc, money, can, business } = usePos();
   const qc = useQueryClient();
   const [range, setRange] = useState<keyof typeof rangeDays>("7 days");
   const list = useExpenses({ storeId: store?.id, since: sinceFor(range) });
@@ -87,7 +88,19 @@ function Expenses() {
       <PageHeader
         title="Expenses"
         sub={store?.name ?? ""}
-        actions={(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((r) => (
+        actions={[
+          <Button key="csv" size="sm" variant="outline" onClick={() => downloadCsv(`storq-expenses-${fileStamp()}.csv`, [["date", "category", "source", "amount", "note", "recorded_by"], ...rows.map((e) => [e.spent_on, e.category, e.source, e.amount, e.note ?? "", names.data?.[e.created_by ?? ""] ?? ""])])}>CSV</Button>,
+          <Button key="pdf" size="sm" variant="outline" onClick={() => {
+            const cats: Record<string, number> = {}; rows.forEach((e) => (cats[e.category] = (cats[e.category] ?? 0) + Number(e.amount)));
+            void downloadPdf({ filename: `storq-expenses-${fileStamp()}`, title: "Expense report", business: business?.name, subtitle: `${store?.name ?? ""} · ${range}`,
+              kpis: [["Total spent", money(total)], ["Paid from till", money(till)], ["Entries", String(rows.length)]],
+              sections: [
+                { type: "pairs", heading: "By category", rows: Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, money(v)]) },
+                { type: "table", heading: "All expenses", head: ["Date", "Category", "Paid from", "Note", "By", "Amount"], align: ["left", "left", "left", "left", "left", "right"],
+                  body: rows.map((e) => [e.spent_on, e.category, e.source, e.note ?? "", names.data?.[e.created_by ?? ""] ?? "", money(e.amount)]), foot: ["Total", "", "", "", "", money(total)] },
+              ] });
+          }}>PDF</Button>,
+          ...(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((r) => (
           <Button
             key={r}
             size="sm"
@@ -97,7 +110,7 @@ function Expenses() {
           >
             {r}
           </Button>
-        ))}
+        ))]}
       />
       <div className="grid gap-3 lg:grid-cols-[320px_1fr]">
         <form onSubmit={save} className="pos-card h-fit space-y-3 p-4">
