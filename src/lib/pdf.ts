@@ -3,22 +3,22 @@
 
 export type PdfKpi = [label: string, value: string];
 export type PdfSection =
-  | { type: "table"; heading?: string; head: string[]; body: (string | number)[][]; foot?: (string | number)[]; align?: ("left" | "right")[] }
-  | { type: "pairs"; heading?: string; rows: [string, string][] }
-  | { type: "text"; heading?: string; text: string };
+  | { type: "table"; heading?: string | undefined; head: string[]; body: (string | number)[][]; foot?: (string | number)[] | undefined; align?: ("left" | "right")[] | undefined }
+  | { type: "pairs"; heading?: string | undefined; rows: [string, string][] }
+  | { type: "text"; heading?: string | undefined; text: string };
 
 export type PdfDoc = {
   filename: string;
   title: string;
-  business?: string;
-  subtitle?: string;
-  badge?: string;
-  meta?: [string, string][];
-  kpis?: PdfKpi[];
+  business?: string | undefined;
+  subtitle?: string | undefined;
+  badge?: string | undefined;
+  meta?: [string, string][] | undefined;
+  kpis?: PdfKpi[] | undefined;
   sections: PdfSection[];
-  totals?: [string, string][];
-  footerNote?: string;
-  orientation?: "portrait" | "landscape";
+  totals?: [string, string][] | undefined;
+  footerNote?: string | undefined;
+  orientation?: "portrait" | "landscape" | undefined;
 };
 
 const INK: [number, number, number] = [24, 24, 27];
@@ -119,14 +119,14 @@ export async function downloadPdf(d: PdfDoc) {
     autoTable(doc, {
       startY: y,
       margin: { left: M, right: M },
-      head: isPairs ? undefined : [s.head.map(clean)],
+      ...(isPairs ? {} : { head: [s.head.map(clean)] }),
       body: (isPairs ? s.rows : s.body).map((r) => r.map(clean)),
-      foot: !isPairs && s.foot ? [s.foot.map(clean)] : undefined,
+      ...(!isPairs && s.foot ? { foot: [s.foot.map(clean)] } : {}),
       theme: "plain",
       styles: { font: "helvetica", fontSize: 9, textColor: INK, cellPadding: { top: 6, bottom: 6, left: 8, right: 8 }, lineColor: LINE, lineWidth: { bottom: 0.5 } },
       headStyles: { fillColor: INK, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8, lineWidth: 0 },
       footStyles: { fillColor: SOFT, textColor: INK, fontStyle: "bold" },
-      alternateRowStyles: isPairs ? undefined : { fillColor: [252, 252, 251] },
+      ...(isPairs ? {} : { alternateRowStyles: { fillColor: [252, 252, 251] as [number, number, number] } }),
       columnStyles: colStyles,
       didParseCell: (c) => {
         if ((c.section === "head" || c.section === "foot") && align?.[c.column.index]) c.cell.styles.halign = align[c.column.index]!;

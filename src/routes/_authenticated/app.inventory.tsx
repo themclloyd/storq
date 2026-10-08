@@ -553,7 +553,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
   );
 }
 
-type ImportRow = { name: string; sku: string | null; cost: number; price: number; qty: number | null; active: boolean; existing: Product | null; error?: string };
+type ImportRow = { name: string; sku: string | null; cost: number; price: number; qty: number | null; active: boolean; existing: Product | null; error?: string | undefined };
 
 function readImport(text: string, products: Product[]): ImportRow[] {
   const rows = parseCsv(text);
