@@ -8,3 +8,4 @@
 - Shared data hooks live in `src/lib/` (pos.tsx context, products.ts, sales.ts), never exported from route files. Why: route modules are code-split.
 - Stock quantity changes must go through SQL paths that set a reason (`app.set_ctx`); a trigger on `store_stock` writes the immutable `stock_movements` ledger. Why: every unit of stock must be traceable.
 - Refunds live in `refunds`/`refund_items` (never negative payments) and reports subtract them; cash drawer expected cash is computed server-side by `app.shift_summary`. Why: one consistent source for revenue and till variance.
+- Documents (receipts, invoices, reports) are generated client-side as real PDFs via the shared builder in `src/lib/pdf.ts` (jsPDF, lazy-loaded); CSV import/export helpers live there too. Why: one consistent branded document style and no print-screen/HTML-popup output.

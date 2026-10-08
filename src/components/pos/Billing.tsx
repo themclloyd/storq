@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { downloadPdf } from "@/lib/pdf";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowUpRight01Icon,
@@ -611,24 +612,18 @@ type Inv = {
 
 function printInvoice(r: Inv, biz: string) {
   const c = r.currency as "MWK" | "USD";
-  const d = new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
-    dateStyle: "long",
-  });
-  const esc = (t: string) =>
-    t.replace(
-      /[&<>"]/g,
-      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] ?? ch,
-    );
-  const w = window.open("", "_blank");
-  if (!w) {
-    toast.error("Allow pop-ups to download the invoice.");
-    return;
-  }
-  w.document
-    .write(`<!doctype html><html><head><title>Invoice ${esc(r.tx_ref)}</title><style>body{font-family:Inter,system-ui,sans-serif;max-width:720px;margin:40px auto;color:#111;padding:0 24px}h1{margin:0;font-size:28px}.m{color:#666;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:32px}td,th{padding:12px 0;border-bottom:1px solid #eee;text-align:left}.r{text-align:right}.t{font-weight:700;font-size:18px}.paid{display:inline-block;background:#e7f6ec;color:#147a3d;padding:4px 10px;border-radius:99px;font-weight:600;font-size:12px}</style></head><body>
-<div style="display:flex;justify-content:space-between;align-items:start"><div><h1>Storq</h1><div class="m">Subscription invoice</div></div><span class="paid">PAID</span></div>
-<div style="display:flex;justify-content:space-between;margin-top:32px"><div><div class="m">Billed to</div><b>${esc(biz)}</b></div><div class="r"><div class="m">Invoice</div><b>${esc(r.tx_ref)}</b><div class="m">${d}</div></div></div>
-<table><tr><th>Description</th><th class="r">Amount</th></tr><tr><td>Storq ${esc(r.period)} plan · ${r.stores} store${r.stores > 1 ? "s" : ""}</td><td class="r">${fmt(c, Number(r.amount))}</td></tr><tr><td class="t">Total paid</td><td class="r t">${fmt(c, Number(r.amount))}</td></tr></table>
-<p class="m" style="margin-top:32px">Paid via PayChangu. Thank you for using Storq.</p><script>onload=()=>print()</script></body></html>`);
-  w.document.close();
+  const d = new Date(r.paid_at ?? r.created_at).toLocaleDateString("en-ZA", { dateStyle: "long" });
+  const amt = fmt(c, Number(r.amount));
+  void downloadPdf({
+    filename: `storq-invoice-${r.tx_ref}`,
+    title: "Subscription invoice",
+    business: "Storq",
+    subtitle: `Invoice ${r.tx_ref}`,
+    badge: r.status === "paid" ? "PAID" : r.status.toUpperCase(),
+    meta: [["Billed to", biz || "—"], ["Invoice date", d], ["Plan", `${r.period} · ${r.stores} store${r.stores > 1 ? "s" : ""}`], ["Currency", c]],
+    sections: [{ type: "table", head: ["Description", "Stores", "Amount"], align: ["left", "right", "right"],
+      body: [[`Storq POS ${r.period} subscription${r.period === "yearly" ? " (15% yearly discount applied)" : ""}`, r.stores, amt]] }],
+    totals: [["Subtotal", amt], ["Total paid", amt]],
+    footerNote: "Paid via PayChangu. Thank you for using Storq.",
+  }).catch(() => toast.error("Could not create the invoice PDF."));
 }

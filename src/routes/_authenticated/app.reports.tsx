@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { downloadPdf, fileStamp } from "@/lib/pdf";
 import { COUNTED, useRefunds } from "@/lib/refunds";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/app/reports")({
 const DONE = COUNTED;
 
 function Reports() {
-  const { store, stores, money, can } = usePos();
+  const { store, stores, money, can, business } = usePos();
   const [range, setRange] = useState<keyof typeof rangeDays>("30 days");
   const [all, setAll] = useState(false);
   const since = useMemo(() => sinceFor(range), [range]);
@@ -167,6 +168,21 @@ function Reports() {
               {k}
             </Button>
           ))}
+          <Button size="sm" variant="outline" disabled={loading} onClick={() => void downloadPdf({
+            filename: `storq-business-report-${fileStamp()}`, title: "Business report", business: business?.name,
+            subtitle: `${all ? "All stores" : store?.name ?? ""} · last ${range}`, badge: "P&L",
+            kpis: [["Net sales", money(r.revenue)], ["Gross profit", money(r.gross)], ["Expenses", money(r.expTotal)], ["Net profit", money(r.net)]],
+            sections: [
+              { type: "pairs", heading: "Profit & loss", rows: [["Net sales (after refunds)", money(r.revenue)], ["Refunds", `-${money(r.refunds)}`], ["Buying cost of items sold", `-${money(r.cogs)}`], ["Gross profit", money(r.gross)], ["Gross margin", `${r.margin.toFixed(1)}%`], ["Operating expenses", `-${money(r.expTotal)}`], ["Net profit", money(r.net)]] },
+              { type: "pairs", heading: "Tax summary (VAT)", rows: [["Sales incl. tax", money(r.revenue)], ["VAT collected", money(r.tax)], ["Sales excl. tax", money(r.revenue - r.tax)]] },
+              { type: "pairs", heading: "Till cash check", rows: [["Cash taken from sales", money(r.cashIn)], ["Cash paid out (expenses)", `-${money(r.tillOut)}`], ["Expected cash in till", money(r.cashIn - r.tillOut)]] },
+              { type: "table", heading: "Sales by payment method", head: ["Method", "Amount"], align: ["left", "right"], body: Object.entries(r.byMethod).map(([m, v]) => [m, money(v)]) },
+              { type: "table", heading: "Expenses by category", head: ["Category", "Amount"], align: ["left", "right"], body: Object.entries(r.exByCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => [c, money(v)]) },
+              { type: "table", heading: "Item performance", head: ["Item", "Qty", "Sales", "Profit", "Margin"], align: ["left", "right", "right", "right", "right"], body: r.items.map((i) => [i.name, i.qty, money(i.revenue), money(i.profit), i.revenue ? `${((i.profit / i.revenue) * 100).toFixed(1)}%` : "-"]) },
+              { type: "table", heading: "Staff performance", head: ["Staff", "Sales", "Revenue"], align: ["left", "right", "right"], body: Object.entries(r.byStaff).map(([id, v]) => [names.data?.[id] ?? "Unknown", v.sales, money(v.revenue)]) },
+              ...(all ? [{ type: "table" as const, heading: "Stores", head: ["Store", "Sales", "Profit", "Expenses", "Net"], align: ["left", "right", "right", "right", "right"] as ("left" | "right")[], body: Object.entries(r.byStore).map(([id, v]) => [stores.find((x) => x.id === id)?.name ?? "", money(v.revenue), money(v.profit), money(v.expenses), money(v.profit - v.expenses)]) }] : []),
+            ],
+          })}>Download PDF</Button>
           {stores.length > 1 && (
             <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
               All stores

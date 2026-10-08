@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
+import { downloadPdf } from "@/lib/pdf";
 import { useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -203,10 +204,20 @@ function ZReport({ s, names, onClose }: { s: Shift; names: Record<string, string
           {s.notes && <p className="text-muted-foreground">Notes: {s.notes}</p>}
         </div>
         <Button variant="outline" onClick={() => {
-          const w = window.open("", "_blank", "width=420,height=700"); if (!w) return;
-          w.document.write(`<html><head><title>Shift report</title><style>body{font-family:sans-serif;font-size:13px;padding:16px}div{margin:2px 0}.flex{display:flex;justify-content:space-between}</style></head><body>${document.getElementById("zreport")?.innerHTML ?? ""}</body></html>`);
-          w.document.close(); w.print();
-        }}>Print report</Button>
+          const v = Number(s.variance);
+          void downloadPdf({
+            filename: `storq-shift-${(s.closed_at ?? s.opened_at).slice(0, 10)}`, title: "End of shift report", business: business?.name,
+            subtitle: stores.find((x) => x.id === s.store_id)?.name, badge: Math.abs(v) < 0.01 ? "BALANCED" : v > 0 ? "OVER" : "SHORT",
+            meta: [["Opened", `${fmtDate(s.opened_at)} · ${names[s.opened_by ?? ""] ?? ""}`], ["Closed", s.closed_at ? `${fmtDate(s.closed_at)} · ${names[s.closed_by ?? ""] ?? ""}` : "Open"]],
+            kpis: [["Expected cash", money(s.expected_cash ?? sm?.expected_cash ?? 0)], ["Counted", money(s.counted_cash)], ["Difference", money(v)]],
+            sections: [
+              ...(sm ? [{ type: "pairs" as const, heading: "Cash drawer", rows: [["Starting float", money(sm.opening_float)], ["Cash sales & layby payments", money(sm.cash_sales)], ["Cash refunds", `-${money(sm.cash_refunds)}`], ["Cash in", money(sm.cash_in)], ["Cash out", `-${money(sm.cash_out)}`], ["Expenses paid from till", `-${money(sm.till_expenses)}`], ["Expected cash", money(sm.expected_cash)]] as [string, string][] },
+                { type: "pairs" as const, heading: `Takings by method · ${sm.transactions} sales`, rows: Object.entries(sm.by_method ?? {}).map(([m, x]) => [m, money(x)] as [string, string]) }] : []),
+              ...(s.notes ? [{ type: "text" as const, heading: "Notes", text: s.notes }] : []),
+            ],
+            footerNote: "Counted by: ____________________      Checked by: ____________________",
+          });
+        }}>Download PDF</Button>
       </DialogContent>
     </Dialog>
   );
