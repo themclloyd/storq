@@ -6,32 +6,66 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos, type Store } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, PageHeader, StoreTypeTag } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/lib/billing";
 
 export const Route = createFileRoute("/_authenticated/app/stores")({ head: () => ({ meta: [{ title: "Locations — Storq" }, { name: "description", content: "Manage your Storq locations and tax settings." }, { property: "og:title", content: "Locations — Storq" }, { property: "og:description", content: "Manage your Storq locations and tax settings." }, { name: "robots", content: "noindex, nofollow" }] }), component: Stores });
 
+const storeTypeStyle: Record<string, string> = {
+  approval: "bg-warning/25 text-warning-foreground",
+  direct: "bg-success/15 text-success",
+};
+
+function StoreTypeTag({ type }: { type: string }) {
+  return (
+    <Badge
+      className={cn(
+        "rounded-full border-transparent px-2 py-0.5 text-[11px] uppercase tracking-wide",
+        storeTypeStyle[type] ?? "bg-success/15 text-success",
+      )}
+    >
+      {type === "approval" ? "Approval" : "Direct sale"}
+    </Badge>
+  );
+}
+
 function Stores() {
   const { stores, can, business } = usePos();
   const subscription = useSubscription(business?.id, stores.length);
   const [edit, setEdit] = useState<Partial<Store> | null>(null);
-  if (!can("admin")) return <Empty>Only admins can manage locations.</Empty>;
+  if (!can("admin"))
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+        Only admins can manage locations.
+      </Card>
+    );
   return (
     <>
-      <PageHeader title="Locations" actions={<Button variant="accent" disabled={!subscription.data?.canAddStore} onClick={() => setEdit({ store_type: "direct" })}><HugeiconsIcon icon={PlusSignIcon} /> Add location</Button>} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Locations</h1>
+        <Button
+          variant="accent"
+          disabled={!subscription.data?.canAddStore}
+          onClick={() => setEdit({ store_type: "direct" })}
+        >
+          <HugeiconsIcon icon={PlusSignIcon} /> Add location
+        </Button>
+      </div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3 text-[13px]">
         <p className="text-muted-foreground">{subscription.data?.trial ? "Free trial" : `${stores.length} locations · ${subscription.data?.capacity ?? 0} paid location slots`}</p>
         {!subscription.data?.canAddStore && <Link to="/app/billing" className="font-medium underline">Pay for more locations</Link>}
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {stores.map((s) => (
-          <div key={s.id} className="pos-card flex min-w-0 items-center justify-between gap-3 p-3">
+          <Card key={s.id} className="flex min-w-0 items-center justify-between gap-3 p-3 shadow-none">
             <div className="min-w-0"><div className="truncate font-bold">{s.name}</div><div className="mt-1"><StoreTypeTag type={s.store_type} /></div></div>
             <Button size="sm" variant="outline" onClick={() => setEdit(s)}>Edit</Button>
-          </div>
+          </Card>
         ))}
       </div>
       <TaxSettings />
@@ -58,12 +92,16 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>{s.id ? "Edit location" : "Add location"}</DialogTitle></DialogHeader>
-        <Field label="Location name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Location name</span>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </Label>
         <div className="space-y-2">
           {types.map((t) => (
-            <button key={t.v} onClick={() => setType(t.v)} className={cn("w-full rounded-lg border p-3 text-left", type === t.v ? "border-accent bg-accent/10" : "bg-card")}>
-              <div className="text-sm font-semibold">{t.t}</div><div className="text-xs text-muted-foreground">{t.d}</div>
-            </button>
+            <Button key={t.v} type="button" variant={type === t.v ? "secondary" : "outline"} onClick={() => setType(t.v)} className="block h-auto w-full rounded-lg whitespace-normal p-3 text-left shadow-none">
+              <span className="block text-sm font-semibold">{t.t}</span>
+              <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{t.d}</span>
+            </Button>
           ))}
         </div>
         <Button disabled={!name} onClick={save}>Save location</Button>
@@ -82,17 +120,21 @@ function TaxSettings() {
     catch (e) { toast.error((e as Error).message); }
   }
   return (
-    <div className="pos-card mt-5 max-w-xl space-y-3 p-4">
+    <Card className="mt-5 max-w-xl space-y-3 p-4 shadow-none">
       <div><h3 className="text-sm font-bold">VAT / sales tax</h3><p className="text-[13px] text-muted-foreground">Applies to all locations. Set 0 if you are not VAT registered. Past sales keep the tax they were sold with.</p></div>
-      <Field label="Tax rate (%)"><Input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></Field>
+      <Label className="block space-y-1">
+        <span className="text-[11px] font-medium text-muted-foreground">Tax rate (%)</span>
+        <Input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} />
+      </Label>
       <div className="grid grid-cols-2 gap-2">
-        {[[true, "Prices include VAT", "Shelf price is what the customer pays."], [false, "Add VAT at till", "VAT is added on top of the shelf price."]].map(([v, t, d]) => (
-          <button key={String(v)} onClick={() => setIncl(v as boolean)} className={cn("rounded-lg border p-3 text-left", incl === v ? "border-accent bg-accent/10" : "bg-card")}>
-            <div className="text-sm font-semibold">{t as string}</div><div className="text-xs text-muted-foreground">{d as string}</div>
-          </button>
+        {([[true, "Prices include VAT", "Shelf price is what the customer pays."], [false, "Add VAT at till", "VAT is added on top of the shelf price."]] as const).map(([v, t, d]) => (
+          <Button key={String(v)} type="button" variant={incl === v ? "secondary" : "outline"} onClick={() => setIncl(v as boolean)} className="h-auto rounded-lg whitespace-normal p-3 text-left shadow-none">
+            <span className="block text-sm font-semibold">{t}</span>
+            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{d}</span>
+          </Button>
         ))}
       </div>
       <Button onClick={save}>Save tax settings</Button>
-    </div>
+    </Card>
   );
 }

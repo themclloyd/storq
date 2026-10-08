@@ -2,9 +2,20 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Field } from "@/components/pos/bits";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -57,27 +68,77 @@ function AuthPage() {
         Storq
       </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-16">
-        <div className="mb-8 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Badge
+          variant="secondary"
+          className="mb-8 w-fit gap-2 rounded-full border-0 bg-accent/10 px-3 py-1 text-xs font-medium text-accent shadow-none"
+        >
           <span className="size-1.5 rounded-full bg-accent" /> Business account
-        </div>
+        </Badge>
         {sent ? (
-          <div>
-            <h1 className="text-xl font-bold">Check your email</h1>
-            <p className="mt-2 text-sm text-muted-foreground">We sent a confirmation link to {email}. Open it on this device to continue.</p>
-          </div>
+          <Alert>
+            <AlertTitle>Check your email</AlertTitle>
+            <AlertDescription>
+              We sent a confirmation link to {email}. Open it on this device to continue.
+            </AlertDescription>
+          </Alert>
         ) : (
-          <form onSubmit={submit} className="space-y-6">
-            <div className="pb-4">
-              <h1 className="text-3xl font-semibold">{mode === "in" ? "Welcome back." : "Create your account."}</h1>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">One account for your business. Your staff PIN comes next.</p>
-            </div>
-            <Field label="Business email"><Input className="h-12 bg-card" autoComplete="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-            <Field label="Password"><Input className="h-12 bg-card" autoComplete={mode === "in" ? "current-password" : "new-password"} type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-            <Button className="h-12 w-full" size="lg" disabled={busy}>{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</Button>
-            <Button variant="link" type="button" className="h-auto w-full whitespace-normal text-sm font-medium text-muted-foreground" onClick={() => setMode(mode === "in" ? "up" : "in")}>
-              {mode === "in" ? "New business? Create an account" : "Already have an account? Sign in"}
-            </Button>
-          </form>
+          <Card className="gap-0 shadow-card">
+            <CardHeader className="gap-2">
+              <CardTitle className="text-3xl font-semibold">
+                {mode === "in" ? "Welcome back." : "Create your account."}
+              </CardTitle>
+              <CardDescription className="text-sm leading-6">
+                One account for your business. Your staff PIN comes next.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="business-email" className="text-xs font-medium text-muted-foreground">
+                    Business email
+                  </Label>
+                  <Input
+                    id="business-email"
+                    className="h-12"
+                    autoComplete="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-xs font-medium text-muted-foreground">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    className="h-12"
+                    autoComplete={mode === "in" ? "current-password" : "new-password"}
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button className="h-12 w-full" size="lg" disabled={busy}>
+                  {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
+                </Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex-col items-stretch gap-4">
+              <Separator />
+              <Button
+                variant="link"
+                type="button"
+                className="h-auto w-full whitespace-normal text-sm font-medium text-muted-foreground"
+                onClick={() => setMode(mode === "in" ? "up" : "in")}
+              >
+                {mode === "in" ? "New business? Create an account" : "Already have an account? Sign in"}
+              </Button>
+            </CardFooter>
+          </Card>
         )}
       </div>
       <div className="text-xs text-muted-foreground">Storq · Business workspace</div>

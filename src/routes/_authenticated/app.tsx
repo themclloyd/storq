@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon } from "lucide-react";
 import {
   DashboardSquare01Icon,
   BoxesIcon,
@@ -27,6 +28,29 @@ import { useSubscription } from "@/lib/billing";
 import { Billing } from "@/components/pos/Billing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -310,81 +334,119 @@ function Shell() {
   }, [store?.id, unavailableApproval, navigate]);
 
   return (
-    <div className="storq-workspace flex min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-52 flex-col border-r bg-rail md:flex">
-        <div className="flex items-center gap-2 px-4 py-4 text-lg font-semibold">
-          <img src="/logo.svg" alt="Storq logo" className="size-7 rounded-lg" />
-          Storq
-        </div>
-        <div className="px-4">
-          <NativeSelect
-            value={store?.id ?? ""}
-            disabled={lockedToStore}
-            onChange={setStoreId}
-            options={stores.map((s) => ({ value: s.id, label: s.name }))}
-          />
-          {store && (
-            <div className="mt-2 px-1">
-              <StoreTypeTag type={store.store_type} />
-            </div>
-          )}
-        </div>
-        <nav className="mt-3 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
-          {items.map((n) => {
-            const active = current?.group === n.group;
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
-                  active
-                    ? "bg-accent/10 text-accent"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <HugeiconsIcon icon={navIcons[n.group]} className="size-4" /> {n.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t p-2">
-          <div className="px-2 pb-1.5">
-            <div className="text-[13px] font-bold">{staff?.name}</div>
-            <div className="text-[11px] text-muted-foreground">
-              {staff && roleLabel[staff.role]}
+    <SidebarProvider className="storq-workspace bg-background">
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <div className="flex items-center gap-2 px-1 py-1.5 text-lg font-semibold">
+            <img src="/logo.svg" alt="Storq logo" className="size-7 rounded-lg" />
+            <span className="group-data-[collapsible=icon]:hidden">Storq</span>
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild disabled={lockedToStore}>
+                  <SidebarMenuButton>
+                    <span className="grid size-5 shrink-0 place-items-center rounded bg-primary/10 text-[10px] font-bold text-primary">
+                      {store?.name.slice(0, 2).toUpperCase() ?? "S"}
+                    </span>
+                    <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
+                      {store?.name ?? "Select store"}
+                    </span>
+                    <ChevronDownIcon className="ml-auto group-data-[collapsible=icon]:hidden" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-56">
+                  <DropdownMenuLabel>Stores</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {stores.map((s) => (
+                    <DropdownMenuItem key={s.id} onSelect={() => setStoreId(s.id)}>
+                      <span className="truncate">{s.name}</span>
+                      <span className="ml-auto shrink-0">
+                        <StoreTypeTag type={s.store_type} />
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((n) => {
+                  const active = current?.group === n.group;
+                  return (
+                    <SidebarMenuItem key={n.to}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={n.label}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        <Link to={n.to}>
+                          <HugeiconsIcon icon={navIcons[n.group]} />
+                          <span>{n.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="flex items-center gap-2 px-1 group-data-[collapsible=icon]:hidden">
+            <Avatar className="size-8 border">
+              <AvatarFallback className="text-xs">
+                {staff?.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid min-w-0 flex-1 text-left">
+              <span className="truncate text-[13px] font-bold">{staff?.name}</span>
+              <span className="truncate text-[11px] text-muted-foreground">
+                {staff && roleLabel[staff.role]}
+              </span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={lock}>
-            <HugeiconsIcon icon={SquareLockIcon} /> Lock
-          </Button>
-        </div>
-      </aside>
+          <SidebarMenuButton onClick={lock} tooltip="Lock workspace">
+            <HugeiconsIcon icon={SquareLockIcon} />
+            <span>Lock</span>
+          </SidebarMenuButton>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
 
-      <div className="flex min-w-0 flex-1 flex-col md:pl-52">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="hidden h-12 items-center justify-between border-b px-5 text-[13px] md:flex lg:px-6">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                {groupNav ? (
-                  <BreadcrumbLink asChild>
-                    <Link to={groupNav.to}>{groupNav.label}</Link>
-                  </BreadcrumbLink>
-                ) : (
-                  <BreadcrumbPage>Workspace</BreadcrumbPage>
-                )}
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{current?.label ?? "Storq"}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <div className="flex items-center gap-2">
+            <SidebarTrigger />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  {groupNav ? (
+                    <BreadcrumbLink asChild>
+                      <Link to={groupNav.to}>{groupNav.label}</Link>
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>Workspace</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{current?.label ?? "Storq"}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="grid size-8 place-items-center rounded-full bg-secondary text-xs font-semibold">
-              {staff?.name.slice(0, 2).toUpperCase()}
-            </span>
+            <Avatar className="size-8">
+              <AvatarFallback className="text-xs">
+                {staff?.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <span className="text-sm text-muted-foreground">{staff?.name}</span>
             <Button
               size="icon"
@@ -435,6 +497,6 @@ function Shell() {
           })}
         </nav>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

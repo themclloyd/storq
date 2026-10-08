@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, PageHeader } from "@/components/pos/bits";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { COUNTED, useRefunds } from "@/lib/refunds";
 
@@ -137,40 +138,49 @@ function Reports() {
     };
   }, [sales.data, expenses.data, refundsQ.data]);
 
-  if (!can("admin", "manager")) return <Empty>Only admins and managers can view reports.</Empty>;
+  if (!can("admin", "manager"))
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+        Only admins and managers can view reports.
+      </Card>
+    );
   const loading = sales.isLoading || expenses.isLoading || refundsQ.isLoading;
 
   return (
     <>
-      <PageHeader
-        title="Business report"
-        sub={all ? "All stores" : (store?.name ?? "")}
-        actions={
-          <>
-            {(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((k) => (
-              <Button
-                key={k}
-                size="sm"
-                variant={range === k ? "default" : "outline"}
-                onClick={() => setRange(k)}
-                className="capitalize"
-              >
-                {k}
-              </Button>
-            ))}
-            {stores.length > 1 && (
-              <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
-                All stores
-              </Button>
-            )}
-          </>
-        }
-      />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Business report</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {all ? "All stores" : (store?.name ?? "")}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((k) => (
+            <Button
+              key={k}
+              size="sm"
+              variant={range === k ? "default" : "outline"}
+              onClick={() => setRange(k)}
+              className="capitalize"
+            >
+              {k}
+            </Button>
+          ))}
+          {stores.length > 1 && (
+            <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
+              All stores
+            </Button>
+          )}
+        </div>
+      </div>
       {loading ? (
-        <Empty>Loading report…</Empty>
+        <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+          Loading report…
+        </Card>
       ) : (
         <div className="space-y-4">
-          <div className="pos-card overflow-hidden">
+          <Card className="overflow-hidden shadow-none">
             <div className="grid divide-y sm:grid-cols-5 sm:divide-x sm:divide-y-0">
               <Stat
                 k="Net sales"
@@ -192,20 +202,20 @@ function Reports() {
                 tone={r.net >= 0 ? "pos" : "neg"}
               />
             </div>
-          </div>
+          </Card>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <Card title="Till cash check">
+            <Panel title="Till cash check">
               <Row k="Cash taken from sales" v={money(r.cashIn)} />
               <Row k="Cash paid out (expenses)" v={`− ${money(r.tillOut)}`} />
               <Row k="Expected cash in till" v={money(r.cashIn - r.tillOut)} bold />
-            </Card>
-            <Card title="Tax summary (VAT)">
+            </Panel>
+            <Panel title="Tax summary (VAT)">
               <Row k="Sales incl. tax" v={money(r.revenue)} />
               <Row k="VAT collected" v={money(r.tax)} />
               <Row k="Sales excl. tax" v={money(r.revenue - r.tax)} bold />
-            </Card>
-            <Card title="Sales by payment method">
+            </Panel>
+            <Panel title="Sales by payment method">
               {Object.keys(r.byMethod).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No sales.</p>
               ) : (
@@ -213,8 +223,8 @@ function Reports() {
                   <Row key={m} k={<span className="capitalize">{m}</span>} v={money(v)} />
                 ))
               )}
-            </Card>
-            <Card title="Expenses by category">
+            </Panel>
+            <Panel title="Expenses by category">
               {Object.keys(r.exByCat).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No expenses.</p>
               ) : (
@@ -224,11 +234,11 @@ function Reports() {
                     <Bar key={c} label={c} value={v} max={r.expTotal} text={money(v)} />
                   ))
               )}
-            </Card>
+            </Panel>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <Card title="Most profitable items">
+            <Panel title="Most profitable items">
               {r.items.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No items sold.</p>
               ) : (
@@ -267,9 +277,9 @@ function Reports() {
                   </TableBody>
                 </Table>
               )}
-            </Card>
+            </Panel>
             <div className="space-y-3">
-              <Card title="Staff performance">
+              <Panel title="Staff performance">
                 {Object.keys(r.byStaff).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No sales.</p>
                 ) : (
@@ -283,9 +293,9 @@ function Reports() {
                       />
                     ))
                 )}
-              </Card>
+              </Panel>
               {r.lowMargin.length > 0 && (
-                <Card title="Low margin warning (under 10%)">
+                <Panel title="Low margin warning (under 10%)">
                   {r.lowMargin.map((i) => (
                     <Row
                       key={i.name}
@@ -296,13 +306,13 @@ function Reports() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     Check the selling and buying prices of these items in Inventory.
                   </p>
-                </Card>
+                </Panel>
               )}
             </div>
           </div>
 
           {all && stores.length > 1 && (
-            <Card title="By store">
+            <Panel title="By store">
               <Table className="text-[13px]">
                 <TableHeader>
                   <TableRow>
@@ -344,7 +354,7 @@ function Reports() {
                   })}
                 </TableBody>
               </Table>
-            </Card>
+            </Panel>
           )}
           <p className="text-xs text-muted-foreground">
             Profit uses the buying price set on each item at the time it was sold. Refunds are taken
@@ -389,12 +399,14 @@ function Stat({
     </div>
   );
 }
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="pos-card p-4">
-      <h3 className="mb-2 text-sm font-bold">{title}</h3>
-      <div className="space-y-1.5 text-[13px]">{children}</div>
-    </div>
+    <Card className="shadow-none">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-bold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-1.5 pt-0 text-[13px]">{children}</CardContent>
+    </Card>
   );
 }
 function Row({ k, v, bold }: { k: React.ReactNode; v: string; bold?: boolean }) {
@@ -424,12 +436,7 @@ function Bar({
         <span className="min-w-0 truncate">{label}</span>
         <span className="tabular shrink-0">{text}</span>
       </div>
-      <div className="mt-1 h-1.5 rounded-full bg-secondary">
-        <div
-          className="h-full rounded-full bg-primary"
-          style={{ width: `${max ? (value / max) * 100 : 0}%` }}
-        />
-      </div>
+      <Progress value={max ? (value / max) * 100 : 0} className="mt-1 h-1.5" />
     </div>
   );
 }

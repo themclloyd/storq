@@ -1,8 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, Tick01Icon, ArrowDown01Icon, SmartPhone01Icon, WifiOffIcon, ShieldCheckIcon, FlashIcon, StoreIcon, BoxesIcon, UserMultipleIcon, BarChartIcon } from "@hugeicons/core-free-icons";
-import { useState } from "react";
+import { ArrowRight01Icon, Tick01Icon, SmartPhone01Icon, WifiOffIcon, ShieldCheckIcon, FlashIcon, StoreIcon, BoxesIcon, UserMultipleIcon, BarChartIcon } from "@hugeicons/core-free-icons";
+import { cn } from "@/lib/utils";
 import { PRICES } from "@/lib/billing";
 import { buildSeo, absUrl, SITE_NAME } from "@/lib/seo";
 import heroShop from "@/assets/hero-shop.jpg";
@@ -88,7 +105,11 @@ function Cta({ label = "Start free", invert = false }: { label?: string; invert?
 }
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm font-semibold uppercase tracking-widest text-accent">{children}</p>;
+  return (
+    <Badge className="rounded-full border-0 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-accent shadow-none hover:bg-accent/10">
+      {children}
+    </Badge>
+  );
 }
 
 function Landing() {
@@ -137,11 +158,11 @@ function Landing() {
         <p className="mt-4 text-sm text-muted-foreground">No credit card. No hardware. Set up in 5 minutes.</p>
         <div className="relative mt-14 overflow-hidden rounded-3xl">
           <img src={heroShop} alt="Shop owner ringing up a sale on Storq" width={1600} height={1104} className="h-[460px] w-full object-cover md:h-[620px]" />
-          <div className="absolute bottom-5 left-5 rounded-2xl bg-card/95 p-5 text-left shadow-xl backdrop-blur md:bottom-8 md:left-8">
-            <p className="text-xs font-medium text-muted-foreground">Today · Rosebank store</p>
+          <Card className="absolute bottom-5 left-5 gap-0 rounded-2xl border-0 bg-card/95 p-5 text-left shadow-xl backdrop-blur md:bottom-8 md:left-8">
+            <CardDescription className="text-xs font-medium">Today · Rosebank store</CardDescription>
             <p className="mt-1 text-3xl font-light">MK 18 450</p>
             <p className="text-sm font-semibold text-success">▲ 24% vs last Wednesday</p>
-          </div>
+          </Card>
         </div>
       </section>
 
@@ -179,22 +200,26 @@ function Landing() {
             Powering shops of every size
           </h2>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl bg-card p-10 shadow-sm">
-              <HugeiconsIcon icon={StoreIcon} className="h-9 w-9 text-accent" />
-              <h3 className="mt-6 text-3xl font-light">Single store</h3>
-              <p className="mt-3 text-lg text-muted-foreground">
-                Sell at the counter with one login for the shop. Every staff member unlocks the till
-                with their own 4-digit PIN — so every kwacha is traceable to a person.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-card p-10 shadow-sm">
-              <HugeiconsIcon icon={BoxesIcon} className="h-9 w-9 text-accent" />
-              <h3 className="mt-6 text-3xl font-light">Multiple stores</h3>
-              <p className="mt-3 text-lg text-muted-foreground">
-                Run every branch from one account. Stock, sales and staff sync across all your
-                stores — see the whole business from your phone.
-              </p>
-            </div>
+            <Card className="gap-0 rounded-3xl border-0 p-10 shadow-sm">
+              <CardHeader className="gap-0 p-0">
+                <HugeiconsIcon icon={StoreIcon} className="h-9 w-9 text-accent" />
+                <CardTitle className="mt-6 text-3xl font-light">Single store</CardTitle>
+                <CardDescription className="mt-3 text-lg leading-7">
+                  Sell at the counter with one login for the shop. Every staff member unlocks the till
+                  with their own 4-digit PIN — so every kwacha is traceable to a person.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="gap-0 rounded-3xl border-0 p-10 shadow-sm">
+              <CardHeader className="gap-0 p-0">
+                <HugeiconsIcon icon={BoxesIcon} className="h-9 w-9 text-accent" />
+                <CardTitle className="mt-6 text-3xl font-light">Multiple stores</CardTitle>
+                <CardDescription className="mt-3 text-lg leading-7">
+                  Run every branch from one account. Stock, sales and staff sync across all your
+                  stores — see the whole business from your phone.
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </div>
         </div>
       </section>
@@ -230,16 +255,24 @@ function Landing() {
           </h2>
           <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Storq enforces it — no shortcuts, no leaks.</p>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
-              <HugeiconsIcon icon={FlashIcon} className="h-8 w-8" />
-              <h3 className="mt-6 text-3xl font-light">Direct sale</h3>
-              <p className="mt-3 opacity-70">Cashier rings it up, customer pays, stock drops. Perfect for busy counters and spazas.</p>
-            </div>
-            <div className="rounded-3xl bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10">
-              <HugeiconsIcon icon={ShieldCheckIcon} className="h-8 w-8" />
-              <h3 className="mt-6 text-3xl font-light">Approval-based</h3>
-              <p className="mt-3 opacity-70">Cashier creates an invoice, a manager approves it before stock moves. Built for wholesale and high-value goods.</p>
-            </div>
+            <Card className="gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10">
+              <CardHeader className="gap-0 p-0">
+                <HugeiconsIcon icon={FlashIcon} className="h-8 w-8" />
+                <CardTitle className="mt-6 text-3xl font-light">Direct sale</CardTitle>
+                <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
+                  Cashier rings it up, customer pays, stock drops. Perfect for busy counters and spazas.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10">
+              <CardHeader className="gap-0 p-0">
+                <HugeiconsIcon icon={ShieldCheckIcon} className="h-8 w-8" />
+                <CardTitle className="mt-6 text-3xl font-light">Approval-based</CardTitle>
+                <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
+                  Cashier creates an invoice, a manager approves it before stock moves. Built for wholesale and high-value goods.
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </div>
         </div>
       </section>
@@ -256,14 +289,18 @@ function Landing() {
             Run stock takes with your whole team on their phones. Storq shows what's missing, who counted it, and what it cost you.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4">
-            <div className="rounded-2xl bg-muted p-6">
-              <p className="text-3xl font-light">Live</p>
-              <p className="text-sm text-muted-foreground">stock across all stores</p>
-            </div>
-            <div className="rounded-2xl bg-muted p-6">
-              <p className="text-3xl font-light">Every</p>
-              <p className="text-sm text-muted-foreground">adjustment logged to a PIN</p>
-            </div>
+            <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 shadow-none">
+              <CardHeader className="gap-1 p-0">
+                <CardTitle className="text-3xl font-light">Live</CardTitle>
+                <CardDescription>stock across all stores</CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 shadow-none">
+              <CardHeader className="gap-1 p-0">
+                <CardTitle className="text-3xl font-light">Every</CardTitle>
+                <CardDescription>adjustment logged to a PIN</CardDescription>
+              </CardHeader>
+            </Card>
           </div>
         </div>
       </section>
@@ -279,22 +316,23 @@ function Landing() {
             </p>
             <div className="mt-8"><Cta label="Try layby free" /></div>
           </div>
-          <div className="rounded-3xl bg-card p-8 shadow-xl">
-            <div className="flex items-center justify-between">
+          <Card className="gap-0 rounded-3xl border-0 p-8 shadow-xl">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Layby #1042 · Thandi M.</p>
-                <p className="mt-1 text-2xl font-light">Couch set — MK 9 600</p>
+                <CardDescription>Layby #1042 · Thandi M.</CardDescription>
+                <CardTitle className="mt-1 text-2xl font-light">Couch set — MK 9 600</CardTitle>
               </div>
-              <span className="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">On track</span>
+              <Badge className="shrink-0 rounded-full border-0 bg-success/15 px-3 py-1 text-xs font-semibold text-success shadow-none hover:bg-success/15">
+                On track
+              </Badge>
             </div>
-            <div className="mt-6 h-3 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-[62%] rounded-full bg-accent" />
-            </div>
+            <Progress value={62} className="mt-6 h-3 bg-muted" />
             <div className="mt-3 flex justify-between text-sm">
               <span className="font-semibold">MK 5 950 paid</span>
               <span className="text-muted-foreground">MK 3 650 left</span>
             </div>
-            <div className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
+            <Separator className="mt-6" />
+            <div className="mt-6 space-y-3 text-sm">
               {[["12 Sep", "Deposit · Cash", "MK 2 000"], ["26 Sep", "Mobile money", "MK 1 950"], ["03 Oct", "Card", "MK 2 000"]].map(([d, m, a]) => (
                 <div key={d} className="flex justify-between">
                   <span className="text-muted-foreground">{d} · {m}</span>
@@ -302,7 +340,7 @@ function Landing() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       </section>
 
@@ -321,7 +359,8 @@ function Landing() {
           </div>
         </div>
         {/* Big stat callouts */}
-        <div className="mt-20 grid gap-10 border-t border-border pt-16 text-center sm:grid-cols-3">
+        <Separator className="mt-20" />
+        <div className="grid gap-10 pt-16 text-center sm:grid-cols-3">
           {[
             ["5 min", "to set up your first till"],
             ["MK0", "hardware to buy"],
@@ -417,16 +456,26 @@ function Landing() {
               { n: "Starter", p: `MK0`, s: "/store /month", f: ["1 store", "Up to 3 staff PINs", "Direct sale, layby, stock"], hi: false },
               { n: "Growth", p: `MK${PRICES.MWK.toLocaleString()}`, s: "/store /month", f: ["Unlimited stores", "Unlimited staff PINs", "Approval-based stores", "Team stock takes & reports"], hi: true },
             ].map((t) => (
-              <div key={t.n} className={`rounded-3xl p-10 ${t.hi ? "bg-primary text-primary-foreground" : "bg-card shadow-sm"}`}>
-                <p className="text-lg font-semibold">{t.n}</p>
-                <p className="mt-4 text-6xl font-light tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
-                <ul className="mt-8 space-y-3">
-                  {t.f.map((x) => (
-                    <li key={x} className="flex gap-3"><HugeiconsIcon icon={Tick01Icon} className="h-5 w-5 shrink-0" /> {x}</li>
-                  ))}
-                </ul>
-                <div className="mt-10"><Cta label={t.hi ? "Start 30-day trial" : "Start free"} invert={t.hi} /></div>
-              </div>
+              <Card
+                key={t.n}
+                className={cn(
+                  "gap-0 rounded-3xl border-0 p-10",
+                  t.hi ? "bg-primary text-primary-foreground shadow" : "shadow-sm",
+                )}
+              >
+                <CardHeader className="p-0">
+                  <CardTitle className="text-lg font-semibold">{t.n}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <p className="mt-4 text-6xl font-light tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
+                  <ul className="mt-8 space-y-3">
+                    {t.f.map((x) => (
+                      <li key={x} className="flex gap-3"><HugeiconsIcon icon={Tick01Icon} className="h-5 w-5 shrink-0" /> {x}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter className="mt-10 flex-col items-start gap-0 p-0"><Cta label={t.hi ? "Start 30-day trial" : "Start free"} invert={t.hi} /></CardFooter>
+              </Card>
             ))}
           </div>
         </div>
@@ -451,27 +500,17 @@ function Landing() {
 }
 
 function Faq() {
-  const items = [
-    ["Do I need to buy hardware?", "No. Storq runs in the browser on any phone, tablet or laptop you already own."],
-    ["How do staff log in?", "You sign each device in once with your business email. After that, every staff member unlocks it with their own 4-digit PIN, which sets what they can do."],
-    ["Can I run more than one shop?", "Yes. Add as many stores as you need and choose for each one whether it's direct sale or approval-based."],
-    ["Does it support mobile money?", "Yes — cash, card and mobile money are all recorded at checkout and on layby payments."],
-  ];
-  const [open, setOpen] = useState<number | null>(0);
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">
       <h2 className="text-3xl font-light tracking-tight md:text-4xl">Frequently asked questions</h2>
-      <div className="mt-8 divide-y divide-border border-y border-border">
-        {items.map(([q, a], i) => (
-          <button key={q} onClick={() => setOpen(open === i ? null : i)} className="block w-full py-6 text-left">
-            <div className="flex items-center justify-between text-lg font-semibold">
-              {q}
-              <HugeiconsIcon icon={ArrowDown01Icon} className={`h-5 w-5 transition-transform ${open === i ? "rotate-180" : ""}`} />
-            </div>
-            {open === i && <p className="mt-3 text-muted-foreground">{a}</p>}
-          </button>
+      <Accordion type="single" collapsible defaultValue="faq-0" className="mt-8">
+        {faqItems.map(([q, a], i) => (
+          <AccordionItem key={q} value={`faq-${i}`}>
+            <AccordionTrigger className="text-lg font-semibold hover:no-underline">{q}</AccordionTrigger>
+            <AccordionContent className="text-base leading-7 text-muted-foreground">{a}</AccordionContent>
+          </AccordionItem>
         ))}
-      </div>
+      </Accordion>
     </section>
   );
 }

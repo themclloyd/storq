@@ -8,9 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { roleLabel, usePos, type Role } from "@/lib/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Empty, Field, NativeSelect, PageHeader } from "@/components/pos/bits";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/app/staff")({
   head: () => ({
@@ -27,6 +35,12 @@ export const Route = createFileRoute("/_authenticated/app/staff")({
 
 type StaffRow = { id: string; name: string; role: Role; store_id: string | null; active: boolean };
 
+const roleOptions: { value: Role; label: string }[] = [
+  { value: "cashier", label: "Cashier" },
+  { value: "manager", label: "Manager / Approver" },
+  { value: "admin", label: "Admin" },
+];
+
 function Staff() {
   const { can, stores } = usePos();
   const [edit, setEdit] = useState<Partial<StaffRow> | null>(null);
@@ -41,37 +55,45 @@ function Staff() {
       return data as StaffRow[];
     },
   });
-  if (!can("admin")) return <Empty>Only admins can manage staff.</Empty>;
+  if (!can("admin"))
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+        Only admins can manage staff.
+      </Card>
+    );
   return (
     <>
-      <PageHeader
-        title="Staff"
-        sub="Each person unlocks this device with their own 4-digit PIN. Their PIN decides what they can do."
-        actions={
-          <Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}>
-            <HugeiconsIcon icon={PlusSignIcon} /> Add staff
-          </Button>
-        }
-      />
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Staff</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Each person unlocks this device with their own 4-digit PIN. Their PIN decides what they
+            can do.
+          </p>
+        </div>
+        <Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}>
+          <HugeiconsIcon icon={PlusSignIcon} /> Add staff
+        </Button>
+      </div>
       <div className="mb-4 grid gap-2 text-[13px] sm:grid-cols-3">
-        <div className="pos-card p-3">
+        <Card className="p-3 shadow-none">
           <b>Admin</b>
           <p className="text-muted-foreground">Everything: staff, stores, stock, approvals.</p>
-        </div>
-        <div className="pos-card p-3">
+        </Card>
+        <Card className="p-3 shadow-none">
           <b>Manager / Approver</b>
           <p className="text-muted-foreground">
             Sell, approve invoices, manage stock and stock takes.
           </p>
-        </div>
-        <div className="pos-card p-3">
+        </Card>
+        <Card className="p-3 shadow-none">
           <b>Cashier</b>
           <p className="text-muted-foreground">
             Sell, create invoices, take layby payments, count stock.
           </p>
-        </div>
+        </Card>
       </div>
-      <div className="pos-card divide-y">
+      <Card className="divide-y p-0 shadow-none">
         {staff.data?.map((s) => (
           <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold">
@@ -91,7 +113,7 @@ function Staff() {
             </Button>
           </div>
         ))}
-      </div>
+      </Card>
       {edit && <StaffDialog s={edit} onClose={() => setEdit(null)} />}
     </>
   );
@@ -130,48 +152,62 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
         <DialogHeader>
           <DialogTitle>{s.id ? "Edit staff" : "Add staff"}</DialogTitle>
         </DialogHeader>
-        <Field label="Name">
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Name</span>
           <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        </Field>
+        </Label>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Role">
-            <NativeSelect
-              value={f.role}
-              onChange={(v) => setF({ ...f, role: v as Role })}
-              options={[
-                { value: "cashier", label: "Cashier" },
-                { value: "manager", label: "Manager / Approver" },
-                { value: "admin", label: "Admin" },
-              ]}
-            />
-          </Field>
-          <Field label="Store">
-            <NativeSelect
-              value={f.store}
-              onChange={(v) => setF({ ...f, store: v })}
-              options={[
-                { value: "all", label: "All stores" },
-                ...stores.map((x) => ({ value: x.id, label: x.name })),
-              ]}
-            />
-          </Field>
+          <Label className="block space-y-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Role</span>
+            <Select value={f.role} onValueChange={(v) => setF({ ...f, role: v as Role })}>
+              <SelectTrigger className="h-9 bg-card text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {roleOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <Label className="block space-y-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Store</span>
+            <Select value={f.store} onValueChange={(v) => setF({ ...f, store: v })}>
+              <SelectTrigger className="h-9 bg-card text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All stores</SelectItem>
+                {stores.map((x) => (
+                  <SelectItem key={x.id} value={x.id}>
+                    {x.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
         </div>
-        <Field label={s.id ? "New PIN (leave blank to keep)" : "4-digit PIN"}>
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">
+            {s.id ? "New PIN (leave blank to keep)" : "4-digit PIN"}
+          </span>
           <Input
             inputMode="numeric"
             maxLength={4}
             value={f.pin}
             onChange={(e) => setF({ ...f, pin: e.target.value.replace(/\D/g, "") })}
           />
-        </Field>
+        </Label>
         {s.id && (
-          <label className="flex items-center gap-2 text-sm">
+          <Label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={f.active}
               onCheckedChange={(v) => setF({ ...f, active: v === true })}
-            />{" "}
+            />
             Active
-          </label>
+          </Label>
         )}
         <Button
           disabled={

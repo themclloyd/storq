@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -31,10 +33,10 @@ export function PageHeader({
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block space-y-1">
+    <Label className="block space-y-1">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
       {children}
-    </label>
+    </Label>
   );
 }
 
@@ -102,7 +104,9 @@ export function Status({ s }: { s: string }) {
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="pos-card p-6 text-center text-sm text-muted-foreground">{children}</div>;
+  return (
+    <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">{children}</Card>
+  );
 }
 
 export function StoreTypeTag({ type }: { type: string }) {

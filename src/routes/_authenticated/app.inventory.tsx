@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffNames } from "@/lib/sales";
-import { NativeSelect, fmtDate } from "@/components/pos/bits";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
@@ -11,9 +10,18 @@ import { usePos } from "@/lib/pos";
 import { useProducts, useStock, type Product } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, PageHeader } from "@/components/pos/bits";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Table,
   TableBody,
@@ -38,6 +46,14 @@ export const Route = createFileRoute("/_authenticated/app/inventory")({
   component: Inventory,
 });
 
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleString("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
 function Inventory() {
   const { store, money, can } = usePos();
   const products = useProducts();
@@ -52,7 +68,11 @@ function Inventory() {
   const [adj, setAdj] = useState<Product | null>(null);
   const [q, setQ] = useState("");
   if (!can("admin", "manager"))
-    return <Empty>Only admins and managers can manage inventory.</Empty>;
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+        Only admins and managers can manage inventory.
+      </Card>
+    );
   const rows = (products.data ?? []).filter(
     (p) => !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku?.includes(q),
   );
@@ -60,15 +80,19 @@ function Inventory() {
 
   return (
     <>
-      <PageHeader
-        title="Inventory"
-        sub={`${store?.name} · stock value at cost ${money(value)}`}
-        actions={
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Inventory</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {`${store?.name} · stock value at cost ${money(value)}`}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
           <Button variant="accent" onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
             <HugeiconsIcon icon={PlusSignIcon} /> New item
           </Button>
-        }
-      />
+        </div>
+      </div>
       <Input
         className="mb-3 max-w-xs bg-card"
         placeholder="Search"
@@ -76,9 +100,11 @@ function Inventory() {
         onChange={(e) => setQ(e.target.value)}
       />
       {rows.length === 0 ? (
-        <Empty>No items yet.</Empty>
+        <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+          No items yet.
+        </Card>
       ) : (
-        <div className="pos-card">
+        <Card className="shadow-none">
           <Table className="text-[13px]">
             <TableHeader>
               <TableRow>
@@ -136,7 +162,7 @@ function Inventory() {
               })}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
       {edit && (
         <ProductDialog
@@ -210,45 +236,49 @@ function ProductDialog({
         <DialogHeader>
           <DialogTitle>{p.id ? "Edit item" : "New item"}</DialogTitle>
         </DialogHeader>
-        <Field label="Name">
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Name</span>
           <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        </Field>
+        </Label>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="SKU / barcode">
+          <Label className="block space-y-1">
+            <span className="text-[11px] font-medium text-muted-foreground">SKU / barcode</span>
             <Input value={f.sku} onChange={(e) => setF({ ...f, sku: e.target.value })} />
-          </Field>
-          <Field label="Cost price">
+          </Label>
+          <Label className="block space-y-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Cost price</span>
             <Input
               inputMode="decimal"
               value={f.cost}
               onChange={(e) => setF({ ...f, cost: e.target.value })}
             />
-          </Field>
-          <Field label="Selling price">
+          </Label>
+          <Label className="block space-y-1">
+            <span className="text-[11px] font-medium text-muted-foreground">Selling price</span>
             <Input
               inputMode="decimal"
               value={f.price}
               onChange={(e) => setF({ ...f, price: e.target.value })}
             />
-          </Field>
+          </Label>
         </div>
-        <Field label="Collections">
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Collections</span>
           <div className="flex flex-wrap gap-1.5">
             {(cols.data?.list ?? []).map((c) => {
               const on = chosen.includes(c.id);
               return (
-                <button
+                <Button
                   type="button"
                   key={c.id}
+                  size="sm"
+                  variant={on ? "default" : "outline"}
                   onClick={() => setSel(on ? chosen.filter((x) => x !== c.id) : [...chosen, c.id])}
-                  className={cn(
-                    "rounded-full border px-2.5 py-0.5 text-xs font-semibold",
-                    on ? "border-primary bg-primary text-primary-foreground" : "bg-card",
-                  )}
+                  className="rounded-full"
                 >
                   {c.name}
                   {c.discount_pct > 0 ? ` −${c.discount_pct}%` : ""}
-                </button>
+                </Button>
               );
             })}
             {(cols.data?.list ?? []).length === 0 && (
@@ -257,9 +287,9 @@ function ProductDialog({
               </span>
             )}
           </div>
-        </Field>
+        </Label>
         {stockEditable && (
-          <div className="rounded-lg border bg-muted/40 p-2.5">
+          <Card className="bg-muted/40 p-2.5 shadow-none">
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Quantity — {store?.name}
             </div>
@@ -277,15 +307,15 @@ function ProductDialog({
                   : "starting stock for this store"}
               </span>
             </div>
-          </div>
+          </Card>
         )}
-        <label className="flex items-center gap-2 text-sm">
+        <Label className="flex items-center gap-2 text-sm font-normal">
           <Checkbox
             checked={f.active}
             onCheckedChange={(v) => setF({ ...f, active: v === true })}
           />{" "}
           Available for sale
-        </label>
+        </Label>
         <Button disabled={!f.name} onClick={save}>
           Save item
         </Button>
@@ -379,20 +409,21 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
             {p.name} — {store?.name}
           </DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
-          {(["adjust", "history"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "rounded-full py-1.5 text-[13px] font-semibold",
-                tab === t && "bg-card shadow-sm",
-              )}
-            >
-              {t === "adjust" ? "Change stock" : "History"}
-            </button>
-          ))}
-        </div>
+        <ToggleGroup
+          type="single"
+          value={tab}
+          onValueChange={(v) => {
+            if (v) setTab(v as "adjust" | "history");
+          }}
+          className="grid w-full grid-cols-2"
+        >
+          <ToggleGroupItem value="adjust" className="w-full">
+            Change stock
+          </ToggleGroupItem>
+          <ToggleGroupItem value="history" className="w-full">
+            History
+          </ToggleGroupItem>
+        </ToggleGroup>
         {tab === "adjust" ? (
           <>
             <div className="grid grid-cols-2 gap-2">
@@ -415,60 +446,74 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
                 Remove stock
               </Button>
             </div>
-            <Field label="Reason">
-              <NativeSelect
-                value={reason}
-                onChange={setReason}
-                options={reasons[mode].map(([v, t]) => ({ value: v, label: t }))}
-              />
-            </Field>
-            <Field label="Quantity">
+            <Label className="block space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground">Reason</span>
+              <Select value={reason} onValueChange={setReason}>
+                <SelectTrigger className="h-9 bg-card text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {reasons[mode].map(([v, t]) => (
+                    <SelectItem key={v} value={v}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Label>
+            <Label className="block space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground">Quantity</span>
               <Input inputMode="decimal" value={n} onChange={(e) => setN(e.target.value)} />
-            </Field>
-            <Field label="Note (optional)">
+            </Label>
+            <Label className="block space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground">Note (optional)</span>
               <Input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Invoice no., who delivered…"
               />
-            </Field>
+            </Label>
             <Button disabled={!Number(n)} onClick={save}>
               Save
             </Button>
           </>
         ) : (
-          <div className="max-h-80 divide-y overflow-y-auto rounded-lg border text-[13px]">
+          <Card className="max-h-80 overflow-y-auto shadow-none">
             {(hist.data ?? []).length === 0 ? (
-              <p className="p-3 text-muted-foreground">
+              <p className="p-3 text-[13px] text-muted-foreground">
                 {hist.isLoading ? "Loading…" : "No movements yet."}
               </p>
             ) : (
-              hist.data!.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 px-3 py-1.5">
-                  <div className="flex-1">
-                    <div className="font-semibold">{reasonText[m.reason] ?? m.reason}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {fmtDate(m.created_at)}
-                      {m.staff_id && ` · ${names.data?.[m.staff_id] ?? ""}`}
-                      {m.note && ` · ${m.note}`}
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "tabular font-bold",
-                      m.delta < 0 ? "text-destructive" : "text-success",
-                    )}
-                  >
-                    {m.delta > 0 ? "+" : ""}
-                    {m.delta}
-                  </span>
-                  <span className="tabular w-12 text-right text-muted-foreground">
-                    {m.balance_after}
-                  </span>
-                </div>
-              ))
+              <Table className="text-[13px]">
+                <TableBody>
+                  {hist.data!.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <div className="font-semibold">{reasonText[m.reason] ?? m.reason}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {fmtDate(m.created_at)}
+                          {m.staff_id && ` · ${names.data?.[m.staff_id] ?? ""}`}
+                          {m.note && ` · ${m.note}`}
+                        </div>
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "tabular whitespace-nowrap text-right font-bold",
+                          m.delta < 0 ? "text-destructive" : "text-success",
+                        )}
+                      >
+                        {m.delta > 0 ? "+" : ""}
+                        {m.delta}
+                      </TableCell>
+                      <TableCell className="tabular w-12 text-right text-muted-foreground">
+                        {m.balance_after}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
+          </Card>
         )}
       </DialogContent>
     </Dialog>

@@ -14,9 +14,28 @@ import {
 } from "@hugeicons/core-free-icons";
 import { useProducts, useStock, type Product } from "@/lib/products";
 import { usePos } from "@/lib/pos";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Empty, Field, StoreTypeTag } from "@/components/pos/bits";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import type { Receipt } from "@/lib/receipts";
@@ -113,19 +132,24 @@ function Register() {
       <section className="min-w-0">
         <div className="mb-4 flex items-center gap-3">
           <div className="relative flex-1">
+            <Label htmlFor="pos-search" className="sr-only">Search items or SKU</Label>
             <HugeiconsIcon icon={Search01Icon} className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-11 bg-card pl-9" placeholder="Search items or SKU" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input id="pos-search" className="h-11 bg-card pl-9" placeholder="Search items or SKU" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <StoreTypeTag type={store.store_type} />
         </div>
         {cats.length > 0 && (
-          <div className="mb-4 flex gap-2 overflow-x-auto">
-            {[null, ...cats].map((c) => (
-              <button key={c ?? "all"} onClick={() => setCat(c)} className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold", cat === c ? "bg-primary text-primary-foreground" : "bg-card shadow-[var(--shadow-card)]")}>
-                {c ? catName(c) : "All"}
-              </button>
+          <ToggleGroup
+            type="single"
+            value={cat ?? "all"}
+            onValueChange={(v) => setCat(v && v !== "all" ? v : null)}
+            className="mb-4 justify-start gap-2 overflow-x-auto"
+          >
+            <ToggleGroupItem value="all" className="shrink-0 rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">All</ToggleGroupItem>
+            {cats.map((id) => (
+              <ToggleGroupItem key={id} value={id} className="shrink-0 rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">{catName(id)}</ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         )}
         {shown.length === 0 ? (
           <Empty>{list.length === 0 ? "No items yet. An admin or manager can add them under Inventory." : "No matching items."}</Empty>
@@ -152,29 +176,33 @@ function Register() {
         )}
       </section>
 
-      <aside className="pos-card flex h-fit flex-col lg:sticky lg:top-8">
-        <div className="border-b px-5 py-4">
-          <h2 className="font-bold">Current {approval ? "invoice" : "sale"}</h2>
-          <p className="text-xs text-muted-foreground">{store.name}</p>
-        </div>
-        <div className="max-h-[45vh] flex-1 divide-y overflow-y-auto">
-          {cart.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Tap items to add them.</p>}
-          {cart.map((l) => (
-            <div key={l.p.id} className="flex items-center gap-3 px-5 py-3">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{l.p.name}</div>
-                <div className="tabular text-xs text-muted-foreground">{money(price(l.p))} each</div>
+      <Card className="flex h-fit flex-col shadow-none lg:sticky lg:top-8">
+        <CardHeader className="space-y-0 border-b px-5 py-4">
+          <CardTitle className="font-bold">Current {approval ? "invoice" : "sale"}</CardTitle>
+          <CardDescription className="text-xs">{store.name}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 p-0">
+          <ScrollArea className="max-h-[45vh]">
+            <div className="divide-y">
+            {cart.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Tap items to add them.</p>}
+            {cart.map((l) => (
+              <div key={l.p.id} className="flex items-center gap-3 px-5 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold">{l.p.name}</div>
+                  <div className="tabular text-xs text-muted-foreground">{money(price(l.p))} each</div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty - 1)}>{l.qty === 1 ? <HugeiconsIcon icon={Delete02Icon} /> : <HugeiconsIcon icon={MinusSignIcon} />}</Button>
+                  <span className="tabular w-7 text-center text-sm font-bold">{l.qty}</span>
+                  <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty + 1)}><HugeiconsIcon icon={PlusSignIcon} /></Button>
+                </div>
+                <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * price(l.p))}</div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty - 1)}>{l.qty === 1 ? <HugeiconsIcon icon={Delete02Icon} /> : <HugeiconsIcon icon={MinusSignIcon} />}</Button>
-                <span className="tabular w-7 text-center text-sm font-bold">{l.qty}</span>
-                <Button size="icon" variant="outline" className="size-7" onClick={() => setQty(l.p.id, l.qty + 1)}><HugeiconsIcon icon={PlusSignIcon} /></Button>
-              </div>
-              <div className="tabular w-20 text-right text-sm font-semibold">{money(l.qty * price(l.p))}</div>
+            ))}
             </div>
-          ))}
-        </div>
-        <div className="space-y-3 border-t p-5">
+          </ScrollArea>
+        </CardContent>
+        <CardFooter className="flex-col items-stretch gap-3 border-t bg-secondary/25 p-5 pt-5">
           {rate > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>VAT {rate}% {incl ? "(included)" : "(added)"}</span>
@@ -191,8 +219,8 @@ function Register() {
           <Button size="lg" variant="outline" className="w-full" disabled={!cart.length} onClick={() => setDlg("layby")}>
             {approval ? "Layby invoice" : "Start layby"}
           </Button>
-        </div>
-      </aside>
+        </CardFooter>
+      </Card>
 
       {dlg && <CheckoutDialog kind={dlg} total={total} approval={approval} onClose={() => setDlg(null)} onDone={(f) => finish(dlg, f)} />}
       {receipt && <ReceiptModal receipt={receipt} money={money} onClose={() => setReceipt(null)} />}
@@ -244,9 +272,9 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
               ? kind === "layby" ? "Layby invoice for approval" : "Invoice for approval"
               : kind === "layby" ? "Start layby" : "Take payment"}
           </DialogTitle>
-          <p className="mt-1.5 truncate text-xs text-muted-foreground">
+          <DialogDescription className="mt-1.5 truncate text-xs">
             {store?.name} · {approval ? "Approval invoice" : kind === "layby" ? "Layby" : "Direct sale"}
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-5 pt-5">
@@ -263,31 +291,31 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
 
         <div className="space-y-4 px-5 py-5">
           {approval ? (
-            <p className="rounded-md bg-warning/15 px-3 py-2.5 text-xs text-warning-foreground">
-              An approver must approve this before stock leaves the store and payment is recorded.
-            </p>
+            <Alert className="border-warning/40 bg-warning/15 text-warning-foreground">
+              <AlertDescription className="text-xs [&_p]:leading-relaxed">
+                An approver must approve this before stock leaves the store and payment is recorded.
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="space-y-2">
-              <div className={sectionLabel}>Payment method</div>
-              <div className="flex gap-1 rounded-full border border-input bg-muted/60 p-1">
+              <Label className={sectionLabel}>Payment method</Label>
+              <ToggleGroup
+                type="single"
+                value={method}
+                onValueChange={(v) => v && setMethod(v)}
+                className="gap-1 rounded-full border border-input bg-muted/60 p-1"
+              >
                 {payMethods.map((m) => (
-                  <button
+                  <ToggleGroupItem
                     key={m.v}
-                    type="button"
-                    aria-pressed={method === m.v}
-                    onClick={() => setMethod(m.v)}
-                    className={cn(
-                      "flex min-w-0 cursor-pointer flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 text-sm transition",
-                      method === m.v
-                        ? "bg-primary font-semibold text-primary-foreground"
-                        : "font-medium text-muted-foreground hover:text-foreground",
-                    )}
+                    value={m.v}
+                    className="flex-1 rounded-full px-2 py-2 text-sm data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
                   >
                     <HugeiconsIcon icon={m.i} className="size-4 shrink-0" />
                     <span className="truncate">{m.t}</span>
-                  </button>
+                  </ToggleGroupItem>
                 ))}
-              </div>
+              </ToggleGroup>
             </div>
           )}
 
@@ -331,7 +359,7 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
           {approval && <Field label="Note for approver"><Input value={note} onChange={(e) => setNote(e.target.value)} /></Field>}
         </div>
 
-        <div className="flex gap-3 border-t bg-secondary/35 px-5 py-4">
+        <DialogFooter className="flex-row gap-3 border-t bg-secondary/35 px-5 py-4 sm:justify-between sm:space-x-0">
           <Button variant="ghost" size="lg" className="px-4" onClick={onClose}>Cancel</Button>
           <Button
             size="lg"
@@ -341,7 +369,7 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
           >
             {approval ? "Send for approval" : kind === "layby" ? "Open layby" : `Complete sale · ${money(total)}`}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -349,18 +377,9 @@ function CheckoutDialog({ kind, total, approval, onClose, onDone }: {
 
 function Tender({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-        active
-          ? "border-transparent bg-secondary text-foreground"
-          : "border-input text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
-      )}
-    >
+    <Button type="button" size="sm" variant={active ? "secondary" : "outline"} aria-pressed={active} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 

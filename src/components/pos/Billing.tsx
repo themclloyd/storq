@@ -7,16 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { PRICES, YEARLY_FACTOR, loadPaychangu, useSubscription } from "@/lib/billing";
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +27,6 @@ import {
   CreditCardIcon,
   Download01Icon,
   File01Icon,
-  ReceiptIcon,
   Settings01Icon,
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
@@ -174,7 +167,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <section className="flex flex-col justify-between rounded-xl border bg-card p-5">
+        <Card className="flex flex-col justify-between p-5 shadow-none">
           <div>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -222,15 +215,13 @@ export function Billing({ locked }: { locked?: boolean }) {
                   {fmt(currency, PRICES[currency] * stores.length)}/mo
                 </span>
               </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all",
-                    s?.overLimit ? "bg-destructive" : "bg-accent",
-                  )}
-                  style={{ width: `${usagePct}%` }}
-                />
-              </div>
+              <Progress
+                value={usagePct}
+                className={cn(
+                  "mt-2 h-1.5 bg-muted [&>div]:bg-accent",
+                  s?.overLimit && "[&>div]:bg-destructive",
+                )}
+              />
             </div>
           </div>
           <div className="mt-5 flex items-center justify-between border-t pt-4">
@@ -253,16 +244,16 @@ export function Billing({ locked }: { locked?: boolean }) {
               </Button>
             )}
           </div>
-        </section>
+        </Card>
 
-        <section className="flex flex-col justify-between rounded-xl border bg-card p-5">
+        <Card className="flex flex-col justify-between p-5 shadow-none">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" /> Payment
               method
             </div>
             <p className="mt-1 text-sm text-muted-foreground">Change how you pay for your plan.</p>
-            <div className="mt-4 flex items-center gap-3 rounded-lg border p-3.5">
+            <Card className="mt-4 flex items-center gap-3 p-3.5 shadow-none">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-5 text-muted-foreground" />
               </div>
@@ -283,12 +274,12 @@ export function Billing({ locked }: { locked?: boolean }) {
                   Update
                 </Button>
               )}
-            </div>
+            </Card>
           </div>
           <p className="mt-5 border-t pt-4 text-xs text-muted-foreground">
             Payments are processed by PayChangu; no card details are stored on Storq.
           </p>
-        </section>
+        </Card>
       </div>
 
       <section>
@@ -301,7 +292,7 @@ export function Billing({ locked }: { locked?: boolean }) {
           </div>
           <Dialog open={downloadOpen} onOpenChange={setDownloadOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="ghost" size="sm">
                 <HugeiconsIcon icon={Download01Icon} /> Download all
               </Button>
             </DialogTrigger>
@@ -314,11 +305,11 @@ export function Billing({ locked }: { locked?: boolean }) {
                 </DialogDescription>
               </DialogHeader>
               {paidInvoices.length ? (
-                <ul className="max-h-64 space-y-1 overflow-y-auto text-sm">
+                <Card className="max-h-64 divide-y overflow-y-auto text-sm shadow-none">
                   {paidInvoices.map((r) => (
-                    <li
+                    <div
                       key={r.tx_ref}
-                      className="flex items-center justify-between rounded-lg border px-3 py-2"
+                      className="flex items-center justify-between gap-3 px-3 py-2"
                     >
                       <span className="flex items-center gap-2 truncate">
                         <HugeiconsIcon
@@ -334,9 +325,9 @@ export function Billing({ locked }: { locked?: boolean }) {
                       <span className="shrink-0 font-medium tabular">
                         {fmt(r.currency as "MWK" | "USD", Number(r.amount))}
                       </span>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </Card>
               ) : (
                 <p className="py-4 text-sm text-muted-foreground">No paid invoices yet.</p>
               )}
@@ -360,98 +351,66 @@ export function Billing({ locked }: { locked?: boolean }) {
           </Dialog>
         </div>
 
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <Card className="divide-y overflow-hidden shadow-none">
           {history.isPending ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Loading payments…</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">Loading invoices…</p>
           ) : history.isError ? (
             <p className="py-10 text-center text-sm text-destructive">
-              Payments could not be loaded.
+              Invoices could not be loaded.
             </p>
           ) : !history.data?.length ? (
-            <div className="flex flex-col items-center gap-2.5 py-12">
-              <HugeiconsIcon icon={ReceiptIcon} className="size-6 text-muted-foreground" />
-              <p className="text-sm font-medium">No payments yet</p>
-              <p className="text-sm text-muted-foreground">Your paid invoices will appear here.</p>
-            </div>
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              No invoices yet — your subscription receipts will appear here.
+            </p>
           ) : (
-            <Table className="text-[13px]">
-              <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="px-4 py-2.5 text-[11px]">Invoice</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px]">Billing date</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px]">Status</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px]">Amount</TableHead>
-                  <TableHead className="px-4 py-2.5 text-[11px]">Plan</TableHead>
-                  <TableHead className="px-4 py-2.5" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.data.map((r) => (
-                  <TableRow key={r.tx_ref}>
-                    <TableCell className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                          <HugeiconsIcon icon={File01Icon} className="size-4 text-accent" />
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            Invoice{" "}
-                            {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
-                              month: "short",
-                              year: "numeric",
-                            })}{" "}
-                            — {r.stores} store{r.stores > 1 ? "s" : ""}
-                          </div>
-                          <div className="font-mono text-[11px] text-muted-foreground">
-                            {r.tx_ref}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-muted-foreground">
-                      {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
-                        dateStyle: "medium",
-                      })}
-                    </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <Badge
+            history.data.map((r) => {
+              const paid = r.status === "paid";
+              const when = new Date(r.paid_at ?? r.created_at);
+              return (
+                <div key={r.tx_ref} className="flex items-center gap-4 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">
+                        {r.stores} store{r.stores > 1 ? "s" : ""}
+                        <span className="font-normal text-muted-foreground">
+                          {" "}
+                          · {r.period} plan
+                        </span>
+                      </span>
+                      <span
                         className={cn(
-                          "rounded-full border-transparent capitalize",
-                          r.status === "paid"
-                            ? "bg-accent/15 text-accent"
-                            : "bg-secondary text-muted-foreground",
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
+                          paid ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground",
                         )}
                       >
-                        {r.status === "paid" ? "✓ Paid" : r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 font-medium tabular">
-                      {fmt(r.currency as "MWK" | "USD", Number(r.amount))}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 capitalize text-muted-foreground">
-                      {r.period} plan
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
-                      {r.status === "paid" ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-accent hover:text-accent"
-                          aria-label={`Download invoice ${r.tx_ref}`}
-                          onClick={() => printInvoice(r, business?.name ?? "")}
-                        >
-                          Download
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Not paid</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        {paid ? "Paid" : r.status}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                      {when.toLocaleDateString(undefined, { dateStyle: "medium" })} · {r.tx_ref}
+                    </div>
+                  </div>
+                  <div className="tabular shrink-0 text-sm font-semibold">
+                    {fmt(r.currency as "MWK" | "USD", Number(r.amount))}
+                  </div>
+                  {paid ? (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 text-muted-foreground hover:text-accent"
+                      aria-label={`Download invoice ${r.tx_ref}`}
+                      onClick={() => printInvoice(r, business?.name ?? "")}
+                    >
+                      <HugeiconsIcon icon={Download01Icon} />
+                    </Button>
+                  ) : (
+                    <div className="size-9 shrink-0" aria-hidden />
+                  )}
+                </div>
+              );
+            })
           )}
-        </div>
+        </Card>
       </section>
 
       <Dialog open={planOpen} onOpenChange={setPlanOpen}>
@@ -489,9 +448,9 @@ export function Billing({ locked }: { locked?: boolean }) {
                 </div>
               </div>
               <div className="space-y-2">
-                <label htmlFor="billing-stores" className="text-sm font-medium">
+                <Label htmlFor="billing-stores" className="text-sm font-medium">
                   Store slots to subscribe
-                </label>
+                </Label>
                 <Input
                   id="billing-stores"
                   type="number"
@@ -587,8 +546,8 @@ export function Billing({ locked }: { locked?: boolean }) {
               Storq doesn't store card details. Each payment runs through PayChangu.
             </DialogDescription>
           </DialogHeader>
-          <ul className="space-y-2 text-sm">
-            <li className="flex items-center gap-3 rounded-lg border p-3.5">
+          <div className="space-y-2 text-sm">
+            <Card className="flex items-center gap-3 p-3.5 shadow-none">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" />
               </div>
@@ -598,8 +557,8 @@ export function Billing({ locked }: { locked?: boolean }) {
                   Pay from your mobile money wallet at checkout.
                 </div>
               </div>
-            </li>
-            <li className="flex items-center gap-3 rounded-lg border p-3.5">
+            </Card>
+            <Card className="flex items-center gap-3 p-3.5 shadow-none">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-4 text-muted-foreground" />
               </div>
@@ -609,8 +568,8 @@ export function Billing({ locked }: { locked?: boolean }) {
                   Visa and Mastercard via the PayChangu secure popup.
                 </div>
               </div>
-            </li>
-          </ul>
+            </Card>
+          </div>
           {lastPaid && (
             <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
               Last paid{" "}

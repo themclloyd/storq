@@ -2,7 +2,15 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Download01Icon, PrinterIcon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   downloadReceipt,
   printReceipt,
@@ -44,21 +52,23 @@ export function ReceiptModal({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0 shadow-[var(--shadow-pop)]">
         <style>{THERMAL}</style>
-        <div className="flex flex-col items-center gap-2 border-b px-5 py-5 text-center">
+        <DialogHeader className="items-center gap-2 border-b px-5 py-5 text-center sm:text-center">
           <span className="grid size-11 place-items-center rounded-full bg-success/15 text-success">
             <HugeiconsIcon icon={Tick02Icon} className="size-6" />
           </span>
-          <h2 className="text-lg font-bold">{doneLabel}</h2>
-          <p className="text-xs text-muted-foreground">
+          <DialogTitle className="text-lg">{doneLabel}</DialogTitle>
+          <DialogDescription className="text-xs">
             {receiptTitle(receipt)} #{receipt.number} · {money(receipt.total)}
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="max-h-[46vh] overflow-y-auto bg-secondary/30 px-5 py-5">
-          <div className="thermal" dangerouslySetInnerHTML={{ __html: receiptHtml(receipt, money) }} />
-        </div>
+        <ScrollArea className="max-h-[46vh] bg-secondary/30">
+          <div className="px-5 py-5">
+            <div className="thermal" dangerouslySetInnerHTML={{ __html: receiptHtml(receipt, money) }} />
+          </div>
+        </ScrollArea>
 
-        <div className="flex items-center gap-3 border-t bg-secondary/35 px-5 py-4">
+        <DialogFooter className="flex-row items-center gap-3 border-t bg-secondary/35 px-5 py-4 sm:justify-between sm:space-x-0">
           <Button
             variant="outline"
             size="lg"
@@ -80,7 +90,7 @@ export function ReceiptModal({
           >
             <HugeiconsIcon icon={PrinterIcon} /> Print
           </Button>
-        </div>
+        </DialogFooter>
         <div className="border-t px-5 py-3">
           <Button variant="ghost" size="lg" className="w-full" onClick={onClose}>
             New sale
