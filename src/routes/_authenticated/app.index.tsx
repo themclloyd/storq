@@ -13,6 +13,7 @@ import {
   Simcard01Icon,
 } from "@hugeicons/core-free-icons";
 import { useProducts, useStock, type Product } from "@/lib/products";
+import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
 import { usePos } from "@/lib/pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,7 @@ function Register() {
       }
       setCart([]);
       setDlg(null);
-      qc.invalidateQueries();
+      invalidateKeys(qc, SALE_TOUCHED);
       // Approval invoices carry no payment yet, so only completed sales / laybys get a receipt.
       if (r.status !== "pending_approval") {
         const isCash = f.method === "cash";

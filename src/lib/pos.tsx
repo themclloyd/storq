@@ -280,7 +280,22 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     can: (...roles) => !!staff && roles.includes(staff.role),
     refresh: () => qc.invalidateQueries(),
   };
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  const failed = queue.filter((x) => x.error);
+  const banner = !online || queue.length ? (
+    <div role="status" className="fixed bottom-3 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-full border bg-card px-4 py-2 text-xs font-medium shadow-lg">
+      <span className={online ? "text-foreground" : "text-destructive"}>{online ? "Online" : "Offline — sales are saved on this device"}</span>
+      {queue.length - failed.length > 0 && <span className="text-muted-foreground">· {queue.length - failed.length} sale(s) waiting to sync{!staff ? " (unlock with PIN to sync)" : ""}</span>}
+      {online && staff && queue.length - failed.length > 0 && <button className="underline" onClick={() => void syncQueue()}>Sync now</button>}
+      {failed.map((f) => (
+        <span key={f.ref} className="text-destructive">
+          · Offline sale {money(f.total)} not recorded: {f.error}{" "}
+          <button className="underline" onClick={() => setQueue((q) => q.map((x) => (x.ref === f.ref ? { ...x, error: undefined } : x)))}>Retry</button>{" "}
+          <button className="underline" onClick={() => { if (confirm("Discard this offline sale? It will not be recorded.")) setQueue((q) => q.filter((x) => x.ref !== f.ref)); }}>Discard</button>
+        </span>
+      ))}
+    </div>
+  ) : null;
+  return <Ctx.Provider value={value}>{children}{banner}</Ctx.Provider>;
 }
 
 export const roleLabel: Record<Role, string> = {

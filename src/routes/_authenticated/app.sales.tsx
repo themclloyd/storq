@@ -73,6 +73,7 @@ function Sales() {
   const sales = useSales("history", { storeId: all ? undefined : store?.id, since });
   const names = useStaffNames();
   const rows = sales.data ?? [];
+  const [shown, setShown] = useState(50);
   const done = rows.filter((s) => COUNTED.includes(s.status));
   const revenue = done.reduce((a, s) => a + Number(s.total) - Number(s.refunded ?? 0), 0);
   const refunds = useRefunds({ storeId: all ? undefined : store?.id, since });
@@ -128,7 +129,7 @@ function Sales() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((s) => (
+              {rows.slice(0, shown).map((s) => (
                 <TableRow key={s.id} className="cursor-pointer text-[13px]" onClick={() => navigate({ to: "/app/sales/$id", params: { id: s.id } })}>
                   <TableCell className="font-bold">#{s.number}</TableCell>
                   <TableCell className="text-muted-foreground">{fmtDate(s.created_at)}</TableCell>
