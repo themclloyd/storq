@@ -651,6 +651,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           business_id: string
+          client_ref: string | null
           created_at: string
           created_by: string | null
           customer_name: string | null
@@ -672,6 +673,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_id: string
+          client_ref?: string | null
           created_at?: string
           created_by?: string | null
           customer_name?: string | null
@@ -693,6 +695,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           business_id?: string
+          client_ref?: string | null
           created_at?: string
           created_by?: string | null
           customer_name?: string | null
@@ -1180,6 +1183,21 @@ export type Database = {
       }
       checkout: {
         Args: {
+          p_customer_name: string
+          p_customer_phone: string
+          p_items: Json
+          p_kind: string
+          p_method: string
+          p_note: string
+          p_payment: number
+          p_store: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      checkout_ref: {
+        Args: {
+          p_client_ref: string
           p_customer_name: string
           p_customer_phone: string
           p_items: Json
