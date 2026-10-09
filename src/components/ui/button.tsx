@@ -9,7 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-button text-button-foreground shadow hover:brightness-90",
+        default:
+          "bg-[image:linear-gradient(180deg,var(--button-gradient-from),var(--button-gradient-to))] text-button-foreground shadow hover:brightness-90",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:brightness-90",
         outline:
           "border border-input bg-card shadow-sm hover:bg-secondary",

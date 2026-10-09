@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -95,12 +94,6 @@ function AuthPage() {
         Storq
       </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-16">
-        <Badge
-          variant="secondary"
-          className="mb-8 w-fit gap-2 rounded-full border-0 bg-accent/10 px-3 py-1 text-xs font-medium text-accent shadow-none"
-        >
-          <span className="size-1.5 rounded-full bg-accent" /> Business account
-        </Badge>
         {sent ? (
           <Alert>
             <AlertTitle>Check your email</AlertTitle>

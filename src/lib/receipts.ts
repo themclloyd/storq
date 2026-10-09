@@ -3,6 +3,9 @@
 
 export type ReceiptLine = { name: string; qty: number; price: number; total: number };
 
+/** One part of a split tender, kept raw so the modal can format it itself. */
+export type ReceiptTender = { method: string; raw: number };
+
 export type Receipt = {
   number: number;
   kind: "sale" | "layby";
@@ -16,10 +19,12 @@ export type Receipt = {
   tax: number;
   taxRate: number;
   taxInclusive: boolean;
+  discount?: number;
   total: number;
   method: string;
   paid: number;
   change: number;
+  tenders?: ReceiptTender[];
   customerName: string | null;
   customerPhone: string | null;
   note: string | null;
@@ -31,6 +36,7 @@ const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
   card: "Card",
   mobile: "Mobile money",
+  split: "Split payment",
 };
 
 export const methodLabel = (m: string) => METHOD_LABELS[m] ?? m;
@@ -86,12 +92,14 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
     out.push(padRow(`  ${l.qty} x ${money(l.price)}`, money(l.total)));
   }
   out.push(rule);
+  if (r.discount && r.discount > 0) out.push(padRow(`Discount`, `-` + money(r.discount)));
   out.push(padRow(`Subtotal`, money(r.subtotal)));
   if (r.taxRate > 0)
     out.push(padRow(`VAT ${r.taxRate}%${r.taxInclusive ? " (incl)" : ""}`, money(r.tax)));
   out.push(padRow(`TOTAL`, money(r.total)));
   out.push(rule);
   out.push(padRow(`Method`, methodLabel(r.method)));
+  for (const t of r.tenders ?? []) out.push(padRow(`  ${methodLabel(t.method)}`, money(t.raw)));
   out.push(padRow(r.kind === "layby" ? "Deposit" : "Paid", money(r.paid)));
   if (r.change > 0) out.push(padRow(`Change`, money(r.change)));
   if (r.customerName) {
@@ -138,6 +146,11 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
       ? row("VAT " + r.taxRate + "%" + (r.taxInclusive ? " incl" : " added"), esc(money(r.tax)))
       : "";
   const paidRow = row(r.kind === "layby" ? "Deposit" : "Paid", esc(money(r.paid)));
+  const tenderRows = (r.tenders ?? [])
+    .map((t) => row(methodLabel(t.method), esc(money(t.raw))))
+    .join("");
+  const discountRow =
+    r.discount && r.discount > 0 ? row("Discount", esc("-" + money(r.discount))) : "";
   const changeRow = r.change > 0 ? row("Change", esc(money(r.change))) : "";
   const meta =
     (r.customerName ? row("Customer", esc(r.customerName)) : "") +
@@ -156,11 +169,13 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
     dashed,
     itemRows,
     dashed,
+    discountRow,
     row("Subtotal", esc(money(r.subtotal))),
     vatRow,
     row("TOTAL", esc(money(r.total)), true),
     dashed,
     row("Method", esc(methodLabel(r.method))),
+    tenderRows,
     paidRow,
     changeRow,
     metaBlock,

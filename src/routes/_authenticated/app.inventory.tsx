@@ -9,6 +9,7 @@ import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
 import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useProducts, useStock, type Product } from "@/lib/products";
+import { useLowStock } from "@/lib/transfers";
 import {
   LIMITS,
   firstError,
@@ -79,14 +80,19 @@ function Inventory() {
   const [edit, setEdit] = useState<Partial<Product> | null>(null);
   const [adj, setAdj] = useState<Product | null>(null);
   const [q, setQ] = useState("");
+  const [lowOnly, setLowOnly] = useState(false);
+  const low = useLowStock(store?.id);
   if (!can("admin", "manager"))
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
         Only admins and managers can manage inventory.
       </Card>
     );
+  const lowIds = new Set((low.data ?? []).map((r) => r.product_id));
   const rows = (products.data ?? []).filter(
-    (p) => !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku?.includes(q),
+    (p) =>
+      (!q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku?.includes(q)) &&
+      (!lowOnly || lowIds.has(p.id)),
   );
   const value = rows.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost), 0);
 
@@ -204,12 +210,22 @@ function Inventory() {
           </Button>
         </div>
       </div>
-      <Input
-        className="mb-3 max-w-xs bg-card"
-        placeholder="Search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Input
+          className="max-w-xs bg-card"
+          placeholder="Search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <Button
+          size="sm"
+          variant={lowOnly ? "default" : "outline"}
+          className="rounded-full"
+          onClick={() => setLowOnly((v) => !v)}
+        >
+          Low stock{(low.data?.length ?? 0) > 0 ? ` (${low.data!.length})` : ""}
+        </Button>
+      </div>
       {rows.length === 0 ? (
         <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
           No items yet.
@@ -309,6 +325,7 @@ function ProductDialog({
     price: String(p.price ?? ""),
     cost: String(p.cost ?? ""),
     qty: p.id ? String(currentQty) : "",
+    reorder: p.reorder_point != null ? String(p.reorder_point) : "",
     active: p.active ?? true,
   });
   async function save() {
@@ -324,6 +341,14 @@ function ProductDialog({
       }),
       validateAmount(f.cost, { label: "Buying cost", min: 0, max: 1_000_000_000 }),
       f.qty === "" ? null : validateAmount(f.qty, { label: "Quantity", min: 0, max: 1_200_000 }),
+      f.reorder === ""
+        ? null
+        : validateAmount(f.reorder, {
+            label: "Reorder point",
+            min: 0,
+            max: 1_000_000,
+            integer: true,
+          }),
     );
     if (err) {
       toast.error(err);
@@ -339,6 +364,7 @@ function ProductDialog({
           p_price: Number(f.price || 0),
           p_cost: Number(f.cost || 0),
           p_active: f.active,
+          p_reorder_point: f.reorder === "" ? null : Number(f.reorder),
         })) as string | null) ?? p.id;
       if (pid) await rpc("set_product_collections", { p_product: pid, p_collections: chosen });
       const qty = f.qty === "" ? null : Number(f.qty);
@@ -432,6 +458,18 @@ function ProductDialog({
               </span>
             )}
           </div>
+        </Label>
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">
+            Reorder point (optional)
+          </span>
+          <Input
+            inputMode="numeric"
+            maxLength={7}
+            placeholder="Alert when stock falls to this level"
+            value={f.reorder}
+            onChange={(e) => setF({ ...f, reorder: e.target.value.replace(/[^0-9]/g, "") })}
+          />
         </Label>
         {stockEditable && (
           <Card className="bg-muted/40 p-2.5 shadow-none">
@@ -785,13 +823,7 @@ function ImportDialog({
       }
       setDone((d) => d + 1);
     }
-    invalidateKeys(qc, [
-      ["products"],
-      ["stock"],
-      ["movements"],
-      ["collections"],
-      ["dash-alerts"],
-    ]);
+    invalidateKeys(qc, [["products"], ["stock"], ["movements"], ["collections"], ["dash-alerts"]]);
     if (fails) toast.error(`${ok.length - fails} imported, ${fails} failed`);
     else toast.success(`${ok.length} items imported`);
     onClose();

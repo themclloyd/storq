@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
 import { useSaleItemCosts, useSales } from "@/lib/sales";
 import { useExpenses } from "@/lib/expenses";
+import { useLowStock } from "@/lib/transfers";
 import {
   buildTrend,
   dashboardSince,
@@ -227,6 +228,47 @@ function Dashboard() {
           )}
         </DashboardSection>
       </div>
+
+      <div className="mt-4">
+        <NeedsReorder storeId={storeId} />
+      </div>
     </div>
+  );
+}
+
+// Self-sufficient reorder card: fetches its own low-stock read and only appears
+// for the roles that manage inventory. Replaces the old fixed "5 units" guess
+// with each product's own reorder point.
+function NeedsReorder({ storeId }: { storeId?: string | undefined }) {
+  const { can } = usePos();
+  const low = useLowStock(storeId);
+  if (!can("admin", "manager") || !storeId) return null;
+  const rows = low.data ?? [];
+  return (
+    <DashboardSection
+      title="Needs reorder"
+      icon={Alert02Icon}
+      note={`${rows.length} item${rows.length === 1 ? "" : "s"} at or below the reorder point`}
+    >
+      <div className="space-y-1.5">
+        {low.isPending ? (
+          <EmptyState>Checking stock levels…</EmptyState>
+        ) : rows.length === 0 ? (
+          <EmptyState>Nothing is below its reorder point.</EmptyState>
+        ) : (
+          rows.slice(0, 8).map((r) => (
+            <AlertRow
+              key={r.product_id}
+              item={{
+                icon: MoneyBag02Icon,
+                text: `${r.name} — ${r.qty} left, reorder at ${r.reorder_point}`,
+                to: "/app/inventory",
+                tone: "warn",
+              }}
+            />
+          ))
+        )}
+      </div>
+    </DashboardSection>
   );
 }

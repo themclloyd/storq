@@ -12,6 +12,7 @@ export type Product = {
   price: number;
   cost: number;
   active: boolean;
+  reorder_point: number | null;
 };
 
 // The till keeps one lean, long-lived catalog in memory (like Square/Shopify's
@@ -27,7 +28,10 @@ export function useProducts(opts: { withCost?: boolean } = {}) {
     // invalidate explicitly — no need to re-pull it on every mount.
     staleTime: 30 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("id,name,sku,category,price,active").order("name");
+      const { data, error } = await supabase
+        .from("products")
+        .select("id,name,sku,category,price,active,reorder_point")
+        .order("name");
       if (error) throw error;
       const base = data as unknown as Omit<Product, "cost">[];
       if (!withCost) return base.map((p) => ({ ...p, cost: 0 }));
@@ -46,6 +50,32 @@ export function useProducts(opts: { withCost?: boolean } = {}) {
     },
   });
 }
+/**
+ * Exact barcode/SKU lookup for the till scanner. Trimmed, case-insensitive,
+ * matched against the already-cached catalog — never a fresh network fetch.
+ */
+export function findByBarcode(list: Product[], code: string): Product | undefined {
+  const c = code.trim().toLowerCase();
+  if (!c) return undefined;
+  return list.find((p) => p.active && p.sku?.trim().toLowerCase() === c);
+}
+
+// ---- manual discount caps (mirror app.checkout: 10% for cashiers) ----
+/** Cashiers may discount up to this share of a line / the cart before a manager PIN is required. */
+export const DISCOUNT_CAP_RATIO = 0.1;
+/** Two-decimal money rounding, matching the SQL round(x, 2) the server uses. */
+export function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+/** A single line's discount is past the cashier cap. */
+export function lineCapBlocked(lineGross: number, lineDiscount: number): boolean {
+  return lineDiscount > round2(lineGross * DISCOUNT_CAP_RATIO);
+}
+/** The cart-wide discount is past the cashier cap. */
+export function cartCapBlocked(gross: number, discountTotal: number): boolean {
+  return gross > 0 && discountTotal > round2(gross * DISCOUNT_CAP_RATIO);
+}
+
 export function useStock(storeId?: string) {
   return useQuery({
     queryKey: ["stock", storeId],

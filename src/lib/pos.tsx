@@ -12,9 +12,25 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePin } from "@/lib/validate";
 import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
-import { hydrateCache, isNetworkError, loadQueue, newRef, persistCache, saveQueue, type QueuedSale } from "@/lib/offline";
+import {
+  hydrateCache,
+  isNetworkError,
+  loadQueue,
+  newRef,
+  persistCache,
+  saveQueue,
+  type QueuedSale,
+} from "@/lib/offline";
+import { useIdleLock } from "@/components/pos/use-idle-lock";
 
-export type CheckoutResult = { id: string; number: number; status: string; total: number; tax: number; offline?: boolean };
+export type CheckoutResult = {
+  id: string;
+  number: number;
+  status: string;
+  total: number;
+  tax: number;
+  offline?: boolean;
+};
 
 export type Role = "admin" | "manager" | "cashier";
 export type StaffSession = {
@@ -48,11 +64,17 @@ type PosCtx = {
   can: (...roles: Role[]) => boolean;
   refresh: () => void;
   /** Sale checkout that queues direct-store cash/card/mobile sales on this device when offline. */
-  checkout: (args: Record<string, unknown>, opts: { offlineOk: boolean; estTotal: number }) => Promise<CheckoutResult>;
+  checkout: (
+    args: Record<string, unknown>,
+    opts: { offlineOk: boolean; estTotal: number },
+  ) => Promise<CheckoutResult>;
   online: boolean;
   queue: QueuedSale[];
   syncQueue: () => Promise<void>;
   dropQueued: (ref: string) => void;
+  /** Till-hygiene: lock the workspace after this many idle minutes (0 = off). */
+  autoLockMinutes: number;
+  setAutoLockMinutes: (n: number) => void;
 };
 
 const Ctx = createContext<PosCtx | null>(null);
@@ -86,8 +108,10 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   const qc = useQueryClient();
   const staffKey = `pos-staff-${userId}`;
   const storeKey = `pos-store-${userId}`;
+  const autoLockKey = `pos-autolock-${userId}`;
   const [staff, setStaff] = useState<StaffSession | null>(null);
   const [storeId, setStoreIdState] = useState<string | null>(null);
+  const [autoLockMinutes, setAutoLockMinutesState] = useState(5);
 
   useEffect(() => {
     try {
@@ -106,10 +130,12 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
         }
       }
       setStoreIdState(localStorage.getItem(storeKey));
+      const al = Number(localStorage.getItem(autoLockKey));
+      if (Number.isFinite(al) && al >= 0) setAutoLockMinutesState(al);
     } catch {
       // Unreadable storage just means a fresh lock — no user-facing failure.
     }
-  }, [staffKey, storeKey]);
+  }, [staffKey, storeKey, autoLockKey]);
 
   const businessQ = useQuery({
     queryKey: ["business", userId],
@@ -179,6 +205,9 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     clearStaff();
   };
 
+  const lockRef = useRef(lock);
+  lockRef.current = lock;
+
   const rpc = async <T,>(fn: string, args: Record<string, unknown> = {}) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.rpc as any)(fn, { p_token: staff?.token, ...args });
@@ -197,7 +226,10 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   );
 
   // ---- instant start: show last known catalog/stock immediately, refresh behind ----
-  useState(() => { if (typeof window !== "undefined") hydrateCache(qc, userId); return 0; });
+  useState(() => {
+    if (typeof window !== "undefined") hydrateCache(qc, userId);
+    return 0;
+  });
   useEffect(() => persistCache(qc, userId), [qc, userId]);
 
   // ---- offline sales queue ----
@@ -206,19 +238,50 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   useEffect(() => {
     setOnline(navigator.onLine);
     setQueueState(loadQueue(userId));
-    const on = () => setOnline(true), off = () => setOnline(false);
-    window.addEventListener("online", on); window.addEventListener("offline", off);
-    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+    const on = () => setOnline(true),
+      off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
   }, [userId]);
-  const setQueue = useCallback((f: (q: QueuedSale[]) => QueuedSale[]) => {
-    setQueueState((prev) => { const n = f(prev); saveQueue(userId, n); return n; });
-  }, [userId]);
+  const setQueue = useCallback(
+    (f: (q: QueuedSale[]) => QueuedSale[]) => {
+      setQueueState((prev) => {
+        const n = f(prev);
+        saveQueue(userId, n);
+        return n;
+      });
+    },
+    [userId],
+  );
 
-  const checkout = async (args: Record<string, unknown>, opts: { offlineOk: boolean; estTotal: number }): Promise<CheckoutResult> => {
+  const checkout = async (
+    args: Record<string, unknown>,
+    opts: { offlineOk: boolean; estTotal: number },
+  ): Promise<CheckoutResult> => {
     const ref = newRef();
     const enqueue = () => {
-      setQueue((q) => [...q, { ref, at: new Date().toISOString(), total: opts.estTotal, storeId: String(args["p_store"]), args }]);
-      return { id: ref, number: 0, status: "completed", total: opts.estTotal, tax: 0, offline: true };
+      setQueue((q) => [
+        ...q,
+        {
+          ref,
+          at: new Date().toISOString(),
+          total: opts.estTotal,
+          storeId: String(args["p_store"]),
+          args,
+        },
+      ]);
+      return {
+        id: ref,
+        number: 0,
+        status: "completed",
+        total: opts.estTotal,
+        tax: 0,
+        offline: true,
+      };
     };
     if (opts.offlineOk && typeof navigator !== "undefined" && !navigator.onLine) return enqueue();
     try {
@@ -239,10 +302,16 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     try {
       for (const item of pending) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc as any)("checkout_ref", { p_token: staff.token, p_client_ref: item.ref, ...item.args });
+        const { error } = await (supabase.rpc as any)("checkout_ref", {
+          p_token: staff.token,
+          p_client_ref: item.ref,
+          ...item.args,
+        });
         if (error) {
           if (isNetworkError(error.message) || /Locked/i.test(error.message)) break;
-          setQueue((q) => q.map((x) => (x.ref === item.ref ? { ...x, error: maskRpcError(error.message) } : x)));
+          setQueue((q) =>
+            q.map((x) => (x.ref === item.ref ? { ...x, error: maskRpcError(error.message) } : x)),
+          );
         } else {
           synced++;
           setQueue((q) => q.filter((x) => x.ref !== item.ref));
@@ -261,12 +330,33 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     return () => clearInterval(t);
   }, [online, staff, queue, syncQueue]);
 
+  // ---- till hygiene: inactivity auto-lock ----
+  const setAutoLockMinutes = useCallback(
+    (n: number) => {
+      const v = Math.max(0, Math.min(240, Math.round(n)));
+      setAutoLockMinutesState(v);
+      try {
+        localStorage.setItem(autoLockKey, String(v));
+      } catch {
+        // Storage unavailable: the in-memory value still governs this session.
+      }
+    },
+    [autoLockKey],
+  );
+  useIdleLock(() => void lockRef.current(), {
+    enabled: !!staff,
+    minutes: autoLockMinutes,
+    paused: syncing.current,
+  });
+
   const value: PosCtx = {
     checkout,
     online,
     queue,
     syncQueue,
     dropQueued: (ref) => setQueue((q) => q.filter((x) => x.ref !== ref)),
+    autoLockMinutes,
+    setAutoLockMinutes,
     userId,
     business: businessQ.isLoading ? undefined : (businessQ.data ?? null),
     stores,
@@ -281,21 +371,56 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     refresh: () => qc.invalidateQueries(),
   };
   const failed = queue.filter((x) => x.error);
-  const banner = !online || queue.length ? (
-    <div role="status" className="fixed bottom-3 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-full border bg-card px-4 py-2 text-xs font-medium shadow-lg">
-      <span className={online ? "text-foreground" : "text-destructive"}>{online ? "Online" : "Offline — sales are saved on this device"}</span>
-      {queue.length - failed.length > 0 && <span className="text-muted-foreground">· {queue.length - failed.length} sale(s) waiting to sync{!staff ? " (unlock with PIN to sync)" : ""}</span>}
-      {online && staff && queue.length - failed.length > 0 && <button className="underline" onClick={() => void syncQueue()}>Sync now</button>}
-      {failed.map((f) => (
-        <span key={f.ref} className="text-destructive">
-          · Offline sale {money(f.total)} not recorded: {f.error}{" "}
-          <button className="underline" onClick={() => setQueue((q) => q.map((x) => (x.ref === f.ref ? { ...x, error: undefined } : x)))}>Retry</button>{" "}
-          <button className="underline" onClick={() => { if (confirm("Discard this offline sale? It will not be recorded.")) setQueue((q) => q.filter((x) => x.ref !== f.ref)); }}>Discard</button>
+  const banner =
+    !online || queue.length ? (
+      <div
+        role="status"
+        className="fixed bottom-3 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-full border bg-card px-4 py-2 text-xs font-medium shadow-lg"
+      >
+        <span className={online ? "text-foreground" : "text-destructive"}>
+          {online ? "Online" : "Offline — sales are saved on this device"}
         </span>
-      ))}
-    </div>
-  ) : null;
-  return <Ctx.Provider value={value}>{children}{banner}</Ctx.Provider>;
+        {queue.length - failed.length > 0 && (
+          <span className="text-muted-foreground">
+            · {queue.length - failed.length} sale(s) waiting to sync
+            {!staff ? " (unlock with PIN to sync)" : ""}
+          </span>
+        )}
+        {online && staff && queue.length - failed.length > 0 && (
+          <button className="underline" onClick={() => void syncQueue()}>
+            Sync now
+          </button>
+        )}
+        {failed.map((f) => (
+          <span key={f.ref} className="text-destructive">
+            · Offline sale {money(f.total)} not recorded: {f.error}{" "}
+            <button
+              className="underline"
+              onClick={() =>
+                setQueue((q) => q.map((x) => (x.ref === f.ref ? { ...x, error: undefined } : x)))
+              }
+            >
+              Retry
+            </button>{" "}
+            <button
+              className="underline"
+              onClick={() => {
+                if (confirm("Discard this offline sale? It will not be recorded."))
+                  setQueue((q) => q.filter((x) => x.ref !== f.ref));
+              }}
+            >
+              Discard
+            </button>
+          </span>
+        ))}
+      </div>
+    ) : null;
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      {banner}
+    </Ctx.Provider>
+  );
 }
 
 export const roleLabel: Record<Role, string> = {

@@ -31,11 +31,23 @@ import storeGrocery from "@/assets/store-grocery.jpg";
 import storeHardware from "@/assets/store-hardware.jpg";
 import ownerPortrait from "@/assets/owner-portrait.jpg";
 
+/** What the one plan unlocks — outcomes an owner buys, not module names. */
+const planFeatures = [
+  "Every sale, receipt and till report",
+  "Layby, credit sales and refunds",
+  "Live stock in every store you run",
+  "A PIN and a role for each person",
+  "What sells, what's slow, what's left after expenses",
+  "Stock counts your whole team does on their phones",
+];
+
 const faqItems: [string, string][] = [
-  ["Do I need to buy hardware?", "No. Storq runs in the browser on any phone, tablet or laptop you already own."],
-  ["How do staff log in?", "You sign each device in once with your business email. After that, every staff member unlocks it with their own 4-digit PIN, which sets what they can do."],
-  ["Can I run more than one shop?", "Yes. Add as many stores as you need and choose for each one whether it's direct sale or approval-based."],
-  ["Does it support mobile money?", "Yes — cash, card and mobile money are all recorded at checkout and on layby payments."],
+  ["What does it cost?", `MK${PRICES.MWK.toLocaleString()} a month for each store you run — that is the whole plan, with every feature in it. Your first store runs free on the trial, and you pay by Airtel Money, TNM Mpamba or card.`],
+  ["Do I need to buy hardware?", "No. Storq runs in the browser on the Android phone, tablet or laptop you already own — no till machine, no barcode gun, and light enough to run on everyday data."],
+  ["Can my staff see my money?", "Only what you allow. Each person opens the till with their own 4-digit PIN, and that PIN decides what they can do: cashiers sell, managers approve, and costs and reports stay with you."],
+  ["What happens when the internet goes off?", "At a direct-sale till the counter keeps working — sales are held on the device and file themselves as soon as the connection is back, so an outage never turns a customer away."],
+  ["Can I run more than one shop?", "Yes. Add a store the day you open it. Each one keeps its own stock and staff, and you see all of them from the same phone."],
+  ["Can my customer pay how they want?", "Cash, card, Airtel Money or TNM Mpamba — taken at the counter and on every layby instalment, so the drawer always matches what the day sold."],
 ];
 
 const landingJsonLd = {
@@ -63,8 +75,8 @@ const landingJsonLd = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
-        "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop.",
-      offers: { "@type": "AggregateOffer", lowPrice: "0", priceCurrency: "MWK", offerCount: "2" },
+        "A point of sale for African shop owners: ring up sales, hold laybys, count stock and know where every kwacha is — from any phone or laptop.",
+      offers: { "@type": "AggregateOffer", lowPrice: "60000", priceCurrency: "MWK", offerCount: "1" },
     },
     {
       "@type": "FAQPage",
@@ -78,15 +90,21 @@ const landingJsonLd = {
 };
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    ...buildSeo({
-      title: "Storq POS — The point of sale for every sale",
+  head: () => {
+    const seo = buildSeo({
+      title: "Storq POS — Know what your shop made, every day",
       description:
-        "The point of sale built for African shops. Sell, run laybys, approve invoices and count stock from any phone or laptop. Free to start.",
+        "Run your till, your stock and your staff from the phone in your pocket, and see every kwacha before you close. One plan at MK 60 000 per store, free trial included.",
       path: "/",
-    }),
-    scripts: [{ type: "application/ld+json", children: JSON.stringify(landingJsonLd) }],
-  }),
+    });
+    return {
+      ...seo,
+      // Fetchpriority hints let the hero shot start downloading with the HTML
+      // instead of after the bundle has rendered it.
+      links: [...seo.links, { rel: "preload", as: "image", href: heroShop, fetchpriority: "high" }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(landingJsonLd) }],
+    };
+  },
   component: Landing,
 });
 
@@ -147,6 +165,29 @@ function Reveal({
   );
 }
 
+/**
+ * Above-the-fold variant of `Reveal`: the stagger is a CSS animation delay, so
+ * the first screen animates as soon as HTML + CSS arrive rather than waiting for
+ * hydration (which is what left the whole page blank, then fading in at once).
+ */
+function Rise({
+  children,
+  delay = 0,
+  className,
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const style = delay ? ({ "--rise-delay": `${delay}ms` } as CSSProperties) : undefined;
+
+  return (
+    <div style={style} className={cn("rise", className)}>
+      {children}
+    </div>
+  );
+}
+
 /** Layby progress bar that fills from 0 the first time it scrolls into view. */
 function AnimatedProgress({ value }: { value: number }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.4);
@@ -161,7 +202,7 @@ function AnimatedProgress({ value }: { value: number }) {
   );
 }
 
-function Cta({ label = "Start free", invert = false }: { label?: string; invert?: boolean }) {
+function Cta({ label = "Start free trial", invert = false }: { label?: string; invert?: boolean }) {
   return (
     <Button
       asChild
@@ -197,7 +238,7 @@ function Landing() {
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
             {[
               ["#shops", "Who it's for"],
-              ["#features", "Features"],
+              ["#features", "What you get"],
               ["#layby", "Layby"],
               ["#pricing", "Pricing"],
             ].map(([href, label]) => (
@@ -211,68 +252,69 @@ function Landing() {
               <Link to="/auth">Log in</Link>
             </Button>
             <Button asChild className="rounded-full px-5 font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]">
-              <Link to="/auth">Start free</Link>
+              <Link to="/auth">Start free trial</Link>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero — Shopify style: eyebrow, huge headline, dual CTA, full-width photo */}
+      {/* Hero — the owner's wish, not the product's name */}
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-16 text-center md:pt-24">
-        <Reveal>
-          <Eyebrow>Point of sale</Eyebrow>
-        </Reveal>
-        <Reveal delay={80}>
+        <Rise>
+          <Eyebrow>For shop owners</Eyebrow>
+        </Rise>
+        <Rise delay={80}>
           <h1 className="mx-auto mt-4 max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
-            The point of sale for every sale
+            Know what your shop made. Every day.
           </h1>
-        </Reveal>
-        <Reveal delay={160}>
+        </Rise>
+        <Rise delay={160}>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            From first sale to full scale, Storq runs your till, your stock and your staff —
-            on the phone or laptop you already own.
+            Storq runs your till, your stock and your staff on the phone already in your pocket —
+            so you stop guessing where the money went.
           </p>
-        </Reveal>
-        <Reveal delay={240} className="mt-8 flex flex-wrap items-center justify-center gap-4">
-          <Cta label="Start for free" />
+        </Rise>
+        <Rise delay={240} className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <Cta label="Start free trial" />
           <Button asChild size="lg" variant="outline" className="group/cta h-14 rounded-full px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]">
             <a href="#features">
               See how it works <HugeiconsIcon icon={ArrowRight01Icon} className="ml-1 h-5 w-5 transition-transform duration-200 group-hover/cta:translate-x-1" />
             </a>
           </Button>
-        </Reveal>
-        <Reveal delay={300}>
-          <p className="mt-4 text-sm text-muted-foreground">No credit card. No hardware. Set up in 5 minutes.</p>
-        </Reveal>
-        <Reveal delay={120} className="relative mt-14 overflow-hidden rounded-3xl">
-          <img src={heroShop} alt="Shop owner ringing up a sale on Storq" width={1600} height={1104} className="h-[460px] w-full object-cover md:h-[620px] transition-transform duration-700 ease-out hover:scale-[1.02]" />
+        </Rise>
+        <Rise delay={300}>
+          <p className="mt-4 text-sm text-muted-foreground">No card. No new hardware. Selling in five minutes.</p>
+        </Rise>
+        <Rise delay={120} className="relative mt-14 overflow-hidden rounded-3xl">
+          <img src={heroShop} alt="Shop owner ringing up a sale on Storq" width={1600} height={1104} fetchPriority="high" decoding="async" className="h-[460px] w-full object-cover md:h-[620px] transition-transform duration-700 ease-out hover:scale-[1.02]" />
           <Card className="absolute bottom-5 left-5 gap-0 rounded-2xl border-0 bg-card/95 p-5 text-left shadow-xl backdrop-blur transition-transform duration-300 hover:-translate-y-1 md:bottom-8 md:left-8">
-            <CardDescription className="text-xs font-medium">Today · Rosebank store</CardDescription>
+            <CardDescription className="text-xs font-medium">Today's takings · Rosebank store</CardDescription>
             <p className="mt-1 text-3xl font-light">MK 18 450</p>
             <p className="text-sm font-semibold text-success">▲ 24% vs last Wednesday</p>
           </Card>
-        </Reveal>
+        </Rise>
       </section>
 
-      {/* Who it's for — Square style photo tiles */}
+      {/* Who it's for — the owner sees their own shop, not a segment list */}
       <section id="shops" className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
             <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
-              Created for every kind of shop
+              Made for shops like yours
             </h2>
           </Reveal>
           <Reveal delay={80}>
             <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-              One till or ten stores. Clothing, groceries, hardware — Storq fits the way you trade.
+              One till today, three branches next year. Clothing, groceries, hardware or a bit of
+              everything — Storq fits the way you already trade.
             </p>
           </Reveal>
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { img: storeClothing, label: "Clothing & fashion" },
-              { img: storeGrocery, label: "Grocery & spaza" },
-              { img: storeHardware, label: "Hardware & building" },
-              { img: ownerPortrait, label: "And every shop in between" },
+              { img: storeClothing, label: "Clothing & fashion", note: "Every size and colour counted, nothing sold twice" },
+              { img: storeGrocery, label: "Grocery & spaza", note: "Hundreds of small sales, rung up with no queue" },
+              { img: storeHardware, label: "Hardware & building", note: "Big-ticket sales that wait for your OK" },
+              { img: ownerPortrait, label: "Every shop in between", note: "If it sells, it's on your phone by tonight" },
             ].map((t, i) => (
               <Reveal key={t.label} delay={i * 90}>
                 <div className="group relative overflow-hidden rounded-3xl">
@@ -282,6 +324,7 @@ function Landing() {
                       {t.label}
                       <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4 -translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
                     </p>
+                    <p className="mt-1 text-sm leading-6 text-background/75">{t.note}</p>
                   </div>
                 </div>
               </Reveal>
@@ -290,59 +333,23 @@ function Landing() {
         </div>
       </section>
 
-      {/* Single store / multiple stores — Shopify style split */}
-      <section className="bg-muted">
-        <div className="mx-auto max-w-7xl px-6 py-24">
-          <Reveal>
-            <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
-              Powering shops of every size
-            </h2>
-          </Reveal>
-          <div className="mt-14 grid gap-6 md:grid-cols-2">
-            <Reveal>
-              <Card className="gap-0 rounded-3xl border-0 p-10 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                <CardHeader className="gap-0 p-0">
-                  <HugeiconsIcon icon={StoreIcon} className="h-9 w-9 text-accent" />
-                  <CardTitle className="mt-6 text-3xl font-light">Single store</CardTitle>
-                  <CardDescription className="mt-3 text-lg leading-7">
-                    Sell at the counter with one login for the shop. Every staff member unlocks the till
-                    with their own 4-digit PIN — so every kwacha is traceable to a person.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Reveal>
-            <Reveal delay={100}>
-              <Card className="gap-0 rounded-3xl border-0 p-10 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                <CardHeader className="gap-0 p-0">
-                  <HugeiconsIcon icon={BoxesIcon} className="h-9 w-9 text-accent" />
-                  <CardTitle className="mt-6 text-3xl font-light">Multiple stores</CardTitle>
-                  <CardDescription className="mt-3 text-lg leading-7">
-                    Run every branch from one account. Stock, sales and staff sync across all your
-                    stores — see the whole business from your phone.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature: checkout — alternating photo */}
+      {/* Feature: checkout — what a good day at the counter feels like */}
       <section id="features" className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
         <Reveal>
           <img src={counter} alt="Cashier completing a sale" loading="lazy" width={1200} height={1200} className="aspect-square w-full rounded-3xl object-cover transition-transform duration-700 ease-out hover:scale-[1.02]" />
         </Reveal>
         <Reveal delay={120}>
-          <Eyebrow>Checkout</Eyebrow>
-          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">The fastest till at the counter.</h2>
+          <Eyebrow>At the counter</Eyebrow>
+          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Ring up a sale in three taps.</h2>
           <p className="mt-5 text-lg text-muted-foreground">
-            Tap products, take cash, card or mobile money, and you're done. Every sale updates stock instantly, on every device.
+            Your customer pays the way they want, the goods come off the shelf by themselves, and
+            the receipt is in their hand before they turn around.
           </p>
           <ul className="mt-8 space-y-4">
             {[
-              "Cash, card and mobile money in one checkout",
-              "Each cashier signs in with their own PIN — every kwacha is traceable",
-              "Works for one shop or ten, from the same account",
+              "Cash, card, Airtel Money or TNM Mpamba — one button each",
+              "Stock drops the second the sale is made, on every device",
+              "Every sale lands with the cashier's name against it",
             ].map((t, i) => (
               <Reveal as="li" key={t} delay={200 + i * 90} className="flex gap-3 text-base transition-colors hover:text-accent">
                 <HugeiconsIcon icon={Tick01Icon} className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> {t}
@@ -352,25 +359,29 @@ function Landing() {
         </Reveal>
       </section>
 
-      {/* Two store types — dark band */}
+      {/* Control — the peace of mind that lets an owner leave the counter */}
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
             <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
-              Run your shop your way. Not ours.
+              Run the shop without sleeping at the counter.
             </h2>
           </Reveal>
           <Reveal delay={80}>
-            <p className="mt-5 max-w-2xl text-lg opacity-70">Choose how each store works. Storq enforces it — no shortcuts, no leaks.</p>
+            <p className="mt-5 max-w-2xl text-lg opacity-70">
+              Every person, every kwacha and every unit of stock leaves a trail. That trail is what
+              lets you close at six and still trust the numbers tomorrow morning.
+            </p>
           </Reveal>
-          <div className="mt-14 grid gap-6 md:grid-cols-2">
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
             <Reveal>
               <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
                 <CardHeader className="gap-0 p-0">
-                  <HugeiconsIcon icon={FlashIcon} className="h-8 w-8 transition-transform duration-300 group-hover:scale-110" />
-                  <CardTitle className="mt-6 text-3xl font-light">Direct sale</CardTitle>
+                  <HugeiconsIcon icon={UserMultipleIcon} className="h-8 w-8 transition-transform duration-300 group-hover:scale-110" />
+                  <CardTitle className="mt-6 text-3xl font-light">A PIN for each person</CardTitle>
                   <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
-                    Cashier rings it up, customer pays, stock drops. Perfect for busy counters and spazas.
+                    One shop login on the device, then every cashier opens the till with their own
+                    code. Sales, discounts and refunds carry a name — theirs.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -379,9 +390,22 @@ function Landing() {
               <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
                 <CardHeader className="gap-0 p-0">
                   <HugeiconsIcon icon={ShieldCheckIcon} className="h-8 w-8 transition-transform duration-300 group-hover:scale-110" />
-                  <CardTitle className="mt-6 text-3xl font-light">Approval-based</CardTitle>
+                  <CardTitle className="mt-6 text-3xl font-light">Big sales wait for your OK</CardTitle>
                   <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
-                    Cashier creates an invoice, a manager approves it before stock moves. Built for wholesale and high-value goods.
+                    On the stores you choose, a cashier rings the invoice and nothing leaves the
+                    shelf until a manager says yes. Made for wholesale and costly goods.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Reveal>
+            <Reveal delay={200}>
+              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
+                <CardHeader className="gap-0 p-0">
+                  <HugeiconsIcon icon={BoxesIcon} className="h-8 w-8 transition-transform duration-300 group-hover:scale-110" />
+                  <CardTitle className="mt-6 text-3xl font-light">Stock can't walk out unseen</CardTitle>
+                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
+                    Sale, transfer, refund or count: each movement is logged with a reason and the
+                    person who did it. Shortages stop being rumours.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -390,44 +414,47 @@ function Landing() {
         </div>
       </section>
 
-      {/* Feature: inventory — alternating photo */}
+      {/* Feature: stock — the sale you lose when you can't see the shelf */}
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
         <Reveal className="md:order-2">
           <img src={stocktake} alt="Manager counting stock on his phone" loading="lazy" width={1200} height={1200} className="aspect-square w-full rounded-3xl object-cover transition-transform duration-700 ease-out hover:scale-[1.02]" />
         </Reveal>
         <Reveal delay={120}>
-          <Eyebrow>Inventory</Eyebrow>
-          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Know exactly what's on the shelf.</h2>
+          <Eyebrow>Your stock</Eyebrow>
+          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Never lose a sale to "it's finished".</h2>
           <p className="mt-5 text-lg text-muted-foreground">
-            Run stock takes with your whole team on their phones. Storq shows what's missing, who counted it, and what it cost you.
+            See what's on the shelf in every store, what has been sitting for a month and what is
+            about to run out — before your customer has to ask.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4">
             <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 shadow-none transition-colors duration-300 hover:bg-accent/10">
               <CardHeader className="gap-1 p-0">
-                <CardTitle className="text-3xl font-light">Live</CardTitle>
-                <CardDescription>stock across all stores</CardDescription>
+                <CardTitle className="text-3xl font-light">What sells</CardTitle>
+                <CardDescription>and what sits — moved with every sale</CardDescription>
               </CardHeader>
             </Card>
             <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 shadow-none transition-colors duration-300 hover:bg-accent/10">
               <CardHeader className="gap-1 p-0">
-                <CardTitle className="text-3xl font-light">Every</CardTitle>
-                <CardDescription>adjustment logged to a PIN</CardDescription>
+                <CardTitle className="text-3xl font-light">Running low</CardTitle>
+                <CardDescription>flagged before your best seller finishes</CardDescription>
               </CardHeader>
             </Card>
           </div>
         </Reveal>
       </section>
 
-      {/* Layby with product mockup */}
+      {/* Layby — the sale you would otherwise send away */}
       <section id="layby" className="bg-muted">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
           <Reveal>
             <Eyebrow>Layby</Eyebrow>
-            <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Say yes to customers who pay over time.</h2>
+            <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">Turn "I'll pay next month" into money today.</h2>
             <p className="mt-5 text-lg text-muted-foreground">
-              Reserve the goods, take a deposit, record each payment. The item is held out of stock until it's paid off.
+              Take a deposit, hold the goods aside and record every instalment as it arrives. Your
+              customer walks out happy, the sale is yours, and there's never an argument about what
+              has been paid.
             </p>
-            <div className="mt-8"><Cta label="Try layby free" /></div>
+            <div className="mt-8"><Cta label="Start free trial" /></div>
           </Reveal>
           <Reveal delay={120}>
             <Card className="gap-0 rounded-3xl border-0 p-8 shadow-xl transition-transform duration-500 ease-out hover:-translate-y-1.5">
@@ -531,7 +558,7 @@ function Landing() {
         </Reveal>
         <div className="mt-14 grid gap-10 md:grid-cols-3">
           {[
-            ["1", "Start for free", "Create your business account — no credit card required."],
+            ["1", "Start your free trial", "Create your business account — no card needed, and the trial starts right away."],
             ["2", "Set up your store", "Add your products and prices, then give each staff member their own PIN."],
             ["3", "Start selling", "Open the till on any phone or laptop and ring up your first sale."],
           ].map(([n, t, d], i) => (
@@ -542,7 +569,7 @@ function Landing() {
             </Reveal>
           ))}
         </div>
-        <Reveal delay={120} className="mt-12"><Cta label="Start for free" /></Reveal>
+        <Reveal delay={120} className="mt-12"><Cta label="Start free trial" /></Reveal>
       </section>
 
       {/* Why Africa */}
@@ -570,40 +597,48 @@ function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Single plan: everything included, priced per store. Trial is part of it, not a tier. */}
       <section id="pricing" className="border-t border-border bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
-            <h2 className="text-center text-4xl font-light tracking-tight md:text-6xl">Simple pricing. Start free.</h2>
+            <h2 className="text-center text-4xl font-light tracking-tight md:text-6xl">One plan. Pay per store.</h2>
           </Reveal>
-          <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-2">
-            {[
-              { n: "Starter", p: `MK0`, s: "/store /month", f: ["1 store", "Up to 3 staff PINs", "Direct sale, layby, stock"], hi: false },
-              { n: "Growth", p: `MK${PRICES.MWK.toLocaleString()}`, s: "/store /month", f: ["Unlimited stores", "Unlimited staff PINs", "Approval-based stores", "Team stock takes & reports"], hi: true },
-            ].map((t, i) => (
-              <Reveal key={t.n} delay={i * 110}>
-                <Card
-                  className={cn(
-                    "gap-0 rounded-3xl border-0 p-10 transition-all duration-300 hover:-translate-y-1.5",
-                    t.hi ? "bg-primary text-primary-foreground shadow hover:shadow-xl" : "shadow-sm hover:shadow-lg",
-                  )}
-                >
-                  <CardHeader className="p-0">
-                    <CardTitle className="text-lg font-semibold">{t.n}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <p className="mt-4 text-6xl font-light tracking-tight">{t.p}<span className="text-lg font-medium opacity-60">{t.s}</span></p>
-                    <ul className="mt-8 space-y-3">
-                      {t.f.map((x) => (
-                        <li key={x} className="flex gap-3"><HugeiconsIcon icon={Tick01Icon} className="h-5 w-5 shrink-0" /> {x}</li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter className="mt-10 flex-col items-start gap-0 p-0"><Cta label={t.hi ? "Start 30-day trial" : "Start free"} invert={t.hi} /></CardFooter>
-                </Card>
-              </Reveal>
-            ))}
-          </div>
+          <Reveal delay={80}>
+            <p className="mx-auto mt-5 max-w-2xl text-center text-lg text-muted-foreground">
+              No lite edition, no locked features and no second tier to upgrade into. You pay per
+              store you run — and the free trial is part of the plan, not a plan of its own.
+            </p>
+          </Reveal>
+          <Reveal delay={160}>
+            <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary p-10 text-primary-foreground shadow transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+              <CardHeader className="p-0">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className="text-lg font-semibold">Storq plan — everything included</CardTitle>
+                  <Badge className="rounded-full border-0 bg-primary-foreground/15 px-3 py-1 text-xs font-semibold text-primary-foreground shadow-none hover:bg-primary-foreground/15">
+                    Free trial included
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <p className="mt-4 text-6xl font-light tracking-tight">MK{PRICES.MWK.toLocaleString()}<span className="text-lg font-medium opacity-60">/store /month</span></p>
+                <p className="mt-3 text-base opacity-70">
+                  Pay only for the stores you open. Yearly billing saves 15%, paid by Airtel Money,
+                  TNM Mpamba or card.
+                </p>
+                <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {planFeatures.map((x) => (
+                    <li key={x} className="flex gap-3"><HugeiconsIcon icon={Tick01Icon} className="h-5 w-5 shrink-0" /> {x}</li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter className="mt-10 flex-col items-start gap-3 p-0">
+                <Cta label="Start free trial" invert />
+                <p className="text-sm opacity-70">
+                  The trial covers one store and up to 3 staff PINs. No card needed to start.
+                </p>
+              </CardFooter>
+            </Card>
+          </Reveal>
         </div>
       </section>
 
@@ -615,7 +650,7 @@ function Landing() {
           <Reveal>
             <h2 className="mx-auto max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl">Open your till in the next 5 minutes.</h2>
           </Reveal>
-          <Reveal delay={140} className="mt-10 flex justify-center"><Cta label="Get started free" invert /></Reveal>
+          <Reveal delay={140} className="mt-10 flex justify-center"><Cta label="Start free trial" invert /></Reveal>
         </div>
       </section>
 

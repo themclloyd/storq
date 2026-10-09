@@ -1,8 +1,30 @@
 import type { Role, Store } from "@/lib/pos";
 
-export type WorkspacePath = "/app/dashboard" | "/app" | "/app/sales" | "/app/invoices" | "/app/laybys" | "/app/shifts" | "/app/inventory" | "/app/collections" | "/app/stocktake" | "/app/reports" | "/app/expenses" | "/app/stores" | "/app/staff" | "/app/billing";
-export type WorkspaceGroup = "dashboard" | "register" | "sales" | "inventory" | "finance" | "settings";
-type Page = { to: WorkspacePath; label: string; roles: Role[]; group: WorkspaceGroup; approvalOnly?: boolean };
+export type WorkspacePath =
+  | "/app/dashboard"
+  | "/app"
+  | "/app/sales"
+  | "/app/invoices"
+  | "/app/laybys"
+  | "/app/shifts"
+  | "/app/inventory"
+  | "/app/transfers"
+  | "/app/collections"
+  | "/app/stocktake"
+  | "/app/reports"
+  | "/app/expenses"
+  | "/app/stores"
+  | "/app/staff"
+  | "/app/billing";
+export type WorkspaceGroup =
+  "dashboard" | "register" | "sales" | "inventory" | "finance" | "settings";
+type Page = {
+  to: WorkspacePath;
+  label: string;
+  roles: Role[];
+  group: WorkspaceGroup;
+  approvalOnly?: boolean;
+};
 const all: Role[] = ["admin", "manager", "cashier"];
 const managers: Role[] = ["admin", "manager"];
 
@@ -14,6 +36,7 @@ export const workspacePages: Page[] = [
   { to: "/app/invoices", label: "Approvals", group: "sales", roles: all, approvalOnly: true },
   { to: "/app/laybys", label: "Laybys", group: "sales", roles: all },
   { to: "/app/inventory", label: "Items", group: "inventory", roles: managers },
+  { to: "/app/transfers", label: "Transfers", group: "inventory", roles: managers },
   { to: "/app/collections", label: "Collections", group: "inventory", roles: managers },
   { to: "/app/stocktake", label: "Stock takes", group: "inventory", roles: all },
   { to: "/app/reports", label: "Overview", group: "finance", roles: managers },
@@ -24,18 +47,32 @@ export const workspacePages: Page[] = [
 ];
 
 export function visibleWorkspacePages(role: Role, type?: Store["store_type"]) {
-  return workspacePages.filter((page) => page.roles.includes(role) && (!page.approvalOnly || type === "approval"));
+  return workspacePages.filter(
+    (page) => page.roles.includes(role) && (!page.approvalOnly || type === "approval"),
+  );
 }
 
 export function workspacePageAt(path: string) {
   const normalized = path.replace(/\/$/, "");
-  return workspacePages.find((page) => normalized === page.to || (page.to !== "/app" && normalized.startsWith(`${page.to}/`)));
+  return workspacePages.find(
+    (page) =>
+      normalized === page.to || (page.to !== "/app" && normalized.startsWith(`${page.to}/`)),
+  );
 }
 
 export function workspaceNavigation(role: Role, type?: Store["store_type"]) {
   const pages = visibleWorkspacePages(role, type);
-  const labels: Record<WorkspaceGroup, string> = { dashboard: "Dashboard", register: "POS", sales: "Sales", inventory: "Inventory", finance: role === "cashier" ? "Expenses" : "Reports", settings: "Settings" };
-  return (["dashboard", "register", "sales", "inventory", "finance", "settings"] as WorkspaceGroup[]).flatMap((group) => {
+  const labels: Record<WorkspaceGroup, string> = {
+    dashboard: "Dashboard",
+    register: "POS",
+    sales: "Sales",
+    inventory: "Inventory",
+    finance: role === "cashier" ? "Expenses" : "Reports",
+    settings: "Settings",
+  };
+  return (
+    ["dashboard", "register", "sales", "inventory", "finance", "settings"] as WorkspaceGroup[]
+  ).flatMap((group) => {
     const first = pages.find((page) => page.group === group);
     return first ? [{ group, label: labels[group], to: first.to }] : [];
   });

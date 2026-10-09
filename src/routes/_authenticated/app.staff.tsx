@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { roleLabel, usePos, type Role } from "@/lib/pos";
+import { NativeSelect } from "@/components/pos/bits";
 import { LIMITS, validatePin, requireText, sanitizeText } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ const roleOptions: { value: Role; label: string }[] = [
 ];
 
 function Staff() {
-  const { can, stores } = usePos();
+  const { can, stores, autoLockMinutes, setAutoLockMinutes } = usePos();
   const [edit, setEdit] = useState<Partial<StaffRow> | null>(null);
   const staff = useQuery({
     queryKey: ["staff"],
@@ -94,6 +95,27 @@ function Staff() {
           </p>
         </Card>
       </div>
+      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-3 shadow-none">
+        <div className="text-[13px]">
+          <b>Till auto-lock</b>
+          <p className="text-muted-foreground">
+            Lock this device back to the PIN pad after a spell of inactivity. Quick-lock anytime
+            with Ctrl/Cmd + Shift + L.
+          </p>
+        </div>
+        <NativeSelect
+          className="w-40"
+          value={String(autoLockMinutes)}
+          onChange={(v) => setAutoLockMinutes(Number(v))}
+          options={[
+            { value: "2", label: "After 2 minutes" },
+            { value: "5", label: "After 5 minutes" },
+            { value: "10", label: "After 10 minutes" },
+            { value: "15", label: "After 15 minutes" },
+            { value: "0", label: "Never" },
+          ]}
+        />
+      </Card>
       <Card className="divide-y p-0 shadow-none">
         {staff.data?.map((s) => (
           <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">

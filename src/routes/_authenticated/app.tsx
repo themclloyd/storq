@@ -379,6 +379,18 @@ function Shell() {
     if (store && unavailableApproval) void navigate({ to: "/app/sales", replace: true });
   }, [store?.id, unavailableApproval, navigate]);
 
+  // Quick-lock hotkey: Ctrl/Cmd+Shift+L locks the till back to the PIN pad.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        void lock();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [lock]);
+
   return (
     <SidebarProvider className="storq-workspace bg-background">
       <Sidebar collapsible="icon">
