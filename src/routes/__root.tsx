@@ -116,6 +116,10 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Without JS, scroll-reveal wrappers on the landing page must stay visible. */}
+        <noscript>
+          <style>{".reveal{opacity:1!important;transform:none!important;transition:none}"}</style>
+        </noscript>
       </head>
       <body>
         {children}
