@@ -261,7 +261,7 @@ function Landing() {
       {/* Hero — the owner's wish, not the product's name */}
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-16 text-center md:pt-24">
         <Rise>
-          <Eyebrow>For shop owners</Eyebrow>
+          <Eyebrow>Built for African shops</Eyebrow>
         </Rise>
         <Rise delay={80}>
           <h1 className="mx-auto mt-4 max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
@@ -288,7 +288,7 @@ function Landing() {
         <Rise delay={120} className="relative mt-14 overflow-hidden rounded-3xl">
           <img src={heroShop} alt="Shop owner ringing up a sale on Storq" width={1600} height={1104} fetchPriority="high" decoding="async" className="h-[460px] w-full object-cover md:h-[620px] transition-transform duration-700 ease-out hover:scale-[1.02]" />
           <Card className="absolute bottom-5 left-5 gap-0 rounded-2xl border-0 bg-card/95 p-5 text-left shadow-xl backdrop-blur transition-transform duration-300 hover:-translate-y-1 md:bottom-8 md:left-8">
-            <CardDescription className="text-xs font-medium">Today's takings · Rosebank store</CardDescription>
+            <CardDescription className="text-xs font-medium">Today's takings · Limbe store</CardDescription>
             <p className="mt-1 text-3xl font-light">MK 18 450</p>
             <p className="text-sm font-semibold text-success">▲ 24% vs last Wednesday</p>
           </Card>
@@ -311,7 +311,7 @@ function Landing() {
           </Reveal>
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { img: storeClothing, label: "Clothing & fashion", note: "Every size and colour counted, nothing sold twice" },
+              { img: storeClothing, label: "Clothing & fashion", note: "Every size and colour counted — nothing sold that isn't there" },
               { img: storeGrocery, label: "Grocery & spaza", note: "Hundreds of small sales, rung up with no queue" },
               { img: storeHardware, label: "Hardware & building", note: "Big-ticket sales that wait for your OK" },
               { img: ownerPortrait, label: "Every shop in between", note: "If it sells, it's on your phone by tonight" },
@@ -486,7 +486,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Customer story — Square style testimonial with photo */}
+      {/* Customer story — an owner's relief, in her words */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="grid items-center gap-12 md:grid-cols-5">
           <Reveal className="md:col-span-2">
@@ -495,20 +495,20 @@ function Landing() {
           <Reveal delay={120} className="md:col-span-3">
             <Eyebrow>Shop owners</Eyebrow>
             <blockquote className="mt-6 text-3xl font-light leading-snug tracking-tight md:text-4xl">
-              "Before Storq I never knew what left the shop. Now every sale, every layby,
-              every stock count has a name on it. My staff trust it and so do I."
+              "I used to close the shop not knowing if we had made money. Now I look at my phone,
+              not the drawer — and everything on it has a name behind it."
             </blockquote>
-            <p className="mt-6 text-lg font-semibold">Naledi K.</p>
-            <p className="text-muted-foreground">Clothing store owner, Johannesburg</p>
+            <p className="mt-6 text-lg font-semibold">Chisomo B.</p>
+            <p className="text-muted-foreground">Clothing store owner, Limbe</p>
           </Reveal>
         </div>
         {/* Big stat callouts */}
         <Separator className="mt-20" />
         <div className="grid gap-10 pt-16 text-center sm:grid-cols-3">
           {[
-            ["5 min", "to set up your first till"],
-            ["MK0", "hardware to buy"],
-            ["100%", "of sales traced to a staff PIN"],
+            ["5 min", "before your first sale goes through"],
+            ["MK0", "extra hardware to buy"],
+            ["1 screen", "for cash, card and mobile money"],
           ].map(([n, l], i) => (
             <Reveal key={n} delay={i * 100} className="transition-transform duration-300 hover:-translate-y-1">
               <p className="text-5xl font-light tracking-tight text-accent md:text-6xl">{n}</p>
@@ -518,23 +518,23 @@ function Landing() {
         </div>
       </section>
 
-      {/* All features grid — Shopify style */}
+      {/* What else is already inside — breadth without repeating the blocks above */}
       <section className="bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
-            <Eyebrow>Features</Eyebrow>
+            <Eyebrow>Also inside</Eyebrow>
             <h2 className="mt-3 max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
-              All the features. All in one place.
+              Everything else you'd otherwise keep in a notebook.
             </h2>
           </Reveal>
           <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              [FlashIcon, "Fast checkout", "Ring up sales in seconds with cash, card or mobile money."],
-              [UserMultipleIcon, "Staff management", "One login per shop, a 4-digit PIN per person. Roles come from the PIN."],
-              [BoxesIcon, "Inventory management", "Live stock across every store, with quantity tracking on every item."],
-              [ShieldCheckIcon, "Invoice approvals", "Approval-based stores: cashiers invoice, managers approve before stock moves."],
-              [BarChartIcon, "Reports & analytics", "See what sells best, when you're busiest, and what each store makes."],
-              [SmartPhone01Icon, "Stock takes with staff", "Count together on your phones. Variances and losses shown instantly."],
+              [BarChartIcon, "Know your good days", "See what sells, what sits and what you kept after expenses — by day, by till, by store."],
+              [StoreIcon, "Open a second till", "Add a counter or a whole branch and the stock, staff and takings still land in one place."],
+              [BoxesIcon, "Move stock between shops", "Shift goods from the busy branch to the quiet one without losing sight of either."],
+              [SmartPhone01Icon, "Your shop in your pocket", "Check today's takings from home, from the bus, or standing in the other store."],
+              [WifiOffIcon, "Keeps selling when data drops", "The till holds the sale on the device and files it the moment the network returns."],
+              [FlashIcon, "Receipts that look like you", "A printed or sent receipt with your shop's name on it — the thing customers come back with."],
             ].map(([Icon, t, d], i) => {
               const I = Icon as typeof FlashIcon;
               return (
@@ -549,18 +549,18 @@ function Landing() {
         </div>
       </section>
 
-      {/* How to get started — Shopify style 3 steps */}
+      {/* How to get started — the shortest path to a first sale */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <Reveal>
           <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
-            How to get started with Storq
+            From sign-up to first sale, today.
           </h2>
         </Reveal>
         <div className="mt-14 grid gap-10 md:grid-cols-3">
           {[
-            ["1", "Start your free trial", "Create your business account — no card needed, and the trial starts right away."],
-            ["2", "Set up your store", "Add your products and prices, then give each staff member their own PIN."],
-            ["3", "Start selling", "Open the till on any phone or laptop and ring up your first sale."],
+            ["1", "Open your account", "Name your business and your store. No card, no waiting — the trial starts as you sign up."],
+            ["2", "Put your goods in", "Type in what you sell, what it costs and what's on the shelf. Five items or five thousand."],
+            ["3", "Start selling", "Open the till on any phone or laptop and ring up your first sale before the day ends."],
           ].map(([n, t, d], i) => (
             <Reveal key={n} delay={i * 120} className="group">
               <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-xl font-light text-primary-foreground transition-transform duration-300 group-hover:scale-110">{n}</span>
@@ -572,31 +572,6 @@ function Landing() {
         <Reveal delay={120} className="mt-12"><Cta label="Start free trial" /></Reveal>
       </section>
 
-      {/* Why Africa */}
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-7xl px-6 py-24">
-          <Reveal>
-            <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">Built for how Africa actually trades.</h2>
-          </Reveal>
-          <div className="mt-14 grid gap-10 md:grid-cols-3">
-            {[
-              [SmartPhone01Icon, "Any device", "Android phone, old laptop, tablet — sign in once and every staff member uses their PIN."],
-              [ShieldCheckIcon, "Staff can't cheat the till", "Roles come from the PIN. Cashiers sell, managers approve, owners see everything."],
-              [WifiOffIcon, "Light on data", "A fast, lightweight app that keeps working on everyday mobile connections."],
-            ].map(([Icon, t, d], i) => {
-              const I = Icon as typeof SmartPhone01Icon;
-              return (
-                <Reveal key={t as string} delay={i * 110} className="group">
-                  <HugeiconsIcon icon={I} className="h-8 w-8 text-accent transition-transform duration-300 group-hover:-translate-y-1" />
-                  <h3 className="mt-5 text-2xl font-light">{t as string}</h3>
-                  <p className="mt-2 text-muted-foreground">{d as string}</p>
-                </Reveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Single plan: everything included, priced per store. Trial is part of it, not a tier. */}
       <section id="pricing" className="border-t border-border bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
@@ -605,15 +580,15 @@ function Landing() {
           </Reveal>
           <Reveal delay={80}>
             <p className="mx-auto mt-5 max-w-2xl text-center text-lg text-muted-foreground">
-              No lite edition, no locked features and no second tier to upgrade into. You pay per
-              store you run — and the free trial is part of the plan, not a plan of its own.
+              Nothing is held back for a plan you haven't bought, and there is no second tier to be
+              sold into later. You pay for each store you run — and the free trial comes with it.
             </p>
           </Reveal>
           <Reveal delay={160}>
             <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary p-10 text-primary-foreground shadow transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
               <CardHeader className="p-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle className="text-lg font-semibold">Storq plan — everything included</CardTitle>
+                  <CardTitle className="text-lg font-semibold">One plan — everything in it</CardTitle>
                   <Badge className="rounded-full border-0 bg-primary-foreground/15 px-3 py-1 text-xs font-semibold text-primary-foreground shadow-none hover:bg-primary-foreground/15">
                     Free trial included
                   </Badge>
@@ -622,8 +597,8 @@ function Landing() {
               <CardContent className="p-0">
                 <p className="mt-4 text-6xl font-light tracking-tight">MK{PRICES.MWK.toLocaleString()}<span className="text-lg font-medium opacity-60">/store /month</span></p>
                 <p className="mt-3 text-base opacity-70">
-                  Pay only for the stores you open. Yearly billing saves 15%, paid by Airtel Money,
-                  TNM Mpamba or card.
+                  One till or six — you pay per store you open, monthly. Pay for the year and keep
+                  15% back, with Airtel Money, TNM Mpamba or card.
                 </p>
                 <ul className="mt-8 grid gap-3 sm:grid-cols-2">
                   {planFeatures.map((x) => (
@@ -644,19 +619,22 @@ function Landing() {
 
       <Faq />
 
-      {/* Final CTA */}
+      {/* Close — the feeling the whole page sold */}
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center">
           <Reveal>
-            <h2 className="mx-auto max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl">Open your till in the next 5 minutes.</h2>
+            <h2 className="mx-auto max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl">Know what today made, before you close the shutter.</h2>
           </Reveal>
           <Reveal delay={140} className="mt-10 flex justify-center"><Cta label="Start free trial" invert /></Reveal>
+          <Reveal delay={200}>
+            <p className="mt-6 text-sm opacity-70">Free trial on your first store · No card · Stop whenever you stop trading</p>
+          </Reveal>
         </div>
       </section>
 
       <footer className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-6 py-10 text-sm text-muted-foreground md:flex-row">
         <span>© {new Date().getFullYear()} Storq</span>
-        <span>Point of sale · Inventory · Layby</span>
+        <span>Your till · Your stock · Your staff</span>
       </footer>
     </div>
   );
@@ -666,7 +644,7 @@ function Faq() {
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">
       <Reveal>
-        <h2 className="text-3xl font-light tracking-tight md:text-4xl">Frequently asked questions</h2>
+        <h2 className="text-3xl font-light tracking-tight md:text-4xl">Questions shop owners ask</h2>
       </Reveal>
       <Accordion type="single" collapsible defaultValue="faq-0" className="mt-8">
         {faqItems.map(([q, a], i) => (
