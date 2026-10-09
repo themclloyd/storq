@@ -1,10 +1,10 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ type: "direct" as "direct" | "approval", rpc: vi.fn() }));
+const state = vi.hoisted(() => ({ type: "direct" as "direct" | "approval", rpc: vi.fn(), offlineOk: undefined as boolean | undefined }));
 vi.mock("@tanstack/react-router", () => ({ createFileRoute: () => (options: unknown) => ({ options }) }));
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: vi.fn() }) }));
-vi.mock("@/lib/pos", () => ({ usePos: () => ({ store: { id: "store", name: "Test store", store_type: state.type }, money: (n: number) => `R ${n}`, rpc: state.rpc, business: null }) }));
+vi.mock("@/lib/pos", () => ({ usePos: () => ({ store: { id: "store", name: "Test store", store_type: state.type }, money: (n: number) => `R ${n}`, rpc: state.rpc, checkout: (a: Record<string, unknown>, o: { offlineOk: boolean }) => { state.offlineOk = o.offlineOk; return state.rpc("checkout", a); }, business: null }) }));
 vi.mock("@/lib/products", () => ({ useProducts: () => ({ data: [{ id: "item", name: "Test item", active: true, price: 100, cost: 50 }] }), useStock: () => ({ data: { item: 10 } }) }));
 vi.mock("@/lib/collections", () => ({ useCollections: () => ({ data: { list: [], byProduct: {} } }), salePrice: (p: { price: number }) => p.price }));
 
@@ -35,6 +35,7 @@ describe("Store-specific checkout controls", () => {
     expect(screen.queryByText("Cash received")).not.toBeInTheDocument();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Send for approval" })); });
     expect(state.rpc).toHaveBeenCalledWith("checkout", expect.objectContaining({ p_store: "store", p_payment: 0, p_kind: "sale" }));
+    expect(state.offlineOk).toBe(false); // approval invoices never queue offline
   });
 
   it("keeps approval laybys as invoices, not immediate payments", () => {
