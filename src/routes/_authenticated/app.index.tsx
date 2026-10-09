@@ -13,6 +13,7 @@ import {
   Simcard01Icon,
 } from "@hugeicons/core-free-icons";
 import { useProducts, useStock, type Product } from "@/lib/products";
+import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
 import { usePos } from "@/lib/pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ const tileFor = (s: string) => tiles[[...s].reduce((a, c) => a + c.charCodeAt(0)
 type Line = { p: Product; qty: number };
 
 function Register() {
-  const { store, money, rpc, business, staff } = usePos();
+  const { store, money, business, staff, checkout } = usePos();
   const qc = useQueryClient();
   const products = useProducts();
   const stock = useStock(store?.id);
@@ -85,13 +86,19 @@ function Register() {
     if (!store) return;
     const lines = cart.map((l) => ({ name: l.p.name, qty: l.qty, price: price(l.p), total: l.qty * price(l.p) }));
     try {
-      const r = await rpc<{ id: string; number: number; status: string; total: number; tax: number }>("checkout", {
+      const r = await checkout({
         p_store: store.id, p_kind: kind, p_items: cart.map((l) => ({ product_id: l.p.id, qty: l.qty })),
         p_payment: f.payment, p_method: f.method, p_customer_name: f.name || null, p_customer_phone: f.phone || null, p_note: f.note || null,
-      });
+      }, { offlineOk: kind === "sale" && !approval, estTotal: Math.round(total * 100) / 100 });
+      if (r.offline) {
+        setCart([]); setDlg(null);
+        const change = f.method === "cash" ? Math.max(0, (f.tendered || 0) - r.total) : 0;
+        toast.success(`No internet — sale of ${money(r.total)} saved on this device and will sync automatically.${change ? ` Change: ${money(change)}` : ""}`);
+        return;
+      }
       setCart([]);
       setDlg(null);
-      qc.invalidateQueries();
+      invalidateKeys(qc, SALE_TOUCHED);
       // Approval invoices carry no payment yet, so only completed sales / laybys get a receipt.
       if (r.status !== "pending_approval") {
         const isCash = f.method === "cash";

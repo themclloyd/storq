@@ -14,17 +14,23 @@ export type Product = {
   active: boolean;
 };
 
-export function useProducts() {
-  const { business } = usePos();
+// The till keeps one lean, long-lived catalog in memory (like Square/Shopify's
+// local catalog) so scanning and search never wait on the network. Buying
+// costs are only pulled by screens that show them (`withCost`).
+export function useProducts(opts: { withCost?: boolean } = {}) {
+  const { business, can } = usePos();
+  const withCost = !!opts.withCost && can("admin", "manager");
   return useQuery({
-    queryKey: ["products", business?.id],
+    queryKey: ["products", business?.id, withCost],
+    enabled: !!business?.id,
     // The catalog only changes through the inventory screens, which
     // invalidate explicitly — no need to re-pull it on every mount.
-    staleTime: 300_000,
+    staleTime: 30 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").order("name");
+      const { data, error } = await supabase.from("products").select("id,name,sku,category,price,active").order("name");
       if (error) throw error;
-      // Generated types haven't caught up with the new gated cost table.
+      const base = data as unknown as Omit<Product, "cost">[];
+      if (!withCost) return base.map((p) => ({ ...p, cost: 0 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const costRes = await (supabase.from as any)("product_costs").select("product_id,cost");
       const costs = new Map<string, number>(
@@ -33,7 +39,7 @@ export function useProducts() {
           Number(c.cost),
         ]),
       );
-      return (data as unknown as Omit<Product, "cost">[]).map((p) => ({
+      return base.map((p) => ({
         ...p,
         cost: costs.get(p.id) ?? 0,
       }));
@@ -44,6 +50,8 @@ export function useStock(storeId?: string) {
   return useQuery({
     queryKey: ["stock", storeId],
     enabled: !!storeId,
+    // Stock changes only through our own writes, which invalidate ["stock"].
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("store_stock")

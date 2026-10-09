@@ -67,7 +67,7 @@ function Counting({ take }: { take: Take }) {
   const [onlyLeft, setOnlyLeft] = useState(false);
   const lines = useQuery({
     queryKey: ["take-lines", take.id],
-    refetchInterval: 5000,
+    refetchInterval: 15_000, // live team count; paused automatically when the tab is hidden
     queryFn: async () => {
       const { data, error } = await supabase.from("stock_take_lines").select("product_id,expected,counted").eq("stock_take_id", take.id);
       if (error) throw error;

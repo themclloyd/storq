@@ -10,7 +10,9 @@ export function useSubscription(businessId?: string, storeCount = 0) {
   return useQuery({
     queryKey: ["subscription", businessId, storeCount],
     enabled: !!businessId,
-    refetchInterval: 60_000,
+    // Enforcement lives in SQL; this only refreshes the banner, so poll gently.
+    staleTime: 5 * 60_000,
+    refetchInterval: 10 * 60_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("subscriptions").select("trial_ends_at,paid_until,plan,paid_store_limit").eq("business_id", businessId).maybeSingle();
       if (error) throw error;
