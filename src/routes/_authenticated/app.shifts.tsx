@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
+import { invalidateKeys } from "@/lib/cache-invalidation";
 import { downloadPdf } from "@/lib/pdf";
 import { useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ function Shifts() {
   const [report, setReport] = useState<Shift | null>(null);
 
   async function openShift() {
-    try { await rpc("open_shift", { p_store: store!.id, p_float: Number(float || 0), p_notes: null }); toast.success("Shift opened"); setFloat(""); qc.invalidateQueries(); }
+    try { await rpc("open_shift", { p_store: store!.id, p_float: Number(float || 0), p_notes: null }); toast.success("Shift opened"); setFloat(""); invalidateKeys(qc, [["shifts"], ["shift-summary"]]); }
     catch (e) { toast.error((e as Error).message); }
   }
 
@@ -146,7 +147,7 @@ function MoveDialog({ kind, shift, onClose }: { kind: "in" | "out"; shift: strin
   const qc = useQueryClient();
   const [amt, setAmt] = useState(""); const [reason, setReason] = useState("");
   async function save() {
-    try { await rpc("cash_move", { p_shift: shift, p_kind: kind, p_amount: Number(amt), p_reason: reason }); toast.success("Recorded"); qc.invalidateQueries(); onClose(); }
+    try { await rpc("cash_move", { p_shift: shift, p_kind: kind, p_amount: Number(amt), p_reason: reason }); toast.success("Recorded"); invalidateKeys(qc, [["shifts"], ["shift-summary"]]); onClose(); }
     catch (e) { toast.error((e as Error).message); }
   }
   return (
@@ -169,7 +170,7 @@ function CloseDialog({ shift, expected, onClose, onDone }: { shift: Shift; expec
     setBusy(true);
     try {
       const sm = await rpc<Summary>("close_shift", { p_shift: shift.id, p_counted: Number(counted), p_notes: notes });
-      qc.invalidateQueries();
+      invalidateKeys(qc, [["shifts"], ["shift-summary"]]);
       onDone({ ...shift, status: "closed", closed_at: new Date().toISOString(), summary: sm, expected_cash: sm.expected_cash, counted_cash: Number(counted), variance: sm.variance ?? 0, notes });
     } catch (e) { toast.error((e as Error).message); setBusy(false); }
   }

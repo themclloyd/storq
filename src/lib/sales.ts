@@ -77,6 +77,9 @@ export function useSaleItemCosts(rows?: SaleRow[]) {
 export function useStaffNames() {
   return useQuery({
     queryKey: ["staff-names"],
+    // Tiny id→name dictionary reused by every list screen; only the staff
+    // page edits it and it invalidates from there, so never let it go stale.
+    staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase.from("staff").select("id,name");
       if (error) throw error;

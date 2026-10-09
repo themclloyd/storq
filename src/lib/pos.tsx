@@ -83,8 +83,12 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       const raw = localStorage.getItem(staffKey);
       if (raw) {
         const parsed = JSON.parse(raw) as StaffSession;
-        // A stale token is worse than no token: drop it once the server expiry passes.
-        if (parsed?.token && (!parsed.expires_at || new Date(parsed.expires_at) > new Date())) {
+        // A stale token is worse than no token. Sessions created before the
+        // security migration have no expires_at field; they also have no
+        // auth_uid in the DB, so app.session_role() returns NULL and every
+        // RLS-gated table comes back empty. Reject them here and let the
+        // PinPad reappear so a proper session is created.
+        if (parsed?.token && parsed.expires_at && new Date(parsed.expires_at) > new Date()) {
           setStaff(parsed);
         } else {
           localStorage.removeItem(staffKey);
@@ -98,6 +102,9 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
 
   const businessQ = useQuery({
     queryKey: ["business", userId],
+    // Businesses and stores are near-static during a trading session; they
+    // change only through the settings screens, which invalidate explicitly.
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("businesses")
@@ -110,6 +117,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   const storesQ = useQuery({
     queryKey: ["stores", businessQ.data?.id],
     enabled: !!businessQ.data,
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")

@@ -18,6 +18,9 @@ export function useProducts() {
   const { business } = usePos();
   return useQuery({
     queryKey: ["products", business?.id],
+    // The catalog only changes through the inventory screens, which
+    // invalidate explicitly — no need to re-pull it on every mount.
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase.from("products").select("*").order("name");
       if (error) throw error;

@@ -10,6 +10,9 @@ export function useCollections() {
   const { business } = usePos();
   return useQuery({
     queryKey: ["collections", business?.id],
+    // Membership edits go through the collection screens, which invalidate
+    // explicitly; a long staleTime keeps till pricing stable between edits.
+    staleTime: 300_000,
     queryFn: async (): Promise<CollectionData> => {
       const [c, pc] = await Promise.all([
         supabase.from("collections").select("id,name,discount_pct,is_shared,share_slug").order("name"),

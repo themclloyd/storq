@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
+import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useProducts, useStock, type Product } from "@/lib/products";
 import {
   LIMITS,
@@ -351,7 +352,13 @@ function ProductDialog({
         });
       }
       toast.success("Saved");
-      qc.invalidateQueries();
+      invalidateKeys(qc, [
+        ["products"],
+        ["stock"],
+        ["movements"],
+        ["collections"],
+        ["dash-alerts"],
+      ]);
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -542,7 +549,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
         p_note: note ? sanitizeText(note, LIMITS.note) : null,
       });
       toast.success("Stock updated");
-      qc.invalidateQueries();
+      invalidateKeys(qc, [["stock"], ["movements"], ["dash-alerts"]]);
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -778,7 +785,13 @@ function ImportDialog({
       }
       setDone((d) => d + 1);
     }
-    qc.invalidateQueries();
+    invalidateKeys(qc, [
+      ["products"],
+      ["stock"],
+      ["movements"],
+      ["collections"],
+      ["dash-alerts"],
+    ]);
     if (fails) toast.error(`${ok.length - fails} imported, ${fails} failed`);
     else toast.success(`${ok.length} items imported`);
     onClose();

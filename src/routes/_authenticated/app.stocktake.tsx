@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
+import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useProducts } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ function StockTake() {
   const open = takes.data?.find((t) => t.status === "open");
 
   async function start() {
-    try { await rpc("start_stock_take", { p_store: store!.id }); toast.success("Stock take started"); qc.invalidateQueries(); }
+    try { await rpc("start_stock_take", { p_store: store!.id }); toast.success("Stock take started"); invalidateKeys(qc, [["takes"], ["take-lines"]]); }
     catch (e) { toast.error((e as Error).message); }
   }
 
@@ -86,7 +87,7 @@ function Counting({ take }: { take: Take }) {
   }
   async function close() {
     if (!confirm("Close the stock take? Counted items will replace the current stock levels.")) return;
-    try { await rpc("close_stock_take", { p_take: take.id }); toast.success("Stock levels updated"); qc.invalidateQueries(); }
+    try { await rpc("close_stock_take", { p_take: take.id }); toast.success("Stock levels updated"); invalidateKeys(qc, [["takes"], ["take-lines"], ["stock"], ["movements"], ["dash-alerts"]]); }
     catch (e) { toast.error((e as Error).message); }
   }
 
