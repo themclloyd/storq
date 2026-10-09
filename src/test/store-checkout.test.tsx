@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ type: "direct" as "direct" | "approval", rpc: vi.fn() }));
 vi.mock("@tanstack/react-router", () => ({ createFileRoute: () => (options: unknown) => ({ options }) }));
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: vi.fn() }) }));
-vi.mock("@/lib/pos", () => ({ usePos: () => ({ store: { id: "store", name: "Test store", store_type: state.type }, money: (n: number) => `R ${n}`, rpc: state.rpc, business: null }) }));
+vi.mock("@/lib/pos", () => ({ usePos: () => ({ store: { id: "store", name: "Test store", store_type: state.type }, money: (n: number) => `R ${n}`, rpc: state.rpc, checkout: (a: Record<string, unknown>, o: { offlineOk: boolean }) => { state.offlineOk = o.offlineOk; return state.rpc("checkout", a); }, business: null }) }));
 vi.mock("@/lib/products", () => ({ useProducts: () => ({ data: [{ id: "item", name: "Test item", active: true, price: 100, cost: 50 }] }), useStock: () => ({ data: { item: 10 } }) }));
 vi.mock("@/lib/collections", () => ({ useCollections: () => ({ data: { list: [], byProduct: {} } }), salePrice: (p: { price: number }) => p.price }));
 
