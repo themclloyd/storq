@@ -87,7 +87,7 @@ function Sales() {
         <h1 className="text-xl font-semibold">Sales</h1>
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(ranges) as (keyof typeof ranges)[]).map((r) => (
-            <Button key={r} size="sm" variant={range === r ? "default" : "outline"} onClick={() => setRange(r)} className="capitalize">{r}</Button>
+            <Button key={r} size="sm" variant={range === r ? "default" : "outline"} onClick={() => { setRange(r); setShown(50); }} className="capitalize">{r}</Button>
           ))}
           <Button size="sm" variant="outline" onClick={() => downloadCsv(`storq-sales-${fileStamp()}.csv`, [["number", "date", "store", "status", "staff", "customer", "method", "total", "tax", "paid", "refunded"], ...rows.map((s) => [s.number, s.created_at, storeName(s.store_id) ?? "", s.status, names.data?.[s.created_by ?? ""] ?? "", s.customer_name ?? "", s.payment_method ?? "", s.total, s.tax, s.paid, s.refunded])])}>CSV</Button>
           <Button size="sm" variant="outline" onClick={() => void downloadPdf({
@@ -142,6 +142,11 @@ function Sales() {
               ))}
             </TableBody>
           </Table>
+          {rows.length > shown && (
+            <div className="border-t p-3 text-center">
+              <Button size="sm" variant="outline" onClick={() => setShown(shown + 50)}>Show more ({rows.length - shown} left)</Button>
+            </div>
+          )}
         </Card>
       )}
     </>
