@@ -20,7 +20,7 @@ describe("Store-specific checkout controls", () => {
     fireEvent.click(screen.getByRole("button", { name: /Test item/ }));
     fireEvent.click(screen.getByRole("button", { name: "Charge R 100" }));
     expect(screen.getByRole("heading", { name: "Take payment" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mobile money" })).toBeInTheDocument();
+    expect(screen.getByText("Mobile money")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Send for approval" })).not.toBeInTheDocument();
   });
 

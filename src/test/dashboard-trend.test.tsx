@@ -6,7 +6,7 @@ vi.mock("@tanstack/react-router", () => ({ Link: () => null }));
 import { TrendChart } from "@/components/dashboard";
 import { buildTrend, rangeStart } from "@/lib/trend";
 
-const money = (n: number) => `R ${n}`;
+const money = (n: number | string | null | undefined) => `R ${n ?? 0}`;
 const today = new Date();
 
 describe("Dashboard trend chart", () => {
