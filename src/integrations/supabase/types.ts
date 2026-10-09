@@ -310,6 +310,38 @@ export type Database = {
           },
         ]
       }
+      pin_throttle: {
+        Row: {
+          auth_uid: string
+          business_id: string
+          fails: number
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          auth_uid: string
+          business_id: string
+          fails?: number
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auth_uid?: string
+          business_id?: string
+          fails?: number
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pin_throttle_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_collections: {
         Row: {
           collection_id: string
@@ -340,12 +372,34 @@ export type Database = {
           },
         ]
       }
+      product_costs: {
+        Row: {
+          cost: number
+          product_id: string
+        }
+        Insert: {
+          cost?: number
+          product_id: string
+        }
+        Update: {
+          cost?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_costs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           active: boolean
           business_id: string
           category: string | null
-          cost: number
           created_at: string
           id: string
           name: string
@@ -356,7 +410,6 @@ export type Database = {
           active?: boolean
           business_id: string
           category?: string | null
-          cost?: number
           created_at?: string
           id?: string
           name: string
@@ -367,7 +420,6 @@ export type Database = {
           active?: boolean
           business_id?: string
           category?: string | null
-          cost?: number
           created_at?: string
           id?: string
           name?: string
@@ -526,9 +578,31 @@ export type Database = {
           },
         ]
       }
-      sale_items: {
+      sale_item_costs: {
         Row: {
           cost: number
+          sale_item_id: string
+        }
+        Insert: {
+          cost?: number
+          sale_item_id: string
+        }
+        Update: {
+          cost?: number
+          sale_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_item_costs_sale_item_id_fkey"
+            columns: ["sale_item_id"]
+            isOneToOne: true
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
           id: string
           name: string
           price: number
@@ -538,7 +612,6 @@ export type Database = {
           sale_id: string
         }
         Insert: {
-          cost?: number
           id?: string
           name: string
           price: number
@@ -548,7 +621,6 @@ export type Database = {
           sale_id: string
         }
         Update: {
-          cost?: number
           id?: string
           name?: string
           price?: number
@@ -719,16 +791,22 @@ export type Database = {
       }
       staff_sessions: {
         Row: {
+          auth_uid: string | null
+          created_at: string
           expires_at: string
           staff_id: string
           token: string
         }
         Insert: {
+          auth_uid?: string | null
+          created_at?: string
           expires_at?: string
           staff_id: string
           token?: string
         }
         Update: {
+          auth_uid?: string | null
+          created_at?: string
           expires_at?: string
           staff_id?: string
           token?: string
@@ -1075,15 +1153,6 @@ export type Database = {
         Args: { p_sale: string; p_sign: number }
         Returns: undefined
       }
-      adjust_stock: {
-        Args: {
-          p_delta: number
-          p_product: string
-          p_store: string
-          p_token: string
-        }
-        Returns: undefined
-      }
       adjust_stock_reason: {
         Args: {
           p_delta: number
@@ -1172,6 +1241,7 @@ export type Database = {
         }
         Returns: string
       }
+      lock_all_sessions: { Args: never; Returns: undefined }
       lock_session: { Args: { p_token: string }; Returns: undefined }
       my_business_id: { Args: never; Returns: string }
       open_shift: {

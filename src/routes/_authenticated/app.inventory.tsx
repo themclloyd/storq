@@ -68,7 +68,7 @@ const fmtDate = (d: string) =>
 function Inventory() {
   const { store, money, can, business } = usePos();
   const [imp, setImp] = useState<ImportRow[] | null>(null);
-  const products = useProducts();
+  const products = useProducts({ withCost: true });
   const stock = useStock(store?.id);
   const cols = useCollections();
   const colName = (pid: string) =>
