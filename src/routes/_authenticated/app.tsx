@@ -60,6 +60,14 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
+import {
+  LIMITS,
+  firstError,
+  requireText,
+  sanitizeText,
+  validateCurrency,
+  validatePin,
+} from "@/lib/validate";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app")({
@@ -122,6 +130,17 @@ function useSignOut() {
   const nav = useNavigate();
   return async () => {
     await qc.cancelQueries();
+    // Drop every staff PIN session tied to this device login server-side before
+    // clearing the local session — a later visitor on this device must re-unlock.
+    try {
+      // New RPC (added by the security migration) is not in the generated types yet.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.rpc as any)("lock_all_sessions");
+    } catch {
+      // Best-effort: we still clear the local session even if the server call fails.
+    }
+    const { data } = await supabase.auth.getUser();
+    if (data.user) localStorage.removeItem(`pos-staff-${data.user.id}`);
     qc.clear();
     await supabase.auth.signOut();
     nav({ to: "/auth", replace: true });
@@ -144,13 +163,27 @@ function Setup() {
     setF({ ...f, [k]: e.target.value });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Same standards the setup_business RPC enforces, so the user gets a
+    // readable toast instead of a raw server error.
+    const err = firstError(
+      requireText(f.name, "Business name", LIMITS.businessName),
+      validateCurrency(f.currency),
+      requireText(f.store, "Store name", LIMITS.storeName),
+      requireText(f.owner, "Your name", LIMITS.name),
+      validatePin(f.pin),
+    );
+    if (err) {
+      toast.error(err);
+      return;
+    }
     setBusy(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.rpc as any)("setup_business", {
-      p_name: f.name,
-      p_currency: f.currency,
-      p_store_name: f.store,
+      p_name: sanitizeText(f.name, LIMITS.businessName),
+      p_currency: f.currency.trim(),
+      p_store_name: sanitizeText(f.store, LIMITS.storeName),
       p_store_type: f.type,
-      p_owner_name: f.owner,
+      p_owner_name: sanitizeText(f.owner, LIMITS.name),
       p_pin: f.pin,
     });
     setBusy(false);
@@ -173,16 +206,26 @@ function Setup() {
         <div className="grid grid-cols-3 gap-2.5">
           <div className="col-span-2">
             <Field label="Business name">
-              <Input required value={f.name} onChange={set("name")} />
+              <Input
+                required
+                maxLength={LIMITS.businessName}
+                value={f.name}
+                onChange={set("name")}
+              />
             </Field>
           </div>
           <Field label="Currency">
-            <Input required value={f.currency} onChange={set("currency")} />
+            <Input
+              required
+              maxLength={LIMITS.currency}
+              value={f.currency}
+              onChange={set("currency")}
+            />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="First store">
-            <Input required value={f.store} onChange={set("store")} />
+            <Input required maxLength={LIMITS.storeName} value={f.store} onChange={set("store")} />
           </Field>
           <Field label="Store type">
             <NativeSelect
@@ -197,7 +240,7 @@ function Setup() {
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="Your name">
-            <Input required value={f.owner} onChange={set("owner")} />
+            <Input required maxLength={LIMITS.name} value={f.owner} onChange={set("owner")} />
           </Field>
           <Field label="Your admin PIN">
             <Input
@@ -229,12 +272,15 @@ function PinPad() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (pin.length !== 4) return;
+    if (pin.length < 4) return;
     setBusy(true);
     unlock(pin)
-      .catch(() => {
+      .catch((e) => {
+        // Surface the server throttle message (lockout) instead of a plain mismatch.
         setErr(true);
         setPin("");
+        if (/wait|locked|try again in/i.test((e as Error).message))
+          toast.error((e as Error).message);
       })
       .finally(() => setBusy(false));
   }, [pin]);
@@ -250,7 +296,7 @@ function PinPad() {
 
   const press = (d: string) => {
     setErr(false);
-    setPin((p) => (p.length < 4 ? p + d : p));
+    setPin((p) => (p.length < LIMITS.pinMax ? p + d : p));
   };
 
   return (
@@ -260,7 +306,7 @@ function PinPad() {
       </p>
       <h1 className="mt-2 text-2xl font-bold">Enter your PIN</h1>
       <div className={cn("mt-8 flex gap-4", err && "animate-pulse")}>
-        {[0, 1, 2, 3].map((i) => (
+        {Array.from({ length: Math.max(pin.length, 4) }).map((_, i) => (
           <span
             key={i}
             className={cn(

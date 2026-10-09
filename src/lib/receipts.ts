@@ -27,12 +27,17 @@ export type Receipt = {
 
 export type MoneyFmt = (n: number) => string;
 
-const METHOD_LABELS: Record<string, string> = { cash: "Cash", card: "Card", mobile: "Mobile money" };
+const METHOD_LABELS: Record<string, string> = {
+  cash: "Cash",
+  card: "Card",
+  mobile: "Mobile money",
+};
 
 export const methodLabel = (m: string) => METHOD_LABELS[m] ?? m;
 
 export function receiptTitle(r: Receipt) {
-  if (r.kind === "layby") return r.status === "layby_completed" ? "LAYBY — PAID IN FULL" : "LAYBY RECEIPT";
+  if (r.kind === "layby")
+    return r.status === "layby_completed" ? "LAYBY — PAID IN FULL" : "LAYBY RECEIPT";
   return "SALE RECEIPT";
 }
 
@@ -42,7 +47,21 @@ const STATUS_LABELS: Record<string, string> = {
   layby_completed: "LAYBY PAID",
 };
 
-const esc = (t: string) => t.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] ?? ch);
+/**
+ * Receipt HTML is built by string concatenation and inserted via innerHTML, so
+ * every value must pass through here. Control characters (NUL, tab, newline,
+ * CR and everything 0x00-0x1F / 0x7F-0x9F) come off first — otherwise a
+ * `&#09;` or a raw newline in a note can smuggle content into the surrounding
+ * tag context. Then the usual five HTML/XML entities.
+ */
+const esc = (t: string) =>
+  t
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, "")
+    .replace(
+      /[&<>"']/g,
+      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] ?? ch,
+    );
 
 const W = 40; // monospace column budget for an 80mm thermal roll
 const padRow = (l: string, rv: string) => {
@@ -68,7 +87,8 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
   }
   out.push(rule);
   out.push(padRow(`Subtotal`, money(r.subtotal)));
-  if (r.taxRate > 0) out.push(padRow(`VAT ${r.taxRate}%${r.taxInclusive ? " (incl)" : ""}`, money(r.tax)));
+  if (r.taxRate > 0)
+    out.push(padRow(`VAT ${r.taxRate}%${r.taxInclusive ? " (incl)" : ""}`, money(r.tax)));
   out.push(padRow(`TOTAL`, money(r.total)));
   out.push(rule);
   out.push(padRow(`Method`, methodLabel(r.method)));
@@ -90,7 +110,13 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
 export function receiptHtml(r: Receipt, money: MoneyFmt) {
   const status = STATUS_LABELS[r.status] ?? "";
   const row = (l: string, v: string, bold = false) =>
-    '<div class="lr' + (bold ? " b" : "") + '"><span>' + esc(l) + "</span><span>" + v + "</span></div>";
+    '<div class="lr' +
+    (bold ? " b" : "") +
+    '"><span>' +
+    esc(l) +
+    "</span><span>" +
+    v +
+    "</span></div>";
   const dashed = '<div class="dashed"></div>';
   const itemRows = r.lines
     .map(
@@ -107,7 +133,10 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
     )
     .join("");
   const titleChip = status ? ' <span class="chip">' + esc(status) + "</span>" : "";
-  const vatRow = r.taxRate > 0 ? row("VAT " + r.taxRate + "%" + (r.taxInclusive ? " incl" : " added"), esc(money(r.tax))) : "";
+  const vatRow =
+    r.taxRate > 0
+      ? row("VAT " + r.taxRate + "%" + (r.taxInclusive ? " incl" : " added"), esc(money(r.tax)))
+      : "";
   const paidRow = row(r.kind === "layby" ? "Deposit" : "Paid", esc(money(r.paid)));
   const changeRow = r.change > 0 ? row("Change", esc(money(r.change))) : "";
   const meta =
@@ -161,6 +190,7 @@ export function printReceipt(r: Receipt, money: MoneyFmt) {
   const w = window.open("", "_blank", "width=380,height=640");
   if (!w) return false;
   w.document.write(
+    // eslint-disable-next-line no-useless-escape
     `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${r.number}</title><style>${PRINT_CSS}</style></head><body>${receiptHtml(r, money)}<script>window.onload=function(){setTimeout(function(){window.print()},60)}<\/script></body></html>`,
   );
   w.document.close();

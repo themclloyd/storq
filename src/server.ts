@@ -18,6 +18,54 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
+// Baseline CSP. TanStack Start inlines hydration scripts and jsPDF uses blob:
+// URLs for exports, so 'unsafe-inline' + blob: are required for the app to
+// work; frame-ancestors 'none' and object-src 'none' close the click-jacking
+// and plugin surfaces. Supabase is the only outbound API and only its public
+// host is needed. Public marketing pages remain independent of this header.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+const SECURITY_HEADERS: Readonly<Record<string, string>> = {
+  "content-security-policy": CSP,
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy":
+    "geolocation=(), microphone=(), camera=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
+  "cross-origin-opener-policy": "same-origin-allow-popups",
+  "x-dns-prefetch-control": "off",
+};
+
+function applySecurityHeaders(response: Response): Response {
+  // Response headers are immutable; clone with mutated headers so streaming
+  // bodies (SSR HTML) stay intact.
+  const headers = new Headers(response.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!headers.has(k)) headers.set(k, v);
+  // HSTS only makes sense once we're served over https; the edge (Cloudflare /
+  // Supabase custom domain) terminates TLS and forwards x-forwarded-proto.
+  if (headers.get("x-forwarded-proto") === "https") {
+    headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
@@ -87,16 +135,18 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const seoFile = serveSeoFiles(request);
-      if (seoFile) return seoFile;
+      if (seoFile) return applySecurityHeaders(seoFile);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return applySecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return applySecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

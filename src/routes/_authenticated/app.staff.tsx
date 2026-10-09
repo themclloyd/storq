@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { roleLabel, usePos, type Role } from "@/lib/pos";
+import { LIMITS, validatePin, requireText, sanitizeText } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -130,10 +131,22 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
     active: s.active ?? true,
   });
   async function save() {
+    const nameErr = requireText(f.name, "Name", LIMITS.name);
+    if (nameErr) {
+      toast.error(nameErr);
+      return;
+    }
+    if (f.pin) {
+      const pinErr = validatePin(f.pin);
+      if (pinErr) {
+        toast.error(pinErr);
+        return;
+      }
+    }
     try {
       await rpc("save_staff", {
         p_id: s.id ?? null,
-        p_name: f.name,
+        p_name: sanitizeText(f.name, LIMITS.name),
         p_role: f.role,
         p_pin: f.pin || null,
         p_store: f.store === "all" ? null : f.store,
@@ -154,7 +167,11 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
         </DialogHeader>
         <Label className="block space-y-1">
           <span className="text-[11px] font-medium text-muted-foreground">Name</span>
-          <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+          <Input
+            maxLength={LIMITS.name}
+            value={f.name}
+            onChange={(e) => setF({ ...f, name: e.target.value.slice(0, LIMITS.name) })}
+          />
         </Label>
         <div className="grid grid-cols-2 gap-2">
           <Label className="block space-y-1">

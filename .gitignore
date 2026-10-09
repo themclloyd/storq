@@ -16,6 +16,16 @@ dist-ssr
 .nitro
 *.local
 
+# Secrets — never commit env files or editor/tool credentials
+.env
+.env.*
+!.env.example
+.clinerules/
+.kiro/settings/mcp.json
+.cursor/mcp.json
+*.pem
+*.key
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

@@ -105,7 +105,7 @@ function SaleDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("*, sale_items(id,refunded_qty,name,qty,price,cost,product_id)")
+        .select("*, sale_items(id,refunded_qty,name,qty,price,product_id)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -147,7 +147,12 @@ function SaleDetail() {
           </p>
         </div>
         <div className="flex gap-1.5">
-          <SalePdfButton s={s} storeName={storeName ?? ""} staff={names.data ?? {}} refunds={refunds.data ?? []} />
+          <SalePdfButton
+            s={s}
+            storeName={storeName ?? ""}
+            staff={names.data ?? {}}
+            refunds={refunds.data ?? []}
+          />
           {can("admin", "manager") && REFUNDABLE.includes(s.status) && (
             <Button variant="destructive" size="sm" onClick={() => setRefundOpen(true)}>
               Return / refund
@@ -447,39 +452,119 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
   );
 }
 
-function SalePdfButton({ s, storeName, staff, refunds }: { s: SaleRow; storeName: string; staff: Record<string, string>; refunds: { number: number; amount: number; method: string; reason: string | null; created_at: string }[] }) {
+function SalePdfButton({
+  s,
+  storeName,
+  staff,
+  refunds,
+}: {
+  s: SaleRow;
+  storeName: string;
+  staff: Record<string, string>;
+  refunds: {
+    number: number;
+    amount: number;
+    method: string;
+    reason: string | null;
+    created_at: string;
+  }[];
+}) {
   const { money, business } = usePos();
   const sub = s.sale_items.reduce((a, i) => a + Number(i.qty) * Number(i.price), 0);
   const isInvoice = s.status === "pending_approval" || s.status === "rejected";
   const docType = s.kind === "layby" ? "Layby statement" : isInvoice ? "Invoice" : "Tax invoice";
   return (
-    <Button variant="outline" size="sm" onClick={() => void downloadPdf({
-      filename: `storq-${s.kind === "layby" ? "layby" : "sale"}-${s.number}`,
-      title: `${docType} #${s.number}`,
-      business: business?.name,
-      subtitle: storeName,
-      badge: ({ completed: "PAID", layby_completed: "PAID", refunded: "REFUNDED", partially_refunded: "PART REFUNDED", pending_approval: "AWAITING APPROVAL", rejected: "REJECTED", layby_open: "LAYBY OPEN", layby_cancelled: "CANCELLED" } as Record<string, string>)[s.status] ?? s.status.toUpperCase(),
-      meta: [
-        ["Date", new Date(s.created_at).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })],
-        ["Billed to", s.customer_name ? `${s.customer_name}${s.customer_phone ? ` · ${s.customer_phone}` : ""}` : "Walk-in customer"],
-        ["Served by", staff[s.created_by ?? ""] ?? "—"],
-        ["Payment", s.payment_method ? (methodLabel[s.payment_method] ?? s.payment_method) : "—"],
-      ],
-      sections: [
-        { type: "table", head: ["Item", "Qty", "Unit price", "Amount"], align: ["left", "right", "right", "right"],
-          body: s.sale_items.map((i) => [i.name + (Number(i.refunded_qty) > 0 ? ` (${i.refunded_qty} returned)` : ""), i.qty, money(i.price), money(Number(i.qty) * Number(i.price))]) },
-        ...(refunds.length ? [{ type: "table" as const, heading: "Refunds", head: ["Refund", "Date", "Method", "Reason", "Amount"], align: ["left", "left", "left", "left", "right"] as ("left" | "right")[],
-          body: refunds.map((r) => [`#${r.number}`, new Date(r.created_at).toLocaleDateString("en-ZA"), methodLabel[r.method] ?? r.method, r.reason ?? "", `-${money(r.amount)}`]) }] : []),
-      ],
-      totals: [
-        ["Subtotal", money(sub)],
-        ...(Number(s.tax) > 0 ? [["VAT", money(s.tax)] as [string, string]] : []),
-        ["Paid", money(s.paid)],
-        ...(Number(s.refunded) > 0 ? [["Refunded", `-${money(s.refunded)}`] as [string, string]] : []),
-        ...(Number(s.total) - Number(s.paid) > 0.009 ? [["Balance due", money(Number(s.total) - Number(s.paid))] as [string, string]] : []),
-        ["Total", money(s.total)],
-      ],
-      footerNote: s.note ? `Note: ${s.note}\n\nThank you for your business.` : "Thank you for your business.",
-    })}>Download PDF</Button>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() =>
+        void downloadPdf({
+          filename: `storq-${s.kind === "layby" ? "layby" : "sale"}-${s.number}`,
+          title: `${docType} #${s.number}`,
+          business: business?.name,
+          subtitle: storeName,
+          badge:
+            (
+              {
+                completed: "PAID",
+                layby_completed: "PAID",
+                refunded: "REFUNDED",
+                partially_refunded: "PART REFUNDED",
+                pending_approval: "AWAITING APPROVAL",
+                rejected: "REJECTED",
+                layby_open: "LAYBY OPEN",
+                layby_cancelled: "CANCELLED",
+              } as Record<string, string>
+            )[s.status] ?? s.status.toUpperCase(),
+          meta: [
+            [
+              "Date",
+              new Date(s.created_at).toLocaleString("en-ZA", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
+            ],
+            [
+              "Billed to",
+              s.customer_name
+                ? `${s.customer_name}${s.customer_phone ? ` · ${s.customer_phone}` : ""}`
+                : "Walk-in customer",
+            ],
+            ["Served by", staff[s.created_by ?? ""] ?? "—"],
+            [
+              "Payment",
+              s.payment_method ? (methodLabel[s.payment_method] ?? s.payment_method) : "—",
+            ],
+          ],
+          sections: [
+            {
+              type: "table",
+              head: ["Item", "Qty", "Unit price", "Amount"],
+              align: ["left", "right", "right", "right"],
+              body: s.sale_items.map((i) => [
+                i.name + (Number(i.refunded_qty) > 0 ? ` (${i.refunded_qty} returned)` : ""),
+                i.qty,
+                money(i.price),
+                money(Number(i.qty) * Number(i.price)),
+              ]),
+            },
+            ...(refunds.length
+              ? [
+                  {
+                    type: "table" as const,
+                    heading: "Refunds",
+                    head: ["Refund", "Date", "Method", "Reason", "Amount"],
+                    align: ["left", "left", "left", "left", "right"] as ("left" | "right")[],
+                    body: refunds.map((r) => [
+                      `#${r.number}`,
+                      new Date(r.created_at).toLocaleDateString("en-ZA"),
+                      methodLabel[r.method] ?? r.method,
+                      r.reason ?? "",
+                      `-${money(r.amount)}`,
+                    ]),
+                  },
+                ]
+              : []),
+          ],
+          totals: [
+            ["Subtotal", money(sub)],
+            ...(Number(s.tax) > 0 ? [["VAT", money(s.tax)] as [string, string]] : []),
+            ["Paid", money(s.paid)],
+            ...(Number(s.refunded) > 0
+              ? [["Refunded", `-${money(s.refunded)}`] as [string, string]]
+              : []),
+            ...(Number(s.total) - Number(s.paid) > 0.009
+              ? [["Balance due", money(Number(s.total) - Number(s.paid))] as [string, string]]
+              : []),
+            ["Total", money(s.total)],
+          ],
+          footerNote: s.note
+            ? `Note: ${s.note}\n\nThank you for your business.`
+            : "Thank you for your business.",
+        })
+      }
+    >
+      Download PDF
+    </Button>
   );
 }

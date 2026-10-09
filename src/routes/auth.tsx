@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { LIMITS, validateEmail, validatePassword } from "@/lib/validate";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -38,15 +39,36 @@ function AuthPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Client-side standards first so the user sees a readable message; the
+    // database enforces the same bounds again server-side.
+    const emailErr = validateEmail(email);
+    if (emailErr) {
+      toast.error(emailErr);
+      return;
+    }
+    if (mode === "up") {
+      const pwErr = validatePassword(password);
+      if (pwErr) {
+        toast.error(pwErr);
+        return;
+      }
+    } else if (!password) {
+      toast.error("Password is required");
+      return;
+    }
     setBusy(true);
+    const cleanEmail = email.trim();
     try {
       if (mode === "in") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
         if (error) throw error;
         nav({ to: "/app" });
       } else {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
           options: { emailRedirectTo: window.location.origin + "/app" },
         });
@@ -55,7 +77,12 @@ function AuthPage() {
         else setSent(true);
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      // Surpass raw server wording but stay helpful for genuine failures.
+      toast.error(
+        /rate limit|too many/i.test((err as Error).message)
+          ? "Too many attempts — try again in a moment."
+          : (err as Error).message,
+      );
     } finally {
       setBusy(false);
     }
@@ -94,7 +121,10 @@ function AuthPage() {
             <CardContent>
               <form onSubmit={submit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="business-email" className="text-xs font-medium text-muted-foreground">
+                  <Label
+                    htmlFor="business-email"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Business email
                   </Label>
                   <Input
@@ -103,8 +133,9 @@ function AuthPage() {
                     autoComplete="email"
                     type="email"
                     required
+                    maxLength={LIMITS.email}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.slice(0, LIMITS.email))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -117,10 +148,15 @@ function AuthPage() {
                     autoComplete={mode === "in" ? "current-password" : "new-password"}
                     type="password"
                     required
-                    minLength={6}
+                    maxLength={LIMITS.password}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value.slice(0, LIMITS.password))}
                   />
+                  {mode === "up" && (
+                    <p className="text-xs text-muted-foreground">
+                      At least 8 characters with one letter and one number.
+                    </p>
+                  )}
                 </div>
                 <Button className="h-12 w-full" size="lg" disabled={busy}>
                   {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
@@ -135,7 +171,9 @@ function AuthPage() {
                 className="h-auto w-full whitespace-normal text-sm font-medium text-muted-foreground"
                 onClick={() => setMode(mode === "in" ? "up" : "in")}
               >
-                {mode === "in" ? "New business? Create an account" : "Already have an account? Sign in"}
+                {mode === "in"
+                  ? "New business? Create an account"
+                  : "Already have an account? Sign in"}
               </Button>
             </CardFooter>
           </Card>

@@ -1,9 +1,11 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart } from "recharts";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent,
@@ -15,7 +17,18 @@ const trendConfig = {
   expenses: { label: "Expenses", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
+const profitTrendConfig = {
+  sales: { label: "Sales", color: "var(--chart-1)" },
+  profit: { label: "Profit", color: "var(--chart-3)" },
+} satisfies ChartConfig;
+
+const hBarConfig = {
+  value: { label: "Amount", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+
 export type DashIcon = ComponentProps<typeof HugeiconsIcon>["icon"];
+export type ProfitTrendPoint = { day: string; sales: number; profit: number };
+
 export type MoneyFmt = (n: number | string | null | undefined) => string;
 
 const PIE_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
@@ -107,9 +120,23 @@ export function RangeToggle<T extends string>({
 
 export type TrendPoint = { day: string; sales: number; expenses: number };
 
+/** Trend series are zero-filled across the whole period, so "empty" means every bucket is 0. */
+function isFlat(data: { sales: number; expenses?: number; profit?: number }[]) {
+  return data.every((p) => !p.sales && !p.expenses && !p.profit);
+}
+
 /** Sales-vs-expenses area chart (shadcn ChartContainer + ChartTooltip/ChartLegend). */
-export function TrendChart({ data, money }: { data: TrendPoint[]; money: MoneyFmt }) {
-  if (data.length === 0) {
+export function TrendChart({
+  data,
+  money,
+  loading,
+}: {
+  data: TrendPoint[];
+  money: MoneyFmt;
+  loading?: boolean;
+}) {
+  if (loading) return <Skeleton className="h-52 w-full" />;
+  if (data.length === 0 || isFlat(data)) {
     return <EmptyState>No activity in this period yet.</EmptyState>;
   }
   return (
@@ -139,8 +166,81 @@ export function TrendChart({ data, money }: { data: TrendPoint[]; money: MoneyFm
 
 export type MethodSlice = { name: string; value: number };
 
+/** Sales-vs-profit area chart for the business report (same look as TrendChart). */
+export function ProfitTrendChart({
+  data,
+  money,
+  loading,
+}: {
+  data: ProfitTrendPoint[];
+  money: MoneyFmt;
+  loading?: boolean;
+}) {
+  if (loading) return <Skeleton className="h-52 w-full" />;
+  if (data.length === 0 || isFlat(data)) {
+    return <EmptyState>No sales in this period yet.</EmptyState>;
+  }
+  return (
+    <ChartContainer config={profitTrendConfig} className="aspect-auto h-52 w-full">
+      <AreaChart data={data} margin={{ left: 0, right: 4, top: 4 }}>
+        <defs>
+          <linearGradient id="fillSalesProfit" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-sales)" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="var(--color-sales)" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="fillProfit" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-profit)" stopOpacity={0.16} />
+            <stop offset="100%" stopColor="var(--color-profit)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={16} />
+        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={44} tickCount={5} />
+        <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v))} />} />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Area type="monotone" dataKey="sales" name="sales" stroke="var(--color-sales)" strokeWidth={2} dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }} activeDot={{ r: 4 }} fill="url(#fillSalesProfit)" />
+        <Area type="monotone" dataKey="profit" name="profit" stroke="var(--color-profit)" strokeWidth={2} dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-profit)" }} activeDot={{ r: 4 }} fill="url(#fillProfit)" />
+      </AreaChart>
+    </ChartContainer>
+  );
+}
+
+/** Horizontal bar chart for ranked categories (items, expenses, staff, stores). */
+export function HBarsChart({
+  data,
+  money,
+  height = 40,
+}: {
+  data: MethodSlice[];
+  money: MoneyFmt;
+  height?: number;
+}) {
+  if (data.length === 0) {
+    return <EmptyState>Nothing to show yet.</EmptyState>;
+  }
+  return (
+    <ChartContainer config={hBarConfig} className="w-full" style={{ height: data.length * height }}>
+      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 12, top: 2, bottom: 2 }} barCategoryGap="22%">
+        <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} hide />
+        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={92} />
+        <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />} />
+        <Bar dataKey="value" name="value" fill="var(--color-value)" radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
 /** Donut of payment methods (shadcn ChartContainer) with a share/value legend. */
-export function PaymentMethods({ data, money }: { data: MethodSlice[]; money: MoneyFmt }) {
+export function PaymentMethods({
+  data,
+  money,
+  loading,
+}: {
+  data: MethodSlice[];
+  money: MoneyFmt;
+  loading?: boolean;
+}) {
+  if (loading) return <Skeleton className="min-h-[9rem] w-full" />;
   if (data.length === 0) {
     return <p className="text-sm text-muted-foreground">No sales in this period.</p>;
   }

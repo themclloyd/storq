@@ -8,6 +8,15 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
 import { useProducts, useStock, type Product } from "@/lib/products";
+import {
+  LIMITS,
+  firstError,
+  optionalText,
+  requireText,
+  sanitizeText,
+  validateAmount,
+  validateSku,
+} from "@/lib/validate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,35 +100,104 @@ function Inventory() {
         </div>
         <div className="flex flex-wrap gap-1.5">
           <label className="inline-flex">
-            <input type="file" accept=".csv,text/csv" className="hidden" onChange={async (e) => {
-              const f = e.target.files?.[0]; e.target.value = "";
-              if (!f) return;
-              try { setImp(readImport(await f.text(), products.data ?? [])); } catch (err) { toast.error((err as Error).message); }
-            }} />
-            <span className="inline-flex h-9 cursor-pointer items-center rounded-md border bg-card px-3 text-sm font-medium hover:bg-secondary">Import CSV</span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                try {
+                  setImp(readImport(await f.text(), products.data ?? []));
+                } catch (err) {
+                  toast.error((err as Error).message);
+                }
+              }}
+            />
+            <span className="inline-flex h-9 cursor-pointer items-center rounded-md border bg-card px-3 text-sm font-medium hover:bg-secondary">
+              Import CSV
+            </span>
           </label>
-          <Button variant="outline" onClick={() => {
-            const all = products.data ?? [];
-            downloadCsv(`storq-inventory-${fileStamp()}.csv`, [
-              ["name", "sku", "cost", "price", "quantity", "collections", "active"],
-              ...all.map((p) => [p.name, p.sku ?? "", p.cost, p.price, stock.data?.[p.id] ?? 0, colName(p.id), p.active ? "yes" : "no"]),
-            ]);
-          }}>Export CSV</Button>
-          <Button variant="outline" onClick={() => {
-            const all = products.data ?? [];
-            const units = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0), 0);
-            const retail = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.price), 0);
-            const atCost = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost), 0);
-            void downloadPdf({
-              filename: `storq-inventory-${fileStamp()}`, title: "Inventory report", business: business?.name,
-              subtitle: `${store?.name ?? ""} · stock on hand`, badge: "STOCK",
-              kpis: [["Items", String(all.length)], ["Units on hand", String(units)], ["Value at cost", money(atCost)], ["Value at retail", money(retail)]],
-              orientation: "landscape",
-              sections: [{ type: "table", head: ["Item", "SKU", "Collections", "Cost", "Price", "In stock", "Stock value"], align: ["left", "left", "left", "right", "right", "right", "right"],
-                body: all.map((p) => { const q = stock.data?.[p.id] ?? 0; return [p.name + (p.active ? "" : " (hidden)"), p.sku ?? "", colName(p.id), money(p.cost), money(p.price), q, money(q * Number(p.cost))]; }),
-                foot: ["Total", "", "", "", "", units, money(atCost)] }],
-            });
-          }}>Export PDF</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const all = products.data ?? [];
+              downloadCsv(`storq-inventory-${fileStamp()}.csv`, [
+                ["name", "sku", "cost", "price", "quantity", "collections", "active"],
+                ...all.map((p) => [
+                  p.name,
+                  p.sku ?? "",
+                  p.cost,
+                  p.price,
+                  stock.data?.[p.id] ?? 0,
+                  colName(p.id),
+                  p.active ? "yes" : "no",
+                ]),
+              ]);
+            }}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const all = products.data ?? [];
+              const units = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0), 0);
+              const retail = all.reduce(
+                (a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.price),
+                0,
+              );
+              const atCost = all.reduce(
+                (a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost),
+                0,
+              );
+              void downloadPdf({
+                filename: `storq-inventory-${fileStamp()}`,
+                title: "Inventory report",
+                business: business?.name,
+                subtitle: `${store?.name ?? ""} · stock on hand`,
+                badge: "STOCK",
+                kpis: [
+                  ["Items", String(all.length)],
+                  ["Units on hand", String(units)],
+                  ["Value at cost", money(atCost)],
+                  ["Value at retail", money(retail)],
+                ],
+                orientation: "landscape",
+                sections: [
+                  {
+                    type: "table",
+                    head: [
+                      "Item",
+                      "SKU",
+                      "Collections",
+                      "Cost",
+                      "Price",
+                      "In stock",
+                      "Stock value",
+                    ],
+                    align: ["left", "left", "left", "right", "right", "right", "right"],
+                    body: all.map((p) => {
+                      const q = stock.data?.[p.id] ?? 0;
+                      return [
+                        p.name + (p.active ? "" : " (hidden)"),
+                        p.sku ?? "",
+                        colName(p.id),
+                        money(p.cost),
+                        money(p.price),
+                        q,
+                        money(q * Number(p.cost)),
+                      ];
+                    }),
+                    foot: ["Total", "", "", "", "", units, money(atCost)],
+                  },
+                ],
+              });
+            }}
+          >
+            Export PDF
+          </Button>
           <Button variant="accent" onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
             <HugeiconsIcon icon={PlusSignIcon} /> New item
           </Button>
@@ -233,12 +311,29 @@ function ProductDialog({
     active: p.active ?? true,
   });
   async function save() {
+    // Mirror the save_product / adjust_stock_reason RPC bounds client-side first.
+    const err = firstError(
+      requireText(f.name, "Name", LIMITS.productName),
+      validateSku(f.sku),
+      validateAmount(f.price, {
+        label: "Selling price",
+        required: true,
+        min: 0,
+        max: 1_000_000_000,
+      }),
+      validateAmount(f.cost, { label: "Buying cost", min: 0, max: 1_000_000_000 }),
+      f.qty === "" ? null : validateAmount(f.qty, { label: "Quantity", min: 0, max: 1_200_000 }),
+    );
+    if (err) {
+      toast.error(err);
+      return;
+    }
     try {
       const pid =
         ((await rpc("save_product", {
           p_id: p.id ?? null,
-          p_name: f.name,
-          p_sku: f.sku || null,
+          p_name: sanitizeText(f.name, LIMITS.productName),
+          p_sku: f.sku.trim() || null,
           p_category: null,
           p_price: Number(f.price || 0),
           p_cost: Number(f.cost || 0),
@@ -271,27 +366,37 @@ function ProductDialog({
         </DialogHeader>
         <Label className="block space-y-1">
           <span className="text-[11px] font-medium text-muted-foreground">Name</span>
-          <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+          <Input
+            maxLength={LIMITS.productName}
+            value={f.name}
+            onChange={(e) => setF({ ...f, name: e.target.value.slice(0, LIMITS.productName) })}
+          />
         </Label>
         <div className="grid grid-cols-2 gap-2">
           <Label className="block space-y-1">
             <span className="text-[11px] font-medium text-muted-foreground">SKU / barcode</span>
-            <Input value={f.sku} onChange={(e) => setF({ ...f, sku: e.target.value })} />
+            <Input
+              maxLength={LIMITS.sku}
+              value={f.sku}
+              onChange={(e) => setF({ ...f, sku: e.target.value.slice(0, LIMITS.sku) })}
+            />
           </Label>
           <Label className="block space-y-1">
             <span className="text-[11px] font-medium text-muted-foreground">Cost price</span>
             <Input
               inputMode="decimal"
+              maxLength={14}
               value={f.cost}
-              onChange={(e) => setF({ ...f, cost: e.target.value })}
+              onChange={(e) => setF({ ...f, cost: e.target.value.replace(/[^0-9.]/g, "") })}
             />
           </Label>
           <Label className="block space-y-1">
             <span className="text-[11px] font-medium text-muted-foreground">Selling price</span>
             <Input
               inputMode="decimal"
+              maxLength={14}
               value={f.price}
-              onChange={(e) => setF({ ...f, price: e.target.value })}
+              onChange={(e) => setF({ ...f, price: e.target.value.replace(/[^0-9.]/g, "") })}
             />
           </Label>
         </div>
@@ -400,6 +505,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
     queryKey: ["movements", store?.id, p.id],
     enabled: tab === "history" && !!store,
     queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from as any)("stock_movements")
         .select("*")
         .eq("store_id", store!.id)
@@ -419,13 +525,21 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
     },
   });
   async function save() {
+    const err = firstError(
+      validateAmount(n, { label: "Quantity", required: true, min: 0.01, max: 1_200_000 }),
+      optionalText(note, "Note", LIMITS.note),
+    );
+    if (err) {
+      toast.error(err);
+      return;
+    }
     try {
       await rpc("adjust_stock_reason", {
         p_store: store!.id,
         p_product: p.id,
         p_delta: (mode === "in" ? 1 : -1) * Number(n),
         p_reason: reason,
-        p_note: note || null,
+        p_note: note ? sanitizeText(note, LIMITS.note) : null,
       });
       toast.success("Stock updated");
       qc.invalidateQueries();
@@ -496,13 +610,19 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
             </Label>
             <Label className="block space-y-1">
               <span className="text-[11px] font-medium text-muted-foreground">Quantity</span>
-              <Input inputMode="decimal" value={n} onChange={(e) => setN(e.target.value)} />
+              <Input
+                inputMode="decimal"
+                maxLength={9}
+                value={n}
+                onChange={(e) => setN(e.target.value.replace(/[^0-9.]/g, ""))}
+              />
             </Label>
             <Label className="block space-y-1">
               <span className="text-[11px] font-medium text-muted-foreground">Note (optional)</span>
               <Input
+                maxLength={LIMITS.note}
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => setNote(e.target.value.slice(0, LIMITS.note))}
                 placeholder="Invoice no., who delivered…"
               />
             </Label>
@@ -553,32 +673,76 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
   );
 }
 
-type ImportRow = { name: string; sku: string | null; cost: number; price: number; qty: number | null; active: boolean; existing: Product | null; error?: string | undefined };
+type ImportRow = {
+  name: string;
+  sku: string | null;
+  cost: number;
+  price: number;
+  qty: number | null;
+  active: boolean;
+  existing: Product | null;
+  error?: string | undefined;
+};
+
+/** Names pasted from a spreadsheet must not carry markup or control characters. */
+// eslint-disable-next-line no-control-regex
+const UNSAFE_CELL = /[\u0000-\u001f\u007f-\u009f<>`]/;
 
 function readImport(text: string, products: Product[]): ImportRow[] {
   const rows = parseCsv(text);
   if (rows.length < 2) throw new Error("The file has no item rows.");
   const h = rows[0]!.map((x) => x.trim().toLowerCase());
   const col = (...names: string[]) => h.findIndex((x) => names.includes(x));
-  const ci = { name: col("name", "item", "product"), sku: col("sku", "barcode", "sku / barcode"), cost: col("cost", "cost price", "buying price"),
-    price: col("price", "selling price"), qty: col("quantity", "qty", "stock", "in stock"), active: col("active", "available") };
-  if (ci.name < 0) throw new Error('The file needs a "name" column. Export first to get a template.');
-  const num = (v: string | undefined) => { const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, "")); return Number.isFinite(n) ? n : NaN; };
+  const ci = {
+    name: col("name", "item", "product"),
+    sku: col("sku", "barcode", "sku / barcode"),
+    cost: col("cost", "cost price", "buying price"),
+    price: col("price", "selling price"),
+    qty: col("quantity", "qty", "stock", "in stock"),
+    active: col("active", "available"),
+  };
+  if (ci.name < 0)
+    throw new Error('The file needs a "name" column. Export first to get a template.');
+  const num = (v: string | undefined) => {
+    // eslint-disable-next-line no-useless-escape
+    const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
+    return Number.isFinite(n) ? n : NaN;
+  };
   return rows.slice(1).map((r) => {
     const name = (r[ci.name] ?? "").trim();
     const sku = ci.sku >= 0 ? (r[ci.sku] ?? "").trim() || null : null;
-    const existing = products.find((p) => (sku && p.sku === sku) || p.name.toLowerCase() === name.toLowerCase()) ?? null;
+    const existing =
+      products.find((p) => (sku && p.sku === sku) || p.name.toLowerCase() === name.toLowerCase()) ??
+      null;
     const cost = ci.cost >= 0 && r[ci.cost]?.trim() ? num(r[ci.cost]) : Number(existing?.cost ?? 0);
-    const price = ci.price >= 0 && r[ci.price]?.trim() ? num(r[ci.price]) : Number(existing?.price ?? 0);
+    const price =
+      ci.price >= 0 && r[ci.price]?.trim() ? num(r[ci.price]) : Number(existing?.price ?? 0);
     const qty = ci.qty >= 0 && r[ci.qty]?.trim() ? num(r[ci.qty]) : null;
     const a = ci.active >= 0 ? (r[ci.active] ?? "").trim().toLowerCase() : "";
     const active = a ? !["no", "false", "0", "n"].includes(a) : (existing?.active ?? true);
-    const error = !name ? "Missing name" : [cost, price].some(Number.isNaN) || (qty !== null && Number.isNaN(qty)) ? "Invalid number" : undefined;
+    // Reject over-limit / malformed cell values here so the preview matches the RPC.
+    const error =
+      !name || name.length > LIMITS.productName || UNSAFE_CELL.test(name)
+        ? "Missing or unsafe name"
+        : sku && !/^[A-Za-z0-9._\- ]{1,64}$/.test(sku)
+          ? "Invalid SKU"
+          : [cost, price].some((v) => Number.isNaN(v) || v < 0 || v > 1_000_000_000) ||
+              (qty !== null && (Number.isNaN(qty) || qty < 0 || qty > 1_200_000))
+            ? "Invalid number"
+            : undefined;
     return { name, sku, cost, price, qty, active, existing, error };
   });
 }
 
-function ImportDialog({ rows, stock, onClose }: { rows: ImportRow[]; stock: Record<string, number>; onClose: () => void }) {
+function ImportDialog({
+  rows,
+  stock,
+  onClose,
+}: {
+  rows: ImportRow[];
+  stock: Record<string, number>;
+  onClose: () => void;
+}) {
   const { rpc, store, money } = usePos();
   const qc = useQueryClient();
   const [done, setDone] = useState(0);
@@ -590,27 +754,58 @@ function ImportDialog({ rows, stock, onClose }: { rows: ImportRow[]; stock: Reco
     let fails = 0;
     for (const r of ok) {
       try {
-        const id = ((await rpc("save_product", { p_id: r.existing?.id ?? null, p_name: r.name, p_sku: r.sku, p_category: null, p_price: r.price, p_cost: r.cost, p_active: r.active })) as string | null) ?? r.existing?.id;
+        const id =
+          ((await rpc("save_product", {
+            p_id: r.existing?.id ?? null,
+            p_name: r.name,
+            p_sku: r.sku,
+            p_category: null,
+            p_price: r.price,
+            p_cost: r.cost,
+            p_active: r.active,
+          })) as string | null) ?? r.existing?.id;
         const cur = r.existing ? (stock[r.existing.id] ?? 0) : 0;
         if (id && store && r.qty !== null && r.qty !== cur)
-          await rpc("adjust_stock_reason", { p_store: store.id, p_product: id, p_delta: r.qty - cur, p_reason: "correction", p_note: "CSV import" });
-      } catch { fails++; }
+          await rpc("adjust_stock_reason", {
+            p_store: store.id,
+            p_product: id,
+            p_delta: r.qty - cur,
+            p_reason: "correction",
+            p_note: "CSV import",
+          });
+      } catch {
+        fails++;
+      }
       setDone((d) => d + 1);
     }
     qc.invalidateQueries();
-    if (fails) toast.error(`${ok.length - fails} imported, ${fails} failed`); else toast.success(`${ok.length} items imported`);
+    if (fails) toast.error(`${ok.length - fails} imported, ${fails} failed`);
+    else toast.success(`${ok.length} items imported`);
     onClose();
   }
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>Import items</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Import items</DialogTitle>
+        </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          {ok.filter((r) => !r.existing).length} new · {ok.filter((r) => r.existing).length} updates{bad ? ` · ${bad} skipped` : ""}. Quantities are set for {store?.name} and logged as "CSV import".
+          {ok.filter((r) => !r.existing).length} new · {ok.filter((r) => r.existing).length} updates
+          {bad ? ` · ${bad} skipped` : ""}. Quantities are set for {store?.name} and logged as "CSV
+          import".
         </p>
         <Card className="max-h-80 overflow-y-auto shadow-none">
           <Table className="text-[13px]">
-            <TableHeader><TableRow><TableHead className="px-3">Item</TableHead><TableHead>SKU</TableHead><TableHead className="text-right">Cost</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="px-3" /></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-3">Item</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
+                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="px-3" />
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {rows.map((r, i) => (
                 <TableRow key={i} className={cn(r.error && "text-destructive")}>
@@ -619,14 +814,20 @@ function ImportDialog({ rows, stock, onClose }: { rows: ImportRow[]; stock: Reco
                   <TableCell className="tabular text-right">{money(r.cost)}</TableCell>
                   <TableCell className="tabular text-right">{money(r.price)}</TableCell>
                   <TableCell className="tabular text-right">{r.qty ?? "—"}</TableCell>
-                  <TableCell className="px-3 text-xs">{r.error ?? (r.existing ? "Update" : "New")}</TableCell>
+                  <TableCell className="px-3 text-xs">
+                    {r.error ?? (r.existing ? "Update" : "New")}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </Card>
-        <p className="text-xs text-muted-foreground">Columns: name, sku, cost, price, quantity, active. Items are matched by SKU, then by name.</p>
-        <Button disabled={busy || ok.length === 0} onClick={run}>{busy ? `Importing ${done}/${ok.length}…` : `Import ${ok.length} items`}</Button>
+        <p className="text-xs text-muted-foreground">
+          Columns: name, sku, cost, price, quantity, active. Items are matched by SKU, then by name.
+        </p>
+        <Button disabled={busy || ok.length === 0} onClick={run}>
+          {busy ? `Importing ${done}/${ok.length}…` : `Import ${ok.length} items`}
+        </Button>
       </DialogContent>
     </Dialog>
   );

@@ -1,22 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { usePos } from "@/lib/pos";
-import { useSales, useStaffNames } from "@/lib/sales";
+import { useSaleItemCosts, useSales, useStaffNames } from "@/lib/sales";
 import { rangeDays, sinceFor, useExpenses } from "@/lib/expenses";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { downloadPdf, fileStamp } from "@/lib/pdf";
 import { COUNTED, useRefunds } from "@/lib/refunds";
+import {
+  HBarsChart,
+  PaymentMethods,
+  ProfitTrendChart,
+  type MethodSlice,
+  type ProfitTrendPoint,
+} from "@/components/dashboard";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
   head: () => ({
@@ -43,6 +42,8 @@ function Reports() {
   const expenses = useExpenses({ storeId, since });
   const names = useStaffNames();
   const refundsQ = useRefunds({ storeId, since });
+  // Sale-item costs now live in their own gated table (admin/manager reads it; reports are gated too).
+  const costs = useSaleItemCosts(sales.data);
 
   const r = useMemo(() => {
     const rows = (sales.data ?? []).filter((s) => DONE.includes(s.status));
@@ -58,7 +59,7 @@ function Reports() {
       let sp = 0;
       for (const i of s.sale_items) {
         const rev = i.qty * i.price,
-          c = i.qty * Number(i.cost ?? 0);
+          c = i.qty * Number(costs.data?.[i.id] ?? 0);
         revenue += rev;
         cogs += c;
         sp += rev - c;
@@ -137,7 +138,65 @@ function Reports() {
       byStore,
       lowMargin: Object.values(items).filter((i) => i.revenue > 0 && i.profit / i.revenue < 0.1),
     };
-  }, [sales.data, expenses.data, refundsQ.data]);
+  }, [sales.data, expenses.data, refundsQ.data, costs.data]);
+
+  // Daily sales-vs-gross-profit and expense bins for the trend chart.
+  const trend = useMemo<ProfitTrendPoint[]>(() => {
+    const hourly = range === "today";
+    const key = (iso: string) => {
+      const dt = new Date(iso);
+      return hourly
+        ? dt.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })
+        : dt.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
+    };
+    const bins: Record<string, { day: string; ts: number; sales: number; profit: number }> = {};
+    const bin = (iso: string) => {
+      const k = key(iso);
+      return (bins[k] ??= { day: k, ts: new Date(iso).getTime(), sales: 0, profit: 0 });
+    };
+    for (const s of (sales.data ?? []).filter((y) => DONE.includes(y.status))) {
+      const b = bin(s.created_at);
+      let sp = 0;
+      for (const i of s.sale_items) sp += i.qty * i.price - i.qty * Number(costs.data?.[i.id] ?? 0);
+      b.sales += Number(s.total);
+      b.profit += sp;
+    }
+    for (const f of refundsQ.data ?? []) {
+      const b = bin(f.created_at);
+      b.sales -= Number(f.amount);
+      b.profit -= Number(f.amount) - Number(f.cost);
+    }
+    return Object.values(bins).sort((a, b) => a.ts - b.ts);
+  }, [sales.data, refundsQ.data, costs.data, range]);
+
+  const expSlices = useMemo<MethodSlice[]>(
+    () =>
+      Object.entries(r.exByCat)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value })),
+    [r],
+  );
+  const methodSlices = useMemo<MethodSlice[]>(
+    () =>
+      Object.entries(r.byMethod)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value })),
+    [r],
+  );
+  const itemSlices = useMemo<MethodSlice[]>(
+    () => r.items.slice(0, 8).map((i) => ({ name: i.name, value: Math.max(i.profit, 0) })),
+    [r],
+  );
+  const staffSlices = useMemo<MethodSlice[]>(
+    () =>
+      Object.entries(r.byStaff)
+        .map(([id, v]) => ({
+          name: `${names.data?.[id] ?? "Unknown"} · ${v.sales}`,
+          value: v.revenue,
+        }))
+        .sort((a, b) => b.value - a.value),
+    [r, names.data],
+  );
 
   if (!can("admin", "manager"))
     return (
@@ -168,21 +227,120 @@ function Reports() {
               {k}
             </Button>
           ))}
-          <Button size="sm" variant="outline" disabled={loading} onClick={() => void downloadPdf({
-            filename: `storq-business-report-${fileStamp()}`, title: "Business report", business: business?.name,
-            subtitle: `${all ? "All stores" : store?.name ?? ""} · last ${range}`, badge: "P&L",
-            kpis: [["Net sales", money(r.revenue)], ["Gross profit", money(r.gross)], ["Expenses", money(r.expTotal)], ["Net profit", money(r.net)]],
-            sections: [
-              { type: "pairs", heading: "Profit & loss", rows: [["Net sales (after refunds)", money(r.revenue)], ["Refunds", `-${money(r.refunds)}`], ["Buying cost of items sold", `-${money(r.cogs)}`], ["Gross profit", money(r.gross)], ["Gross margin", `${r.margin.toFixed(1)}%`], ["Operating expenses", `-${money(r.expTotal)}`], ["Net profit", money(r.net)]] },
-              { type: "pairs", heading: "Tax summary (VAT)", rows: [["Sales incl. tax", money(r.revenue)], ["VAT collected", money(r.tax)], ["Sales excl. tax", money(r.revenue - r.tax)]] },
-              { type: "pairs", heading: "Till cash check", rows: [["Cash taken from sales", money(r.cashIn)], ["Cash paid out (expenses)", `-${money(r.tillOut)}`], ["Expected cash in till", money(r.cashIn - r.tillOut)]] },
-              { type: "table", heading: "Sales by payment method", head: ["Method", "Amount"], align: ["left", "right"], body: Object.entries(r.byMethod).map(([m, v]) => [m, money(v)]) },
-              { type: "table", heading: "Expenses by category", head: ["Category", "Amount"], align: ["left", "right"], body: Object.entries(r.exByCat).sort((a, b) => b[1] - a[1]).map(([c, v]) => [c, money(v)]) },
-              { type: "table", heading: "Item performance", head: ["Item", "Qty", "Sales", "Profit", "Margin"], align: ["left", "right", "right", "right", "right"], body: r.items.map((i) => [i.name, i.qty, money(i.revenue), money(i.profit), i.revenue ? `${((i.profit / i.revenue) * 100).toFixed(1)}%` : "-"]) },
-              { type: "table", heading: "Staff performance", head: ["Staff", "Sales", "Revenue"], align: ["left", "right", "right"], body: Object.entries(r.byStaff).map(([id, v]) => [names.data?.[id] ?? "Unknown", v.sales, money(v.revenue)]) },
-              ...(all ? [{ type: "table" as const, heading: "Stores", head: ["Store", "Sales", "Profit", "Expenses", "Net"], align: ["left", "right", "right", "right", "right"] as ("left" | "right")[], body: Object.entries(r.byStore).map(([id, v]) => [stores.find((x) => x.id === id)?.name ?? "", money(v.revenue), money(v.profit), money(v.expenses), money(v.profit - v.expenses)]) }] : []),
-            ],
-          })}>Download PDF</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() =>
+              void downloadPdf({
+                filename: `storq-business-report-${fileStamp()}`,
+                title: "Business report",
+                business: business?.name,
+                subtitle: `${all ? "All stores" : (store?.name ?? "")} · last ${range}`,
+                badge: "P&L",
+                kpis: [
+                  ["Net sales", money(r.revenue)],
+                  ["Gross profit", money(r.gross)],
+                  ["Expenses", money(r.expTotal)],
+                  ["Net profit", money(r.net)],
+                ],
+                sections: [
+                  {
+                    type: "pairs",
+                    heading: "Profit & loss",
+                    rows: [
+                      ["Net sales (after refunds)", money(r.revenue)],
+                      ["Refunds", `-${money(r.refunds)}`],
+                      ["Buying cost of items sold", `-${money(r.cogs)}`],
+                      ["Gross profit", money(r.gross)],
+                      ["Gross margin", `${r.margin.toFixed(1)}%`],
+                      ["Operating expenses", `-${money(r.expTotal)}`],
+                      ["Net profit", money(r.net)],
+                    ],
+                  },
+                  {
+                    type: "pairs",
+                    heading: "Tax summary (VAT)",
+                    rows: [
+                      ["Sales incl. tax", money(r.revenue)],
+                      ["VAT collected", money(r.tax)],
+                      ["Sales excl. tax", money(r.revenue - r.tax)],
+                    ],
+                  },
+                  {
+                    type: "pairs",
+                    heading: "Till cash check",
+                    rows: [
+                      ["Cash taken from sales", money(r.cashIn)],
+                      ["Cash paid out (expenses)", `-${money(r.tillOut)}`],
+                      ["Expected cash in till", money(r.cashIn - r.tillOut)],
+                    ],
+                  },
+                  {
+                    type: "table",
+                    heading: "Sales by payment method",
+                    head: ["Method", "Amount"],
+                    align: ["left", "right"],
+                    body: Object.entries(r.byMethod).map(([m, v]) => [m, money(v)]),
+                  },
+                  {
+                    type: "table",
+                    heading: "Expenses by category",
+                    head: ["Category", "Amount"],
+                    align: ["left", "right"],
+                    body: Object.entries(r.exByCat)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([c, v]) => [c, money(v)]),
+                  },
+                  {
+                    type: "table",
+                    heading: "Item performance",
+                    head: ["Item", "Qty", "Sales", "Profit", "Margin"],
+                    align: ["left", "right", "right", "right", "right"],
+                    body: r.items.map((i) => [
+                      i.name,
+                      i.qty,
+                      money(i.revenue),
+                      money(i.profit),
+                      i.revenue ? `${((i.profit / i.revenue) * 100).toFixed(1)}%` : "-",
+                    ]),
+                  },
+                  {
+                    type: "table",
+                    heading: "Staff performance",
+                    head: ["Staff", "Sales", "Revenue"],
+                    align: ["left", "right", "right"],
+                    body: Object.entries(r.byStaff).map(([id, v]) => [
+                      names.data?.[id] ?? "Unknown",
+                      v.sales,
+                      money(v.revenue),
+                    ]),
+                  },
+                  ...(all
+                    ? [
+                        {
+                          type: "table" as const,
+                          heading: "Stores",
+                          head: ["Store", "Sales", "Profit", "Expenses", "Net"],
+                          align: ["left", "right", "right", "right", "right"] as (
+                            "left" | "right"
+                          )[],
+                          body: Object.entries(r.byStore).map(([id, v]) => [
+                            stores.find((x) => x.id === id)?.name ?? "",
+                            money(v.revenue),
+                            money(v.profit),
+                            money(v.expenses),
+                            money(v.profit - v.expenses),
+                          ]),
+                        },
+                      ]
+                    : []),
+                ],
+              })
+            }
+          >
+            Download PDF
+          </Button>
           {stores.length > 1 && (
             <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
               All stores
@@ -220,6 +378,10 @@ function Reports() {
             </div>
           </Card>
 
+          <Panel title={range === "today" ? "Sales vs profit by hour" : "Sales vs profit by day"}>
+            <ProfitTrendChart data={trend} money={money} />
+          </Panel>
+
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Panel title="Till cash check">
               <Row k="Cash taken from sales" v={money(r.cashIn)} />
@@ -232,80 +394,39 @@ function Reports() {
               <Row k="Sales excl. tax" v={money(r.revenue - r.tax)} bold />
             </Panel>
             <Panel title="Sales by payment method">
-              {Object.keys(r.byMethod).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No sales.</p>
-              ) : (
-                Object.entries(r.byMethod).map(([m, v]) => (
-                  <Row key={m} k={<span className="capitalize">{m}</span>} v={money(v)} />
-                ))
-              )}
+              <PaymentMethods data={methodSlices} money={money} />
             </Panel>
             <Panel title="Expenses by category">
-              {Object.keys(r.exByCat).length === 0 ? (
+              {expSlices.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No expenses.</p>
               ) : (
-                Object.entries(r.exByCat)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([c, v]) => (
-                    <Bar key={c} label={c} value={v} max={r.expTotal} text={money(v)} />
-                  ))
+                <HBarsChart data={expSlices} money={money} />
               )}
             </Panel>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <Panel title="Most profitable items">
-              {r.items.length === 0 ? (
+            <Panel title="Top items by profit">
+              {itemSlices.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No items sold.</p>
               ) : (
-                <Table className="text-[13px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="py-2 text-[11px] uppercase">Item</TableHead>
-                      <TableHead className="py-2 text-right text-[11px] uppercase">Qty</TableHead>
-                      <TableHead className="py-2 text-right text-[11px] uppercase">Sales</TableHead>
-                      <TableHead className="py-2 text-right text-[11px] uppercase">
-                        Profit
-                      </TableHead>
-                      <TableHead className="py-2 text-right text-[11px] uppercase">
-                        Margin
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {r.items.slice(0, 10).map((i) => (
-                      <TableRow key={i.name}>
-                        <TableCell className="max-w-40 truncate py-1.5 font-medium">
-                          {i.name}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right">{i.qty}</TableCell>
-                        <TableCell className="tabular py-1.5 text-right">
-                          {money(i.revenue)}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right font-semibold">
-                          {money(i.profit)}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right text-muted-foreground">
-                          {i.revenue ? ((i.profit / i.revenue) * 100).toFixed(0) : 0}%
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <HBarsChart data={itemSlices} money={money} />
               )}
             </Panel>
             <div className="space-y-3">
-              <Panel title="Staff performance">
-                {Object.keys(r.byStaff).length === 0 ? (
+              <Panel title="Staff performance — revenue">
+                {staffSlices.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No sales.</p>
                 ) : (
-                  Object.entries(r.byStaff)
-                    .sort((a, b) => b[1].revenue - a[1].revenue)
-                    .map(([id, v]) => (
-                      <Row
-                        key={id}
-                        k={`${names.data?.[id] ?? "Unknown"} · ${v.sales} sales`}
-                        v={money(v.revenue)}
+                  staffSlices
+                    .slice(0, 6)
+                    .map((s) => (
+                      <Bar
+                        key={s.name}
+                        label={s.name}
+                        value={s.value}
+                        max={staffSlices[0]?.value ?? 0}
+                        text={money(s.value)}
                       />
                     ))
                 )}
@@ -328,48 +449,16 @@ function Reports() {
           </div>
 
           {all && stores.length > 1 && (
-            <Panel title="By store">
-              <Table className="text-[13px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="py-2 text-[11px] uppercase">Store</TableHead>
-                    <TableHead className="py-2 text-right text-[11px] uppercase">Sales</TableHead>
-                    <TableHead className="py-2 text-right text-[11px] uppercase">
-                      Gross profit
-                    </TableHead>
-                    <TableHead className="py-2 text-right text-[11px] uppercase">
-                      Expenses
-                    </TableHead>
-                    <TableHead className="py-2 text-right text-[11px] uppercase">
-                      Net profit
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stores.map((s) => {
+            <Panel title="Net profit by store">
+              <HBarsChart
+                data={stores
+                  .map((s) => {
                     const v = r.byStore[s.id] ?? { revenue: 0, profit: 0, expenses: 0 };
-                    return (
-                      <TableRow key={s.id}>
-                        <TableCell className="max-w-40 truncate py-1.5 font-medium">
-                          {s.name}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right">
-                          {money(v.revenue)}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right">
-                          {money(v.profit)}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right">
-                          {money(v.expenses)}
-                        </TableCell>
-                        <TableCell className="tabular py-1.5 text-right font-semibold">
-                          {money(v.profit - v.expenses)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    return { name: s.name, value: v.profit - v.expenses };
+                  })
+                  .sort((a, b) => b.value - a.value)}
+                money={money}
+              />
             </Panel>
           )}
           <p className="text-xs text-muted-foreground">

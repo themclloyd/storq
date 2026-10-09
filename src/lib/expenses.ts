@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { localDateKey } from "@/lib/trend";
 
 export type Expense = {
   id: string; store_id: string; amount: number; category: string; source: "till" | "bank" | "mobile";
@@ -15,7 +16,9 @@ export function useExpenses(filter: { storeId?: string | undefined; since?: stri
     queryFn: async () => {
       let q = (supabase.from as any)("expenses").select("*").order("spent_on", { ascending: false }).order("created_at", { ascending: false }).limit(1000);
       if (filter.storeId) q = q.eq("store_id", filter.storeId);
-      if (filter.since) q = q.gte("spent_on", filter.since.slice(0, 10));
+      // `spent_on` is a bare date column, so the period start has to be compared as a local
+      // calendar day — slicing the UTC ISO string shifts the day for offsets ahead of GMT.
+      if (filter.since) q = q.gte("spent_on", localDateKey(filter.since));
       const { data, error } = await q;
       if (error) throw error;
       return data as Expense[];
