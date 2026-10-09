@@ -4,12 +4,17 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePin } from "@/lib/validate";
+import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
+import { hydrateCache, isNetworkError, loadQueue, newRef, persistCache, saveQueue, type QueuedSale } from "@/lib/offline";
+
+export type CheckoutResult = { id: string; number: number; status: string; total: number; tax: number; offline?: boolean };
 
 export type Role = "admin" | "manager" | "cashier";
 export type StaffSession = {
@@ -42,6 +47,12 @@ type PosCtx = {
   money: (n: number | string | null | undefined) => string;
   can: (...roles: Role[]) => boolean;
   refresh: () => void;
+  /** Sale checkout that queues direct-store cash/card/mobile sales on this device when offline. */
+  checkout: (args: Record<string, unknown>, opts: { offlineOk: boolean; estTotal: number }) => Promise<CheckoutResult>;
+  online: boolean;
+  queue: QueuedSale[];
+  syncQueue: () => Promise<void>;
+  dropQueued: (ref: string) => void;
 };
 
 const Ctx = createContext<PosCtx | null>(null);
@@ -185,7 +196,77 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     [currency],
   );
 
+  // ---- instant start: show last known catalog/stock immediately, refresh behind ----
+  useState(() => { if (typeof window !== "undefined") hydrateCache(qc, userId); return 0; });
+  useEffect(() => persistCache(qc, userId), [qc, userId]);
+
+  // ---- offline sales queue ----
+  const [online, setOnline] = useState(true);
+  const [queue, setQueueState] = useState<QueuedSale[]>([]);
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    setQueueState(loadQueue(userId));
+    const on = () => setOnline(true), off = () => setOnline(false);
+    window.addEventListener("online", on); window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, [userId]);
+  const setQueue = useCallback((f: (q: QueuedSale[]) => QueuedSale[]) => {
+    setQueueState((prev) => { const n = f(prev); saveQueue(userId, n); return n; });
+  }, [userId]);
+
+  const checkout = async (args: Record<string, unknown>, opts: { offlineOk: boolean; estTotal: number }): Promise<CheckoutResult> => {
+    const ref = newRef();
+    const enqueue = () => {
+      setQueue((q) => [...q, { ref, at: new Date().toISOString(), total: opts.estTotal, storeId: String(args["p_store"]), args }]);
+      return { id: ref, number: 0, status: "completed", total: opts.estTotal, tax: 0, offline: true };
+    };
+    if (opts.offlineOk && typeof navigator !== "undefined" && !navigator.onLine) return enqueue();
+    try {
+      return await rpc<CheckoutResult>("checkout_ref", { p_client_ref: ref, ...args });
+    } catch (e) {
+      if (opts.offlineOk && isNetworkError((e as Error).message)) return enqueue();
+      throw e;
+    }
+  };
+
+  const syncing = useRef(false);
+  const syncQueue = useCallback(async () => {
+    if (syncing.current || !staff || !navigator.onLine) return;
+    const pending = loadQueue(userId).filter((x) => !x.error);
+    if (!pending.length) return;
+    syncing.current = true;
+    let synced = 0;
+    try {
+      for (const item of pending) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.rpc as any)("checkout_ref", { p_token: staff.token, p_client_ref: item.ref, ...item.args });
+        if (error) {
+          if (isNetworkError(error.message) || /Locked/i.test(error.message)) break;
+          setQueue((q) => q.map((x) => (x.ref === item.ref ? { ...x, error: maskRpcError(error.message) } : x)));
+        } else {
+          synced++;
+          setQueue((q) => q.filter((x) => x.ref !== item.ref));
+        }
+      }
+    } finally {
+      syncing.current = false;
+      if (synced) invalidateKeys(qc, SALE_TOUCHED);
+    }
+  }, [staff, userId, qc, setQueue]);
+
+  useEffect(() => {
+    if (!online || !staff || queue.every((x) => x.error)) return;
+    void syncQueue();
+    const t = setInterval(() => void syncQueue(), 30_000);
+    return () => clearInterval(t);
+  }, [online, staff, queue, syncQueue]);
+
   const value: PosCtx = {
+    checkout,
+    online,
+    queue,
+    syncQueue,
+    dropQueued: (ref) => setQueue((q) => q.filter((x) => x.ref !== ref)),
     userId,
     business: businessQ.isLoading ? undefined : (businessQ.data ?? null),
     stores,
