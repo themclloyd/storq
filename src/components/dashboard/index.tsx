@@ -8,30 +8,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-
-const trendConfig = {
-  sales: { label: "Sales", color: "var(--chart-1)" },
-  expenses: { label: "Expenses", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const profitTrendConfig = {
-  sales: { label: "Sales", color: "var(--chart-1)" },
-  profit: { label: "Profit", color: "var(--chart-3)" },
-} satisfies ChartConfig;
-
-const hBarConfig = {
-  value: { label: "Amount", color: "var(--chart-1)" },
-} satisfies ChartConfig;
+import { useI18n } from "@/lib/i18n";
 
 export type DashIcon = ComponentProps<typeof HugeiconsIcon>["icon"];
 export type ProfitTrendPoint = { day: string; sales: number; profit: number };
 
 export type MoneyFmt = (n: number | string | null | undefined) => string;
 
-const PIE_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+const PIE_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
 
 /** Compact stat tile built on the shadcn Card. */
 export function StatCard({
@@ -135,12 +132,17 @@ export function TrendChart({
   money: MoneyFmt;
   loading?: boolean;
 }) {
+  const { t } = useI18n();
+  const config = {
+    sales: { label: t("dashboard.sales"), color: "var(--chart-1)" },
+    expenses: { label: t("dashboard.expenses"), color: "var(--chart-2)" },
+  } satisfies ChartConfig;
   if (loading) return <Skeleton className="h-52 w-full" />;
   if (data.length === 0 || isFlat(data)) {
-    return <EmptyState>No activity in this period yet.</EmptyState>;
+    return <EmptyState>{t("dashboard.noActivity")}</EmptyState>;
   }
   return (
-    <ChartContainer config={trendConfig} className="aspect-auto h-52 w-full">
+    <ChartContainer config={config} className="aspect-auto h-52 w-full">
       <AreaChart data={data} margin={{ left: 0, right: 4, top: 4 }}>
         <defs>
           <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
@@ -153,12 +155,36 @@ export function TrendChart({
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={16} />
+        <XAxis
+          dataKey="day"
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          minTickGap={16}
+        />
         <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={44} tickCount={5} />
         <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v))} />} />
         <ChartLegend content={<ChartLegendContent />} />
-        <Area type="monotone" dataKey="sales" name="sales" stroke="var(--color-sales)" strokeWidth={2} dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }} activeDot={{ r: 4 }} fill="url(#fillSales)" />
-        <Area type="monotone" dataKey="expenses" name="expenses" stroke="var(--color-expenses)" strokeWidth={2} dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-expenses)" }} activeDot={{ r: 4 }} fill="url(#fillExpenses)" />
+        <Area
+          type="monotone"
+          dataKey="sales"
+          name="sales"
+          stroke="var(--color-sales)"
+          strokeWidth={2}
+          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }}
+          activeDot={{ r: 4 }}
+          fill="url(#fillSales)"
+        />
+        <Area
+          type="monotone"
+          dataKey="expenses"
+          name="expenses"
+          stroke="var(--color-expenses)"
+          strokeWidth={2}
+          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-expenses)" }}
+          activeDot={{ r: 4 }}
+          fill="url(#fillExpenses)"
+        />
       </AreaChart>
     </ChartContainer>
   );
@@ -176,12 +202,17 @@ export function ProfitTrendChart({
   money: MoneyFmt;
   loading?: boolean;
 }) {
+  const { t } = useI18n();
+  const config = {
+    sales: { label: t("dashboard.sales"), color: "var(--chart-1)" },
+    profit: { label: t("dashboard.profit"), color: "var(--chart-3)" },
+  } satisfies ChartConfig;
   if (loading) return <Skeleton className="h-52 w-full" />;
   if (data.length === 0 || isFlat(data)) {
-    return <EmptyState>No sales in this period yet.</EmptyState>;
+    return <EmptyState>{t("dashboard.noSalesPeriod")}</EmptyState>;
   }
   return (
-    <ChartContainer config={profitTrendConfig} className="aspect-auto h-52 w-full">
+    <ChartContainer config={config} className="aspect-auto h-52 w-full">
       <AreaChart data={data} margin={{ left: 0, right: 4, top: 4 }}>
         <defs>
           <linearGradient id="fillSalesProfit" x1="0" y1="0" x2="0" y2="1">
@@ -194,12 +225,36 @@ export function ProfitTrendChart({
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={16} />
+        <XAxis
+          dataKey="day"
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          minTickGap={16}
+        />
         <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={44} tickCount={5} />
         <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v))} />} />
         <ChartLegend content={<ChartLegendContent />} />
-        <Area type="monotone" dataKey="sales" name="sales" stroke="var(--color-sales)" strokeWidth={2} dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }} activeDot={{ r: 4 }} fill="url(#fillSalesProfit)" />
-        <Area type="monotone" dataKey="profit" name="profit" stroke="var(--color-profit)" strokeWidth={2} dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-profit)" }} activeDot={{ r: 4 }} fill="url(#fillProfit)" />
+        <Area
+          type="monotone"
+          dataKey="sales"
+          name="sales"
+          stroke="var(--color-sales)"
+          strokeWidth={2}
+          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }}
+          activeDot={{ r: 4 }}
+          fill="url(#fillSalesProfit)"
+        />
+        <Area
+          type="monotone"
+          dataKey="profit"
+          name="profit"
+          stroke="var(--color-profit)"
+          strokeWidth={2}
+          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-profit)" }}
+          activeDot={{ r: 4 }}
+          fill="url(#fillProfit)"
+        />
       </AreaChart>
     </ChartContainer>
   );
@@ -215,15 +270,35 @@ export function HBarsChart({
   money: MoneyFmt;
   height?: number;
 }) {
+  const { t } = useI18n();
+  const config = {
+    value: { label: t("dashboard.amount"), color: "var(--chart-1)" },
+  } satisfies ChartConfig;
   if (data.length === 0) {
-    return <EmptyState>Nothing to show yet.</EmptyState>;
+    return <EmptyState>{t("dashboard.nothingToShow")}</EmptyState>;
   }
   return (
-    <ChartContainer config={hBarConfig} className="w-full" style={{ height: data.length * height }}>
-      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 12, top: 2, bottom: 2 }} barCategoryGap="22%">
+    <ChartContainer config={config} className="w-full" style={{ height: data.length * height }}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ left: 0, right: 12, top: 2, bottom: 2 }}
+        barCategoryGap="22%"
+      >
         <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} hide />
-        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={92} />
-        <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />} />
+        <YAxis
+          type="category"
+          dataKey="name"
+          tick={{ fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          width={92}
+        />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />
+          }
+        />
         <Bar dataKey="value" name="value" fill="var(--color-value)" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ChartContainer>
@@ -240,22 +315,40 @@ export function PaymentMethods({
   money: MoneyFmt;
   loading?: boolean;
 }) {
+  const { t } = useI18n();
   if (loading) return <Skeleton className="min-h-[9rem] w-full" />;
   if (data.length === 0) {
-    return <p className="text-sm text-muted-foreground">No sales in this period.</p>;
+    return <p className="text-sm text-muted-foreground">{t("dashboard.noSalesInPeriod")}</p>;
   }
   const total = data.reduce((a, p) => a + p.value, 0) || 1;
   const config: ChartConfig = {};
   data.forEach((p, i) => {
-    config[p.name] = { label: p.name, color: PIE_COLORS[i % PIE_COLORS.length] ?? "var(--chart-1)" };
+    config[p.name] = {
+      label: p.name,
+      color: PIE_COLORS[i % PIE_COLORS.length] ?? "var(--chart-1)",
+    };
   });
   return (
     <div className="flex min-h-[9rem] items-center gap-4">
       <div className="size-36 shrink-0">
         <ChartContainer config={config} className="aspect-auto size-full">
           <PieChart>
-            <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />} />
-            <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={44} outerRadius={66} paddingAngle={3} strokeWidth={0}>
+            <ChartTooltip
+              content={
+                <ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />
+              }
+            />
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={44}
+              outerRadius={66}
+              paddingAngle={3}
+              strokeWidth={0}
+            >
               {data.map((p) => (
                 <Cell key={p.name} fill={`var(--color-${p.name})`} />
               ))}
@@ -266,9 +359,16 @@ export function PaymentMethods({
       <ul className="min-w-0 flex-1 space-y-1.5 text-[13px]">
         {data.map((p) => (
           <li key={p.name} className="flex items-center gap-2">
-            <span className="size-2 shrink-0 rounded-full" style={{ background: config[p.name]?.color }} />
-            <span className="min-w-0 flex-1 truncate capitalize text-muted-foreground">{p.name}</span>
-            <span className="tabular w-10 shrink-0 text-right text-muted-foreground">{Math.round((p.value / total) * 100)}%</span>
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{ background: config[p.name]?.color }}
+            />
+            <span className="min-w-0 flex-1 truncate capitalize text-muted-foreground">
+              {p.name}
+            </span>
+            <span className="tabular w-10 shrink-0 text-right text-muted-foreground">
+              {Math.round((p.value / total) * 100)}%
+            </span>
             <span className="tabular w-24 shrink-0 text-right font-semibold">{money(p.value)}</span>
           </li>
         ))}
@@ -306,5 +406,7 @@ export function AlertRow({ item }: { item: AlertItem }) {
 
 /** Centred placeholder used when a section has nothing to show. */
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="grid h-24 place-items-center text-sm text-muted-foreground">{children}</div>;
+  return (
+    <div className="grid h-24 place-items-center text-sm text-muted-foreground">{children}</div>
+  );
 }

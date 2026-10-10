@@ -22,6 +22,7 @@ import {
   type QueuedSale,
 } from "@/lib/offline";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
+import { t, useI18n } from "@/lib/i18n";
 
 export type CheckoutResult = {
   id: string;
@@ -85,19 +86,21 @@ const Ctx = createContext<PosCtx | null>(null);
  * replaced by a generic message so a raw Postgres error never reaches the UI.
  */
 function maskRpcError(raw: string): string {
-  if (/new row violates row-level security policy/i.test(raw))
-    return "You do not have access to this data";
+  if (/new row violates row-level security policy/i.test(raw)) return t("errors.noAccess");
   if (
     /permission denied|duplicate key|constraint|does not exist|syntax error|violates check|function .* does not exist|null value in column/i.test(
       raw,
     )
   )
-    return "Something went wrong. Please try again.";
+    return t("errors.generic");
   if (/\b(?:public|extensions|pg_.+)\.[a-z_]+|relation "|column "|table "/i.test(raw))
-    return "Something went wrong. Please try again.";
-  return raw.length > 240 ? "Something went wrong. Please try again." : raw;
+    return t("errors.generic");
+  return raw.length > 240 ? t("errors.generic") : raw;
 }
 
+// Shared POS context module: provider + hook + helpers are intentionally
+// co-located (see project rules); fast-refresh advisory only.
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePos() {
   const c = useContext(Ctx);
   if (!c) throw new Error("usePos outside provider");
@@ -105,6 +108,7 @@ export function usePos() {
 }
 
 export function PosProvider({ userId, children }: { userId: string; children: ReactNode }) {
+  useI18n(); // Subscribe so the offline banner re-localizes when the language changes.
   const qc = useQueryClient();
   const staffKey = `pos-staff-${userId}`;
   const storeKey = `pos-store-${userId}`;
@@ -378,38 +382,38 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
         className="fixed bottom-3 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-full border bg-card px-4 py-2 text-xs font-medium shadow-lg"
       >
         <span className={online ? "text-foreground" : "text-destructive"}>
-          {online ? "Online" : "Offline — sales are saved on this device"}
+          {online ? t("offline.online") : t("offline.offlineSaved")}
         </span>
         {queue.length - failed.length > 0 && (
           <span className="text-muted-foreground">
-            · {queue.length - failed.length} sale(s) waiting to sync
-            {!staff ? " (unlock with PIN to sync)" : ""}
+            · {t("offline.waitingToSync", { count: queue.length - failed.length })}
+            {!staff ? t("offline.unlockToSync") : ""}
           </span>
         )}
         {online && staff && queue.length - failed.length > 0 && (
           <button className="underline" onClick={() => void syncQueue()}>
-            Sync now
+            {t("offline.syncNow")}
           </button>
         )}
         {failed.map((f) => (
           <span key={f.ref} className="text-destructive">
-            · Offline sale {money(f.total)} not recorded: {f.error}{" "}
+            · {t("offline.notRecorded", { amount: money(f.total) })} {f.error}{" "}
             <button
               className="underline"
               onClick={() =>
                 setQueue((q) => q.map((x) => (x.ref === f.ref ? { ...x, error: undefined } : x)))
               }
             >
-              Retry
+              {t("offline.retry")}
             </button>{" "}
             <button
               className="underline"
               onClick={() => {
-                if (confirm("Discard this offline sale? It will not be recorded."))
+                if (confirm(t("offline.discardConfirm")))
                   setQueue((q) => q.filter((x) => x.ref !== f.ref));
               }}
             >
-              Discard
+              {t("offline.discard")}
             </button>
           </span>
         ))}
@@ -423,6 +427,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const roleLabel: Record<Role, string> = {
   admin: "Admin",
   manager: "Manager / Approver",

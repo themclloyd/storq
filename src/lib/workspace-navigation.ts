@@ -21,6 +21,8 @@ export type WorkspaceGroup =
 type Page = {
   to: WorkspacePath;
   label: string;
+  /** i18n dot-key for `label`; rendered via t(). Kept separate so `label` stays the stable English identity. */
+  labelKey: string;
   roles: Role[];
   group: WorkspaceGroup;
   approvalOnly?: boolean;
@@ -29,21 +31,94 @@ const all: Role[] = ["admin", "manager", "cashier"];
 const managers: Role[] = ["admin", "manager"];
 
 export const workspacePages: Page[] = [
-  { to: "/app/dashboard", label: "Dashboard", group: "dashboard", roles: all },
-  { to: "/app", label: "POS", group: "register", roles: all },
-  { to: "/app/shifts", label: "Cash drawer", group: "register", roles: all },
-  { to: "/app/sales", label: "Sales history", group: "sales", roles: all },
-  { to: "/app/invoices", label: "Approvals", group: "sales", roles: all, approvalOnly: true },
-  { to: "/app/laybys", label: "Laybys", group: "sales", roles: all },
-  { to: "/app/inventory", label: "Items", group: "inventory", roles: managers },
-  { to: "/app/transfers", label: "Transfers", group: "inventory", roles: managers },
-  { to: "/app/collections", label: "Collections", group: "inventory", roles: managers },
-  { to: "/app/stocktake", label: "Stock takes", group: "inventory", roles: all },
-  { to: "/app/reports", label: "Overview", group: "finance", roles: managers },
-  { to: "/app/expenses", label: "Expenses", group: "finance", roles: all },
-  { to: "/app/stores", label: "Locations", group: "settings", roles: ["admin"] },
-  { to: "/app/staff", label: "Staff", group: "settings", roles: ["admin"] },
-  { to: "/app/billing", label: "Subscription", group: "settings", roles: managers },
+  {
+    to: "/app/dashboard",
+    label: "Dashboard",
+    labelKey: "nav.dashboard",
+    group: "dashboard",
+    roles: all,
+  },
+  { to: "/app", label: "POS", labelKey: "nav.pos", group: "register", roles: all },
+  {
+    to: "/app/shifts",
+    label: "Cash drawer",
+    labelKey: "nav.cashDrawer",
+    group: "register",
+    roles: all,
+  },
+  {
+    to: "/app/sales",
+    label: "Sales history",
+    labelKey: "nav.salesHistory",
+    group: "sales",
+    roles: all,
+  },
+  {
+    to: "/app/invoices",
+    label: "Approvals",
+    labelKey: "nav.approvals",
+    group: "sales",
+    roles: all,
+    approvalOnly: true,
+  },
+  { to: "/app/laybys", label: "Laybys", labelKey: "nav.laybys", group: "sales", roles: all },
+  {
+    to: "/app/inventory",
+    label: "Items",
+    labelKey: "nav.items",
+    group: "inventory",
+    roles: managers,
+  },
+  {
+    to: "/app/transfers",
+    label: "Transfers",
+    labelKey: "nav.transfers",
+    group: "inventory",
+    roles: managers,
+  },
+  {
+    to: "/app/collections",
+    label: "Collections",
+    labelKey: "nav.collections",
+    group: "inventory",
+    roles: managers,
+  },
+  {
+    to: "/app/stocktake",
+    label: "Stock takes",
+    labelKey: "nav.stocktakes",
+    group: "inventory",
+    roles: all,
+  },
+  {
+    to: "/app/reports",
+    label: "Overview",
+    labelKey: "nav.overview",
+    group: "finance",
+    roles: managers,
+  },
+  {
+    to: "/app/expenses",
+    label: "Expenses",
+    labelKey: "nav.expenses",
+    group: "finance",
+    roles: all,
+  },
+  {
+    to: "/app/stores",
+    label: "Locations",
+    labelKey: "nav.locations",
+    group: "settings",
+    roles: ["admin"],
+  },
+  { to: "/app/staff", label: "Staff", labelKey: "nav.staff", group: "settings", roles: ["admin"] },
+  {
+    to: "/app/billing",
+    label: "Subscription",
+    labelKey: "nav.subscription",
+    group: "settings",
+    roles: managers,
+  },
 ];
 
 export function visibleWorkspacePages(role: Role, type?: Store["store_type"]) {
@@ -70,10 +145,18 @@ export function workspaceNavigation(role: Role, type?: Store["store_type"]) {
     finance: role === "cashier" ? "Expenses" : "Reports",
     settings: "Settings",
   };
+  const labelKeys: Record<WorkspaceGroup, string> = {
+    dashboard: "nav.dashboard",
+    register: "nav.pos",
+    sales: "nav.sales",
+    inventory: "nav.inventory",
+    finance: role === "cashier" ? "nav.expenses" : "nav.reports",
+    settings: "nav.settings",
+  };
   return (
     ["dashboard", "register", "sales", "inventory", "finance", "settings"] as WorkspaceGroup[]
   ).flatMap((group) => {
     const first = pages.find((page) => page.group === group);
-    return first ? [{ group, label: labels[group], to: first.to }] : [];
+    return first ? [{ group, label: labels[group], labelKey: labelKeys[group], to: first.to }] : [];
   });
 }

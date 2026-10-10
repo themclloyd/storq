@@ -19,7 +19,8 @@ export function hydrateCache(qc: QueryClient, userId: string) {
     const snap = JSON.parse(raw) as { v: number; q: { k: unknown[]; d: unknown }[] };
     if (snap.v !== CACHE_VERSION) return;
     // updatedAt 0 = shown instantly but treated as stale, so it refreshes in the background.
-    for (const { k, d } of snap.q) if (qc.getQueryData(k) === undefined) qc.setQueryData(k, d, { updatedAt: 0 });
+    for (const { k, d } of snap.q)
+      if (qc.getQueryData(k) === undefined) qc.setQueryData(k, d, { updatedAt: 0 });
   } catch {
     localStorage.removeItem(CACHE_PREFIX + userId);
   }
@@ -31,7 +32,10 @@ export function persistCache(qc: QueryClient, userId: string) {
     const q = qc
       .getQueryCache()
       .findAll()
-      .filter((x) => x.state.status === "success" && x.state.data !== undefined && persistable(x.queryKey))
+      .filter(
+        (x) =>
+          x.state.status === "success" && x.state.data !== undefined && persistable(x.queryKey),
+      )
       .map((x) => ({ k: x.queryKey as unknown[], d: x.state.data }));
     try {
       localStorage.setItem(CACHE_PREFIX + userId, JSON.stringify({ v: CACHE_VERSION, q }));
@@ -44,11 +48,15 @@ export function persistCache(qc: QueryClient, userId: string) {
     clearTimeout(t);
     t = setTimeout(save, 1500);
   });
-  return () => { clearTimeout(t); unsub(); };
+  return () => {
+    clearTimeout(t);
+    unsub();
+  };
 }
 
 export function clearDeviceCache() {
-  for (const k of Object.keys(localStorage)) if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
+  for (const k of Object.keys(localStorage))
+    if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
 }
 
 export type QueuedSale = {
@@ -61,16 +69,23 @@ export type QueuedSale = {
 };
 
 export const loadQueue = (userId: string): QueuedSale[] => {
-  try { return JSON.parse(localStorage.getItem(QUEUE_PREFIX + userId) ?? "[]"); } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(QUEUE_PREFIX + userId) ?? "[]");
+  } catch {
+    return [];
+  }
 };
 export const saveQueue = (userId: string, q: QueuedSale[]) => {
   if (q.length) localStorage.setItem(QUEUE_PREFIX + userId, JSON.stringify(q));
   else localStorage.removeItem(QUEUE_PREFIX + userId);
 };
 
-export const isNetworkError = (m: string) => /failed to fetch|networkerror|network request failed|load failed|fetch failed|timeout/i.test(m);
+export const isNetworkError = (m: string) =>
+  /failed to fetch|networkerror|network request failed|load failed|fetch failed|timeout/i.test(m);
 
 export const newRef = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
-    : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (Number(c) ^ (Math.random() * 16) >> (Number(c) / 4)).toString(16));
+    : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+        (Number(c) ^ ((Math.random() * 16) >> (Number(c) / 4))).toString(16),
+      );

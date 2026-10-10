@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useDeferredValue } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, Field, PageHeader } from "@/components/pos/bits";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/collections/$id")({
   head: () => ({
@@ -40,6 +41,7 @@ function CollectionPage() {
   const { id } = Route.useParams();
   const isNew = id === "new";
   const { can, rpc, money } = usePos();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const nav = useNavigate();
   const cols = useCollections();
@@ -67,20 +69,28 @@ function CollectionPage() {
     setLoaded(true);
   }, [cols.data, c, loaded]);
 
-  if (!can("admin", "manager"))
-    return <Empty>Only admins and managers can manage collections.</Empty>;
-  if (!isNew && cols.data && !c) return <Empty>Collection not found.</Empty>;
-
-  const all = products.data ?? [];
-  const inCol = all.filter((p) => sel.has(p.id));
-  const available = all.filter(
-    (p) => !sel.has(p.id) && (!q || p.name.toLowerCase().includes(q.toLowerCase())),
+  // Memoized and driven by a deferred term so filtering a large catalog stays
+  // responsive. Derived above the role/existence guards to keep hook order.
+  const dq = useDeferredValue(q);
+  const inCol = useMemo(
+    () => (products.data ?? []).filter((p) => sel.has(p.id)),
+    [products.data, sel],
   );
+  const available = useMemo(() => {
+    const needle = dq.trim().toLowerCase();
+    return (products.data ?? []).filter(
+      (p) => !sel.has(p.id) && (!needle || p.name.toLowerCase().includes(needle)),
+    );
+  }, [products.data, sel, dq]);
+
+  if (!can("admin", "manager")) return <Empty>{t("col.onlyAdmins")}</Empty>;
+  if (!isNew && cols.data && !c) return <Empty>{t("col.notFound")}</Empty>;
   const pct = Number(f.discount || 0);
   const toggle = (pid: string) =>
     setSel((s) => {
       const n = new Set(s);
-      n.has(pid) ? n.delete(pid) : n.add(pid);
+      if (n.has(pid)) n.delete(pid);
+      else n.add(pid);
       return n;
     });
 
@@ -95,7 +105,7 @@ function CollectionPage() {
           p_shared: f.shared,
         })) ?? c?.id;
       await rpc("set_collection_products", { p_collection: newId, p_products: [...sel] });
-      toast.success("Collection saved");
+      toast.success(t("col.saved"));
       await qc.invalidateQueries();
       if (isNew && newId) nav({ to: "/app/collections/$id", params: { id: newId }, replace: true });
     } catch (e) {
@@ -105,7 +115,7 @@ function CollectionPage() {
     }
   }
   async function remove() {
-    if (!c || !confirm("Delete this collection? Items stay in inventory.")) return;
+    if (!c || !confirm(t("col.deleteConfirm"))) return;
     try {
       await rpc("delete_collection", { p_id: c.id });
       await qc.invalidateQueries();
@@ -121,7 +131,7 @@ function CollectionPage() {
       if (navigator.share) await navigator.share({ title: c.name, url });
       else {
         await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
+        toast.success(t("col.linkCopied"));
       }
     } catch {
       /* cancelled */
@@ -134,25 +144,28 @@ function CollectionPage() {
         to="/app/collections"
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} /> Collections
+        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} /> {t("col.title")}
       </Link>
       <PageHeader
-        title={isNew ? "New collection" : f.name || "Collection"}
-        sub={`${sel.size} items${pct > 0 ? ` · −${pct}% off` : ""}`}
+        title={isNew ? t("col.newCollection") : f.name || t("col.collectionWord")}
+        sub={
+          t("col.itemsCount", { count: sel.size }) +
+          (pct > 0 ? ` · ${t("col.offPct", { pct })}` : "")
+        }
         actions={
           <div className="flex gap-1.5">
             {c && c.is_shared && (
               <Button size="sm" variant="outline" onClick={share}>
-                <HugeiconsIcon icon={Share01Icon} /> Share
+                <HugeiconsIcon icon={Share01Icon} /> {t("col.share")}
               </Button>
             )}
             {c && (
               <Button size="sm" variant="ghost" onClick={remove}>
-                <HugeiconsIcon icon={Delete02Icon} /> Delete
+                <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")}
               </Button>
             )}
             <Button size="sm" variant="accent" disabled={!f.name || saving} onClick={save}>
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("col.saving") : t("common.save")}
             </Button>
           </div>
         }
@@ -160,34 +173,31 @@ function CollectionPage() {
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <div className="pos-card flex flex-col gap-3 self-start p-4">
-          <div className="text-sm font-bold">Details</div>
-          <Field label="Name">
+          <div className="text-sm font-bold">{t("col.details")}</div>
+          <Field label={t("common.name")}>
             <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           </Field>
-          <Field label="Discount %">
+          <Field label={t("col.discountPct")}>
             <Input
               inputMode="decimal"
               value={f.discount}
               onChange={(e) => setF({ ...f, discount: e.target.value })}
             />
           </Field>
-          <p className="text-xs text-muted-foreground">
-            Applies to every item in this collection at checkout. If an item is in several
-            collections, the biggest discount is used.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("col.discountHint")}</p>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={f.shared}
               onCheckedChange={(v) => setF({ ...f, shared: v === true })}
             />{" "}
-            Anyone with the link can view
+            {t("col.shareHint")}
           </label>
         </div>
 
         <div className="flex flex-col gap-4">
           <div className="pos-card">
             <div className="border-b px-4 py-2.5 text-sm font-bold">
-              Items in this collection ({inCol.length})
+              {t("col.itemsHeading", { count: inCol.length })}
             </div>
             <div className="divide-y">
               {inCol.map((p) => (
@@ -203,7 +213,7 @@ function CollectionPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => toggle(p.id)}
-                    aria-label="Remove"
+                    aria-label={t("col.remove")}
                   >
                     <HugeiconsIcon icon={Cancel01Icon} size={16} />
                   </Button>
@@ -211,7 +221,7 @@ function CollectionPage() {
               ))}
               {inCol.length === 0 && (
                 <p className="p-4 text-center text-sm text-muted-foreground">
-                  No items yet. Add some below.
+                  {t("col.noItemsAdd")}
                 </p>
               )}
             </div>
@@ -219,10 +229,10 @@ function CollectionPage() {
 
           <div className="pos-card">
             <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
-              <div className="text-sm font-bold">Add items</div>
+              <div className="text-sm font-bold">{t("col.addItems")}</div>
               <Input
                 className="h-8 max-w-56"
-                placeholder="Search items"
+                placeholder={t("col.searchItems")}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
@@ -233,18 +243,16 @@ function CollectionPage() {
                   <span className="flex-1 truncate">{p.name}</span>
                   <span className="tabular text-muted-foreground">{money(p.price)}</span>
                   <Button size="sm" variant="outline" onClick={() => toggle(p.id)}>
-                    Add
+                    {t("col.add")}
                   </Button>
                 </div>
               ))}
               {available.length === 0 && (
-                <p className="p-4 text-center text-sm text-muted-foreground">
-                  No more items to add.
-                </p>
+                <p className="p-4 text-center text-sm text-muted-foreground">{t("col.noMore")}</p>
               )}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Changes are kept when you press Save.</p>
+          <p className="text-xs text-muted-foreground">{t("col.changesKept")}</p>
         </div>
       </div>
     </>

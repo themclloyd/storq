@@ -125,7 +125,13 @@ export function useTransferMutations(onDone?: () => void) {
     }) => rpc(vars.action, vars.args),
     onSuccess: () => {
       // a moved unit changes the ledger, the stock map and reorder alerts
-      for (const queryKey of [["transfers"], ["stock"], ["low-stock"], ["dash-alerts"]])
+      for (const queryKey of [
+        ["transfers"],
+        ["stock"],
+        ["low-stock"],
+        ["dash-alerts"],
+        ["movements"],
+      ])
         void qc.invalidateQueries({ queryKey });
       onDone?.();
     },

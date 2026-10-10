@@ -17,7 +17,7 @@ import {
   BarChartIcon,
 } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
-import { PosProvider, roleLabel, usePos } from "@/lib/pos";
+import { PosProvider, usePos } from "@/lib/pos";
 import {
   workspaceNavigation,
   workspacePageAt,
@@ -60,6 +60,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   LIMITS,
   firstError,
@@ -93,26 +95,29 @@ function AppLayout() {
 }
 
 function Gate() {
+  const { t } = useI18n();
   const { business, staff, stores } = usePos();
   const sub = useSubscription(business?.id, stores.length);
   if (business === undefined)
     return (
-      <div className="grid min-h-screen place-items-center text-muted-foreground">Loading…</div>
+      <div className="grid min-h-screen place-items-center text-muted-foreground">
+        {t("common.loading")}
+      </div>
     );
   if (business === null) return <Setup />;
   if (!staff) return <PinPad />;
   if (sub.isPending)
     return (
       <div className="grid min-h-screen place-items-center text-muted-foreground">
-        Checking subscription…
+        {t("setup.checkingSubscription")}
       </div>
     );
   if (sub.isError)
     return (
       <div className="grid min-h-screen place-items-center">
         <div className="space-y-4 text-center">
-          <p>Subscription could not be checked.</p>
-          <Button onClick={() => sub.refetch()}>Try again</Button>
+          <p>{t("setup.subscriptionError")}</p>
+          <Button onClick={() => sub.refetch()}>{t("common.tryAgain")}</Button>
         </div>
       </div>
     );
@@ -148,6 +153,7 @@ function useSignOut() {
 }
 
 function Setup() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const signOut = useSignOut();
   const [f, setF] = useState({
@@ -166,10 +172,10 @@ function Setup() {
     // Same standards the setup_business RPC enforces, so the user gets a
     // readable toast instead of a raw server error.
     const err = firstError(
-      requireText(f.name, "Business name", LIMITS.businessName),
+      requireText(f.name, t("setup.businessName"), LIMITS.businessName),
       validateCurrency(f.currency),
-      requireText(f.store, "Store name", LIMITS.storeName),
-      requireText(f.owner, "Your name", LIMITS.name),
+      requireText(f.store, t("setup.storeName"), LIMITS.storeName),
+      requireText(f.owner, t("setup.yourName"), LIMITS.name),
       validatePin(f.pin),
     );
     if (err) {
@@ -191,21 +197,19 @@ function Setup() {
       toast.error(error.message);
       return;
     }
-    toast.success("Business ready. Enter your PIN.");
+    toast.success(t("setup.businessReady"));
     qc.invalidateQueries();
   }
   return (
     <div className="grid min-h-screen place-items-center bg-background p-4">
       <form onSubmit={submit} className="pos-card w-full max-w-lg space-y-3 p-5">
         <div>
-          <h1 className="text-xl font-bold">Set up your business</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            You can add more stores and staff later.
-          </p>
+          <h1 className="text-xl font-bold">{t("setup.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("setup.subtitle")}</p>
         </div>
         <div className="grid grid-cols-3 gap-2.5">
           <div className="col-span-2">
-            <Field label="Business name">
+            <Field label={t("setup.businessName")}>
               <Input
                 required
                 maxLength={LIMITS.businessName}
@@ -214,7 +218,7 @@ function Setup() {
               />
             </Field>
           </div>
-          <Field label="Currency">
+          <Field label={t("setup.currency")}>
             <Input
               required
               maxLength={LIMITS.currency}
@@ -224,25 +228,25 @@ function Setup() {
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <Field label="First store">
+          <Field label={t("setup.firstStore")}>
             <Input required maxLength={LIMITS.storeName} value={f.store} onChange={set("store")} />
           </Field>
-          <Field label="Store type">
+          <Field label={t("setup.storeType")}>
             <NativeSelect
               value={f.type}
               onChange={(v) => setF({ ...f, type: v })}
               options={[
-                { value: "direct", label: "Direct sale" },
-                { value: "approval", label: "Approval based" },
+                { value: "direct", label: t("setup.directSale") },
+                { value: "approval", label: t("setup.approvalBased") },
               ]}
             />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Your name">
+          <Field label={t("setup.yourName")}>
             <Input required maxLength={LIMITS.name} value={f.owner} onChange={set("owner")} />
           </Field>
-          <Field label="Your admin PIN">
+          <Field label={t("setup.yourAdminPin")}>
             <Input
               required
               inputMode="numeric"
@@ -254,10 +258,10 @@ function Setup() {
           </Field>
         </div>
         <Button className="w-full" disabled={busy}>
-          Create business
+          {t("setup.createBusiness")}
         </Button>
         <button type="button" onClick={signOut} className="w-full text-sm text-muted-foreground">
-          Sign out of this device
+          {t("setup.signOutDevice")}
         </button>
       </form>
     </div>
@@ -265,6 +269,7 @@ function Setup() {
 }
 
 function PinPad() {
+  const { t } = useI18n();
   const { business, unlock } = usePos();
   const signOut = useSignOut();
   const [pin, setPin] = useState("");
@@ -283,6 +288,8 @@ function PinPad() {
           toast.error((e as Error).message);
       })
       .finally(() => setBusy(false));
+    // unlock is a stable context fn; only re-run when the PIN changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
   useEffect(() => {
@@ -304,7 +311,7 @@ function PinPad() {
       <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
         {business?.name}
       </p>
-      <h1 className="mt-2 text-2xl font-bold">Enter your PIN</h1>
+      <h1 className="mt-2 text-2xl font-bold">{t("pin.enterPin")}</h1>
       <div className={cn("mt-8 flex gap-4", err && "animate-pulse")}>
         {Array.from({ length: Math.max(pin.length, 4) }).map((_, i) => (
           <span
@@ -318,7 +325,7 @@ function PinPad() {
         ))}
       </div>
       <p className="mt-3 h-5 text-sm text-destructive">
-        {err ? "Wrong PIN, try again" : busy ? "" : ""}
+        {err ? t("pin.wrongPin") : busy ? "" : ""}
       </p>
       <div className="mt-6 grid grid-cols-3 gap-4">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
@@ -350,7 +357,7 @@ function PinPad() {
         onClick={signOut}
         className="mt-10 flex items-center gap-2 text-sm text-muted-foreground"
       >
-        <HugeiconsIcon icon={Logout02Icon} className="size-4" /> Sign out of this device
+        <HugeiconsIcon icon={Logout02Icon} className="size-4" /> {t("pin.signOutDevice")}
       </button>
     </div>
   );
@@ -366,6 +373,7 @@ const navIcons: Record<WorkspaceGroup, typeof BoxesIcon> = {
 };
 
 function Shell() {
+  const { t } = useI18n();
   const { staff, stores, store, setStoreId, lock } = usePos();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -377,6 +385,8 @@ function Shell() {
 
   useEffect(() => {
     if (store && unavailableApproval) void navigate({ to: "/app/sales", replace: true });
+    // Re-run on store change by id, not object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store?.id, unavailableApproval, navigate]);
 
   // Quick-lock hotkey: Ctrl/Cmd+Shift+L locks the till back to the PIN pad.
@@ -408,13 +418,13 @@ function Shell() {
                       {store?.name.slice(0, 2).toUpperCase() ?? "S"}
                     </span>
                     <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
-                      {store?.name ?? "Select store"}
+                      {store?.name ?? t("nav.selectStore")}
                     </span>
                     <ChevronDownIcon className="ml-auto group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-56">
-                  <DropdownMenuLabel>Stores</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("nav.stores")}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {stores.map((s) => (
                     <DropdownMenuItem key={s.id} onSelect={() => setStoreId(s.id)}>
@@ -440,12 +450,12 @@ function Shell() {
                       <SidebarMenuButton
                         asChild
                         isActive={active}
-                        tooltip={n.label}
+                        tooltip={t(n.labelKey)}
                         aria-current={active ? "page" : undefined}
                       >
                         <Link to={n.to}>
                           <HugeiconsIcon icon={navIcons[n.group]} />
-                          <span>{n.label}</span>
+                          <span>{t(n.labelKey)}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -465,13 +475,13 @@ function Shell() {
             <div className="grid min-w-0 flex-1 text-left">
               <span className="truncate text-[13px] font-bold">{staff?.name}</span>
               <span className="truncate text-[11px] text-muted-foreground">
-                {staff && roleLabel[staff.role]}
+                {staff && t(`roles.${staff.role}`)}
               </span>
             </div>
           </div>
-          <SidebarMenuButton onClick={lock} tooltip="Lock workspace">
+          <SidebarMenuButton onClick={lock} tooltip={t("nav.lockWorkspace")}>
             <HugeiconsIcon icon={SquareLockIcon} />
-            <span>Lock</span>
+            <span>{t("nav.lock")}</span>
           </SidebarMenuButton>
         </SidebarFooter>
         <SidebarRail />
@@ -486,20 +496,21 @@ function Shell() {
                 <BreadcrumbItem>
                   {groupNav ? (
                     <BreadcrumbLink asChild>
-                      <Link to={groupNav.to}>{groupNav.label}</Link>
+                      <Link to={groupNav.to}>{t(groupNav.labelKey)}</Link>
                     </BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage>Workspace</BreadcrumbPage>
+                    <BreadcrumbPage>{t("common.workspace")}</BreadcrumbPage>
                   )}
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{current?.label ?? "Storq"}</BreadcrumbPage>
+                  <BreadcrumbPage>{current ? t(current.labelKey) : "Storq"}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <Avatar className="size-8">
               <AvatarFallback className="text-xs">
                 {staff?.name.slice(0, 2).toUpperCase()}
@@ -509,8 +520,8 @@ function Shell() {
             <Button
               size="icon"
               variant="ghost"
-              aria-label="Lock workspace"
-              title="Lock workspace"
+              aria-label={t("nav.lockWorkspace")}
+              title={t("nav.lockWorkspace")}
               onClick={lock}
             >
               <HugeiconsIcon icon={SquareLockIcon} />
@@ -549,7 +560,7 @@ function Shell() {
                   active ? "text-accent" : "text-muted-foreground",
                 )}
               >
-                <HugeiconsIcon icon={navIcons[n.group]} className="size-5" /> {n.label}
+                <HugeiconsIcon icon={navIcons[n.group]} className="size-5" /> {t(n.labelKey)}
               </Link>
             );
           })}

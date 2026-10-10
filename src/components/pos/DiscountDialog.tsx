@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field } from "@/components/pos/bits";
 import { usePos } from "@/lib/pos";
+import { useI18n } from "@/lib/i18n";
 import { DISCOUNT_CAP_RATIO, round2, lineCapBlocked, cartCapBlocked } from "@/lib/products";
 
 export type DiscountLine = { id: string; name: string; unit: number; qty: number };
@@ -37,6 +38,7 @@ export function DiscountDialog({
   onClose: () => void;
 }) {
   const { money, can } = usePos();
+  const { t } = useI18n();
   const cashier = !can("admin", "manager");
   // raw text keeps the caret sane while typing "12."; parsed/clamped on apply
   const [amt, setAmt] = useState<Record<string, string>>(() =>
@@ -85,16 +87,16 @@ export function DiscountDialog({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0 shadow-[var(--shadow-pop)]">
         <DialogHeader className="space-y-0 border-b px-5 py-4 pr-12 text-left">
-          <DialogTitle>Discounts</DialogTitle>
+          <DialogTitle>{t("till.discountsTitle")}</DialogTitle>
           <DialogDescription className="mt-1.5 text-xs">
             {cashier
-              ? `Up to ${DISCOUNT_CAP_RATIO * 100}% off per line and on the basket. More needs a manager PIN at checkout.`
-              : "Discounts are limited to each line total."}
+              ? t("till.cashierCapNote", { pct: DISCOUNT_CAP_RATIO * 100 })
+              : t("till.lineLimitNote")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex items-end gap-2 px-5 pt-4">
-          <Field label="Apply % to all lines">
+          <Field label={t("till.applyPctToAll")}>
             <Input
               inputMode="decimal"
               className="tabular h-9 w-24"
@@ -104,7 +106,7 @@ export function DiscountDialog({
             />
           </Field>
           <Button size="sm" variant="outline" disabled={!pct} onClick={applyPct}>
-            Apply
+            {t("common.apply")}
           </Button>
         </div>
 
@@ -123,7 +125,7 @@ export function DiscountDialog({
                   </div>
                   <Input
                     inputMode="decimal"
-                    aria-label={`Discount for ${l.name}`}
+                    aria-label={t("till.ariaDiscountFor", { name: l.name })}
                     className="tabular h-9 w-24 text-right"
                     value={amt[l.id] ?? ""}
                     onChange={(e) => setAmt((m) => ({ ...m, [l.id]: e.target.value }))}
@@ -134,14 +136,16 @@ export function DiscountDialog({
                       size="icon"
                       variant="ghost"
                       className="size-8 shrink-0"
-                      aria-label={`Clear discount for ${l.name}`}
+                      aria-label={t("till.ariaClearDiscountFor", { name: l.name })}
                       onClick={() => setAmt((m) => ({ ...m, [l.id]: "" }))}
                     >
                       <HugeiconsIcon icon={Delete02Icon} />
                     </Button>
                   )}
                   {blocked && (
-                    <span className="shrink-0 text-[11px] font-medium text-warning">over cap</span>
+                    <span className="shrink-0 text-[11px] font-medium text-warning">
+                      {t("till.overCap")}
+                    </span>
                   )}
                 </div>
               );
@@ -151,14 +155,13 @@ export function DiscountDialog({
 
         <div className="space-y-3 px-5 py-4">
           <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground">Total discount</span>
+            <span className="text-sm text-muted-foreground">{t("till.totalDiscount")}</span>
             <span className="tabular text-lg font-extrabold">-{money(totalDisc)}</span>
           </div>
           {overCap && cashier && (
             <Alert className="border-warning/40 bg-warning/15 text-warning-foreground">
               <AlertDescription className="text-xs [&_p]:leading-relaxed">
-                This is past your {DISCOUNT_CAP_RATIO * 100}% cap. A manager must approve it — enter
-                their PIN on the next step (verified at the till, never stored).
+                {t("till.capAlert", { pct: DISCOUNT_CAP_RATIO * 100 })}
               </AlertDescription>
             </Alert>
           )}
@@ -166,10 +169,12 @@ export function DiscountDialog({
 
         <DialogFooter className="flex-row gap-3 border-t bg-secondary/35 px-5 py-4 sm:justify-between sm:space-x-0">
           <Button variant="ghost" size="lg" className="px-4" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button size="lg" className="flex-1" disabled={totalDisc <= 0} onClick={apply}>
-            {totalDisc > 0 ? `Apply ${money(totalDisc)} off` : "Apply"}
+            {totalDisc > 0
+              ? t("till.applyAmountOff", { amount: money(totalDisc) })
+              : t("common.apply")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -2,6 +2,7 @@
 // Load lazily so jsPDF never enters the SSR bundle path.
 
 import { csvCell } from "@/lib/validate";
+import { t } from "@/lib/i18n";
 
 export type PdfKpi = [label: string, value: string];
 export type PdfSection =
@@ -76,7 +77,7 @@ export async function downloadPdf(d: PdfDoc) {
     .setFont("helvetica", "normal")
     .setFontSize(8)
     .setTextColor(...MUTED)
-    .text("Powered by Storq", M + 30, y + 20);
+    .text(clean(t("doc.poweredBy")), M + 30, y + 20);
   if (d.badge) {
     doc.setFont("helvetica", "bold").setFontSize(8);
     const bw = doc.getTextWidth(clean(d.badge)) + 16;

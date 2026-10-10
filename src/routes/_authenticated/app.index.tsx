@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useDeferredValue, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -54,6 +54,7 @@ import { Receipt, type ReceiptTender } from "@/lib/receipts";
 import { validatePin } from "@/lib/validate";
 import { cn } from "@/lib/utils";
 import { useCollections, salePrice } from "@/lib/collections";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
@@ -97,6 +98,7 @@ function calcChange(tenders: TenderRow[], total: number, kind: "sale" | "layby")
 
 function Register() {
   const { store, money, business, staff, checkout, can } = usePos();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const products = useProducts();
   const stock = useStock(store?.id);
@@ -112,18 +114,28 @@ function Register() {
   const [pendingScan, setPendingScan] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const list = (products.data ?? []).filter((p) => p.active);
   const cols = useCollections();
+  // Catalog filtering runs over the whole cached product list, so memoize it
+  // (avoids re-scanning on every cart/discount render) and defer the search
+  // term so the input stays instantly responsive while tiles catch up.
+  const list = useMemo(() => (products.data ?? []).filter((p) => p.active), [products.data]);
   const price = (p: Product) => salePrice(p, cols.data);
   const cats = (cols.data?.list ?? []).map((c) => c.id);
   const catName = (id: string) => cols.data?.list.find((c) => c.id === id)?.name ?? "";
-  const shown = list.filter(
-    (p) =>
-      (!cat || (cols.data?.byProduct[p.id] ?? []).includes(cat)) &&
-      (!q ||
-        p.name.toLowerCase().includes(q.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(q.toLowerCase())),
-  );
+  const dq = useDeferredValue(q);
+  // The till reveals stock only on demand: a search term or an opened category
+  // shows the tiles, so the register never dumps the whole menu up front — a
+  // store rings up what the customer asks for (like a restaurant order), and a
+  // barcode scan drops the item straight into the cart.
+  const browsing = dq.trim().length > 0 || !!cat;
+  const shown = useMemo(() => {
+    const needle = dq.trim().toLowerCase();
+    return list.filter(
+      (p) =>
+        (!cat || (cols.data?.byProduct[p.id] ?? []).includes(cat)) &&
+        (!needle || p.name.toLowerCase().includes(needle) || p.sku?.toLowerCase().includes(needle)),
+    );
+  }, [list, cat, cols.data, dq]);
   // Discount-adjusted money: net sub = gross - per-line discounts, tax on net.
   const lineGross = (l: Line) => round2(l.qty * price(l.p));
   const lineDisc = (l: Line) => Math.min(round2(discounts[l.p.id] ?? 0), lineGross(l));
@@ -174,7 +186,7 @@ function Register() {
       add(p);
       setPendingScan(null);
     } else if (products.isFetched) {
-      toast.error(`No item matches barcode ${pendingScan}`);
+      toast.error(t("till.noBarcodeMatch", { code: pendingScan }));
       setPendingScan(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,12 +194,12 @@ function Register() {
   // `/` focuses the search box, like Square/Shopify tills.
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      const t = e.target;
+      const el = e.target;
       if (
         e.key === "/" &&
         !(
-          t instanceof HTMLElement &&
-          (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+          el instanceof HTMLElement &&
+          (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)
         )
       ) {
         e.preventDefault();
@@ -240,7 +252,8 @@ function Register() {
         setDlg(null);
         const change = calcChange(f.tenders, r.total, kind);
         toast.success(
-          `No internet — sale of ${money(r.total)} saved on this device and will sync automatically.${change ? ` Change: ${money(change)}` : ""}`,
+          t("till.noInternetSale", { amount: money(r.total) }) +
+            (change ? t("till.changeSuffix", { amount: money(change) }) : ""),
         );
         return;
       }
@@ -274,14 +287,14 @@ function Register() {
           note: f.note || null,
         });
       } else {
-        toast.success(`Invoice #${r.number} sent for approval`);
+        toast.success(t("till.invoiceSentApproval", { no: r.number }));
       }
     } catch (e) {
       toast.error((e as Error).message);
     }
   }
 
-  if (!store) return <Empty>Add a store first.</Empty>;
+  if (!store) return <Empty>{t("till.addStoreFirst")}</Empty>;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -289,7 +302,7 @@ function Register() {
         <div className="mb-4 flex items-center gap-3">
           <div className="relative flex-1">
             <Label htmlFor="pos-search" className="sr-only">
-              Search items or SKU
+              {t("till.searchLabel")}
             </Label>
             <HugeiconsIcon
               icon={Search01Icon}
@@ -299,7 +312,7 @@ function Register() {
               ref={searchRef}
               id="pos-search"
               className="h-11 bg-card pl-9"
-              placeholder="Search items or SKU (/)"
+              placeholder={t("till.searchPlaceholder")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -318,7 +331,7 @@ function Register() {
               value="all"
               className="shrink-0 rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
             >
-              All
+              {t("till.all")}
             </ToggleGroupItem>
             {cats.map((id) => (
               <ToggleGroupItem
@@ -331,12 +344,21 @@ function Register() {
             ))}
           </ToggleGroup>
         )}
-        {shown.length === 0 ? (
+        {products.isError ? (
           <Empty>
-            {list.length === 0
-              ? "No items yet. An admin or manager can add them under Inventory."
-              : "No matching items."}
+            <div className="flex flex-col items-center gap-3">
+              <span>{t("errors.generic")}</span>
+              <Button size="sm" variant="outline" onClick={() => void products.refetch()}>
+                {t("common.tryAgain")}
+              </Button>
+            </div>
           </Empty>
+        ) : list.length === 0 ? (
+          <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
+        ) : !browsing ? (
+          <Empty>{t("till.searchToStart")}</Empty>
+        ) : shown.length === 0 ? (
+          <Empty>{t("till.noMatchingItems")}</Empty>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((p) => {
@@ -372,7 +394,7 @@ function Register() {
                           s <= 0 ? "text-destructive" : "text-muted-foreground",
                         )}
                       >
-                        {s} in stock
+                        {t("till.inStock", { count: s })}
                       </span>
                     </div>
                   </div>
@@ -385,7 +407,9 @@ function Register() {
 
       <Card className="flex h-fit flex-col shadow-none lg:sticky lg:top-8">
         <CardHeader className="space-y-0 border-b px-5 py-4">
-          <CardTitle className="font-bold">Current {approval ? "invoice" : "sale"}</CardTitle>
+          <CardTitle className="font-bold">
+            {approval ? t("till.currentInvoice") : t("till.currentSale")}
+          </CardTitle>
           <CardDescription className="text-xs">{store.name}</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 p-0">
@@ -393,7 +417,7 @@ function Register() {
             <div className="divide-y">
               {cart.length === 0 && (
                 <p className="p-8 text-center text-sm text-muted-foreground">
-                  Tap items to add them.
+                  {t("till.tapItems")}
                 </p>
               )}
               {cart.map((l) => {
@@ -404,7 +428,7 @@ function Register() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{l.p.name}</div>
                       <div className="tabular text-xs text-muted-foreground">
-                        {money(price(l.p))} each
+                        {money(price(l.p))} {t("till.eachWord")}
                         {d > 0 && <span className="ml-1 text-warning">· -{money(d)}</span>}
                       </div>
                     </div>
@@ -453,24 +477,26 @@ function Register() {
             disabled={!cart.length}
             onClick={() => setShowDisc(true)}
           >
-            {discountTotal > 0 ? `Discount · -${money(discountTotal)}` : "Add discount"}
+            {discountTotal > 0
+              ? t("till.discountApplied", { amount: money(discountTotal) })
+              : t("till.addDiscount")}
           </Button>
           {discountTotal > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Items</span>
+              <span>{t("till.lineItems")}</span>
               <span className="tabular">{money(grossSub)}</span>
             </div>
           )}
           {rate > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>
-                VAT {rate}% {incl ? "(included)" : "(added)"}
+                {t("till.vat")} {rate}% ({incl ? t("till.included") : t("till.added")})
               </span>
               <span className="tabular">{money(tax)}</span>
             </div>
           )}
           <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground">Total</span>
+            <span className="text-sm text-muted-foreground">{t("common.total")}</span>
             <span className="tabular text-3xl font-extrabold">{money(total)}</span>
           </div>
           <Button
@@ -480,7 +506,7 @@ function Register() {
             disabled={!cart.length}
             onClick={() => setDlg("sale")}
           >
-            {approval ? "Send for approval" : `Charge ${money(total)}`}
+            {approval ? t("till.sendForApproval") : t("till.charge", { amount: money(total) })}
           </Button>
           <Button
             size="lg"
@@ -489,7 +515,7 @@ function Register() {
             disabled={!cart.length}
             onClick={() => setDlg("layby")}
           >
-            {approval ? "Layby invoice" : "Start layby"}
+            {approval ? t("till.laybyInvoice") : t("till.startLayby")}
           </Button>
         </CardFooter>
       </Card>
@@ -526,13 +552,12 @@ function Register() {
 }
 
 const payMethods = [
-  { v: "cash", t: "Cash", i: BanknoteIcon },
-  { v: "card", t: "Card", i: CreditCardIcon },
-  { v: "mobile", t: "Mobile money", i: Simcard01Icon },
+  { v: "cash", k: "till.payCash", i: BanknoteIcon },
+  { v: "card", k: "till.payCard", i: CreditCardIcon },
+  { v: "mobile", k: "till.payMobile", i: Simcard01Icon },
 ] as const;
 
 const sectionLabel = "text-[11px] font-medium uppercase tracking-wider text-muted-foreground";
-const methodOpts = payMethods.map((m) => ({ value: m.v, label: m.t }));
 
 function CheckoutDialog({
   kind,
@@ -550,6 +575,8 @@ function CheckoutDialog({
   onDone: (f: SaleForm) => Promise<void>;
 }) {
   const { money, store, business } = usePos();
+  const { t } = useI18n();
+  const methodOpts = payMethods.map((m) => ({ value: m.v, label: t(m.k) }));
   const [method, setMethod] = useState("cash");
   const [tendered, setTendered] = useState("");
   const [extra, setExtra] = useState<{ method: string; amount: string }[]>([]);
@@ -612,25 +639,32 @@ function CheckoutDialog({
           <DialogTitle>
             {approval
               ? kind === "layby"
-                ? "Layby invoice for approval"
-                : "Invoice for approval"
+                ? t("till.titleLaybyApproval")
+                : t("till.titleInvoiceApproval")
               : kind === "layby"
-                ? "Start layby"
-                : "Take payment"}
+                ? t("till.titleStartLayby")
+                : t("till.titleTakePayment")}
           </DialogTitle>
           <DialogDescription className="mt-1.5 truncate text-xs">
             {store?.name} ·{" "}
-            {approval ? "Approval invoice" : kind === "layby" ? "Layby" : "Direct sale"}
+            {approval
+              ? t("till.subApprovalInvoice")
+              : kind === "layby"
+                ? t("till.subLayby")
+                : t("till.subDirectSale")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="px-5 pt-5">
           <div className="rounded-lg bg-secondary/45 px-4 py-3 text-center">
-            <div className={sectionLabel}>{approval ? "Invoice total" : "Amount due"}</div>
+            <div className={sectionLabel}>
+              {approval ? t("till.invoiceTotal") : t("till.amountDue")}
+            </div>
             <div className="tabular mt-1 text-3xl font-extrabold">{money(total)}</div>
             {rate > 0 && (
               <div className="mt-1 text-[11px] text-muted-foreground">
-                VAT {rate}% {business?.tax_inclusive ? "included" : "added"}
+                {t("till.vat")} {rate}%{" "}
+                {business?.tax_inclusive ? t("till.included") : t("till.added")}
               </div>
             )}
           </div>
@@ -640,13 +674,13 @@ function CheckoutDialog({
           {approval ? (
             <Alert className="border-warning/40 bg-warning/15 text-warning-foreground">
               <AlertDescription className="text-xs [&_p]:leading-relaxed">
-                An approver must approve this before stock leaves the store and payment is recorded.
+                {t("till.approvalNote")}
               </AlertDescription>
             </Alert>
           ) : (
             <div className="space-y-2">
               <Label className={sectionLabel}>
-                {splitting ? "Payment 1 method" : "Payment method"}
+                {splitting ? t("till.payment1Method") : t("till.paymentMethod")}
               </Label>
               <ToggleGroup
                 type="single"
@@ -661,7 +695,7 @@ function CheckoutDialog({
                     className="flex-1 rounded-full px-2 py-2 text-sm data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
                   >
                     <HugeiconsIcon icon={m.i} className="size-4 shrink-0" />
-                    <span className="truncate">{m.t}</span>
+                    <span className="truncate">{t(m.k)}</span>
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
@@ -672,7 +706,11 @@ function CheckoutDialog({
             <div className="space-y-2">
               <Field
                 label={
-                  splitting ? "Amount" : kind === "layby" ? "Deposit paid now" : "Cash received"
+                  splitting
+                    ? t("till.labelAmount")
+                    : kind === "layby"
+                      ? t("till.labelDepositPaidNow")
+                      : t("till.labelCashReceived")
                 }
               >
                 <Input
@@ -686,7 +724,7 @@ function CheckoutDialog({
               {!splitting && (
                 <div className="flex flex-wrap gap-2">
                   <Tender active={pay === total} onClick={() => setTendered(String(total))}>
-                    {kind === "layby" ? "Full amount" : "Exact"}
+                    {kind === "layby" ? t("till.tenderFullAmount") : t("till.tenderExact")}
                   </Tender>
                   {notes.map((v) => (
                     <Tender key={v} active={pay === v} onClick={() => setTendered(String(v))}>
@@ -712,7 +750,7 @@ function CheckoutDialog({
                   />
                   <Input
                     inputMode="decimal"
-                    aria-label={`Payment ${i + 2} amount`}
+                    aria-label={t("till.ariaPaymentAmount", { no: i + 2 })}
                     value={e.amount}
                     onChange={(ev) =>
                       setExtra((x) =>
@@ -726,7 +764,7 @@ function CheckoutDialog({
                     size="icon"
                     variant="ghost"
                     className="size-9 shrink-0"
-                    aria-label="Remove payment"
+                    aria-label={t("till.ariaRemovePayment")}
                     onClick={() => setExtra((x) => x.filter((_, j) => j !== i))}
                   >
                     <HugeiconsIcon icon={Delete02Icon} />
@@ -741,32 +779,34 @@ function CheckoutDialog({
                 }
               >
                 <HugeiconsIcon icon={PlusSignIcon} className="size-4" />
-                Add another payment
+                {t("till.addAnotherPayment")}
               </Button>
             </div>
           )}
 
           {splitting && short > 0.005 && (
             <div className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-              <span className="text-sm font-semibold text-muted-foreground">Remaining due</span>
+              <span className="text-sm font-semibold text-muted-foreground">
+                {t("till.remainingDue")}
+              </span>
               <span className="tabular text-lg font-extrabold">{money(short)}</span>
             </div>
           )}
           {change > 0 && (
             <div className="flex items-center justify-between rounded-lg bg-success/10 px-4 py-3">
-              <span className="text-sm font-semibold text-success">Change due</span>
+              <span className="text-sm font-semibold text-success">{t("till.changeDue")}</span>
               <span className="tabular text-lg font-extrabold text-success">{money(change)}</span>
             </div>
           )}
 
           {needsPin && (
-            <Field label="Manager PIN (discount over your cap)">
+            <Field label={t("till.managerPinOverCap")}>
               <Input
                 inputMode="numeric"
                 type="password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                placeholder="Enter manager PIN"
+                placeholder={t("till.enterManagerPin")}
                 className="tabular"
               />
             </Field>
@@ -774,16 +814,18 @@ function CheckoutDialog({
 
           {(kind === "layby" || approval) && (
             <div className="grid grid-cols-2 gap-3">
-              <Field label={kind === "layby" ? "Customer name *" : "Customer name"}>
+              <Field
+                label={kind === "layby" ? t("till.customerNameRequired") : t("till.customerName")}
+              >
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
               </Field>
-              <Field label="Phone">
+              <Field label={t("till.phoneLabel")}>
                 <Input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </Field>
             </div>
           )}
           {approval && (
-            <Field label="Note for approver">
+            <Field label={t("till.noteForApprover")}>
               <Input value={note} onChange={(e) => setNote(e.target.value)} />
             </Field>
           )}
@@ -791,7 +833,7 @@ function CheckoutDialog({
 
         <DialogFooter className="flex-row gap-3 border-t bg-secondary/35 px-5 py-4 sm:justify-between sm:space-x-0">
           <Button variant="ghost" size="lg" className="px-4" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             size="lg"
@@ -808,10 +850,10 @@ function CheckoutDialog({
             onClick={submit}
           >
             {approval
-              ? "Send for approval"
+              ? t("till.sendForApproval")
               : kind === "layby"
-                ? "Open layby"
-                : `Complete sale · ${money(total)}`}
+                ? t("till.openLayby")
+                : t("till.completeSale", { amount: money(total) })}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -12,8 +12,7 @@ const buttonVariants = cva(
         default:
           "bg-[image:linear-gradient(180deg,var(--button-gradient-from),var(--button-gradient-to))] text-button-foreground shadow hover:brightness-90",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:brightness-90",
-        outline:
-          "border border-input bg-card shadow-sm hover:bg-secondary",
+        outline: "border border-input bg-card shadow-sm hover:bg-secondary",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:brightness-95",
         ghost: "hover:bg-secondary",
         accent: "bg-accent text-accent-foreground shadow hover:brightness-90",

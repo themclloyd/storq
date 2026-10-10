@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -96,9 +97,10 @@ const statusText: Record<string, string> = {
   partially_refunded: "Part refunded",
 };
 export function Status({ s }: { s: string }) {
+  const { t } = useI18n();
   return (
     <Badge className={cn("rounded-full border-transparent px-2.5 py-0.5", statusStyle[s])}>
-      {statusText[s] ?? s}
+      {s in statusText ? t(`status.${s}`) : s}
     </Badge>
   );
 }
@@ -110,6 +112,7 @@ export function Empty({ children }: { children: ReactNode }) {
 }
 
 export function StoreTypeTag({ type }: { type: string }) {
+  const { t } = useI18n();
   return (
     <Badge
       className={cn(
@@ -119,11 +122,13 @@ export function StoreTypeTag({ type }: { type: string }) {
           : "bg-success/15 text-success",
       )}
     >
-      {type === "approval" ? "Approval" : "Direct sale"}
+      {type === "approval" ? t("status.approval") : t("status.directSale")}
     </Badge>
   );
 }
 
+// Shared till formatting helper co-located with the POS bits; advisory only.
+// eslint-disable-next-line react-refresh/only-export-components
 export const fmtDate = (d: string) =>
   new Date(d).toLocaleString("en-ZA", {
     day: "2-digit",

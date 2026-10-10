@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Camera01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { cameraScanSupported } from "@/components/pos/use-scanner";
+import { useI18n } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -20,13 +21,14 @@ type BarcodeDetectorCtor = new (opts?: { formats?: string[] }) => BarcodeDetecto
 
 /** Header button that opens the camera scanner; hidden where unsupported. */
 export function ScanCameraButton({ onOpen }: { onOpen: () => void }) {
+  const { t } = useI18n();
   if (!cameraScanSupported()) return null;
   return (
     <Button
       size="icon"
       variant="outline"
-      aria-label="Scan barcode with camera"
-      title="Scan with camera"
+      aria-label={t("till.scanCameraAria")}
+      title={t("till.scanCameraTitle")}
       onClick={onOpen}
     >
       <HugeiconsIcon icon={Camera01Icon} />
@@ -60,6 +62,7 @@ export function ScanCamera({
   onClose: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [lastCode, setLastCode] = useState("");
   const handled = useRef(false);
@@ -73,7 +76,7 @@ export function ScanCamera({
     const Ctor = (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor })
       .BarcodeDetector as BarcodeDetectorCtor | undefined;
     if (!Ctor) {
-      setError("This browser cannot scan barcodes.");
+      setError(t("till.noBarcodeSupport"));
       return;
     }
     let stream: MediaStream | null = null;
@@ -90,7 +93,7 @@ export function ScanCamera({
       .getUserMedia({ video: { facingMode: { ideal: "environment" } } })
       .then((s) => {
         if (!alive) {
-          s.getTracks().forEach((t) => t.stop());
+          s.getTracks().forEach((tr) => tr.stop());
           return;
         }
         stream = s;
@@ -101,7 +104,7 @@ export function ScanCamera({
         }
       })
       .catch(() => {
-        if (alive) setError("Camera access was blocked — allow it, or use a scanner gun.");
+        if (alive) setError(t("till.cameraBlocked"));
       });
 
     const tick = () => {
@@ -118,7 +121,7 @@ export function ScanCamera({
           if (!detectedRef.current(hit.rawValue)) {
             // Unmatched code: keep the modal open and let the cashier retry.
             handled.current = false;
-            setError(`No item matches ${hit.rawValue}`);
+            setError(t("till.noItemMatches", { code: hit.rawValue }));
           } else {
             closeRef.current();
           }
@@ -130,18 +133,19 @@ export function ScanCamera({
     return () => {
       alive = false;
       cancelAnimationFrame(raf);
-      stream?.getTracks().forEach((t) => t.stop());
+      stream?.getTracks().forEach((tr) => tr.stop());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm gap-0 overflow-hidden p-0 shadow-[var(--shadow-pop)] sm:max-w-sm">
         <DialogHeader className="space-y-0 border-b px-5 py-4 text-left">
-          <DialogTitle>Scan barcode</DialogTitle>
+          <DialogTitle>{t("till.scanBarcode")}</DialogTitle>
           <DialogDescription className="mt-1 text-xs">
-            Hold the code in front of the camera.
-            {lastCode ? ` Last seen: ${lastCode}` : ""}
+            {t("till.holdCode")}
+            {lastCode ? t("till.lastSeen", { code: lastCode }) : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="relative aspect-[4/3] bg-black">
@@ -150,7 +154,7 @@ export function ScanCamera({
             className="size-full object-contain"
             muted
             playsInline
-            aria-label="Camera preview"
+            aria-label={t("till.cameraPreviewAria")}
           />
           <div className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 -translate-y-1/2 bg-accent/80" />
         </div>
@@ -161,7 +165,7 @@ export function ScanCamera({
         )}
         <div className="border-t px-5 py-4">
           <Button variant="outline" className="w-full" onClick={onClose}>
-            Close camera
+            {t("till.closeCamera")}
           </Button>
         </div>
       </DialogContent>

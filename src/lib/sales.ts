@@ -56,6 +56,9 @@ export function useSales(
 export function useSaleItemCosts(rows?: SaleRow[]) {
   return useQuery({
     queryKey: ["sale-item-costs", (rows ?? []).flatMap((s) => s.sale_items.map((i) => i.id))],
+    // Cost snapshots are immutable once recorded and the key is invalidated on
+    // any sale-touching write, so load once and hold rather than re-pull.
+    staleTime: 300_000,
     queryFn: async () => {
       const ids = (rows ?? []).flatMap((s) => s.sale_items.map((i) => i.id));
       if (!ids.length) return {} as Record<string, number>;

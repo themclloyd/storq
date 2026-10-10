@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { usePos } from "@/lib/pos";
+import { useI18n, t as tInv } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { PRICES, YEARLY_FACTOR, loadPaychangu, useSubscription } from "@/lib/billing";
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
@@ -43,8 +44,14 @@ const fmt = (c: "MWK" | "USD", n: number) =>
     ? `MK${Math.round(n).toLocaleString()}`
     : `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
+const PERIOD_KEY: Record<string, string> = {
+  monthly: "billing.periodMonthly",
+  yearly: "billing.periodYearly",
+};
+
 export function Billing({ locked }: { locked?: boolean }) {
   const { business, stores, can, rpc, lock } = usePos();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const sub = useSubscription(business?.id, stores.length);
   const getKey = useServerFn(getPaychanguKey);
@@ -65,7 +72,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   async function check(ref: string) {
     const r = await verify({ data: { tx_ref: ref } });
     if (r.ok) {
-      toast.success("Payment received — thank you!");
+      toast.success(t("billing.paymentReceived"));
       qc.invalidateQueries({ queryKey: ["subscription"] });
     } else toast.error(r.message);
   }
@@ -78,6 +85,8 @@ export function Billing({ locked }: { locked?: boolean }) {
       check(ref);
       window.history.replaceState(null, "", window.location.pathname);
     }
+    // Runs once on mount to redeem a returning ?tx_ref; guarded by checked ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function pay() {
@@ -93,14 +102,14 @@ export function Billing({ locked }: { locked?: boolean }) {
         supabase.auth.getUser(),
         loadPaychangu(),
       ]);
-      if (!key) throw new Error("Payments are not configured yet.");
+      if (!key) throw new Error(t("billing.payNotConfigured"));
       const url = `${window.location.origin}/app/billing`;
       if (!document.getElementById("wrapper")) {
         const w = document.createElement("div");
         w.id = "wrapper";
         document.body.appendChild(w);
       }
-      if (!window.PaychanguCheckout) throw new Error("PayChangu could not open. Please try again.");
+      if (!window.PaychanguCheckout) throw new Error(t("billing.paychanguFailed"));
       window.PaychanguCheckout({
         public_key: key,
         tx_ref: start.tx_ref,
@@ -133,6 +142,9 @@ export function Billing({ locked }: { locked?: boolean }) {
   const history = useQuery({
     queryKey: ["subscription", "history", business?.id],
     enabled: !!business?.id,
+    // Append-only payment log; the ["subscription"] prefix is invalidated when
+    // a payment lands, so this can stay cached rather than re-pull on remount.
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subscription_payments")
@@ -143,12 +155,12 @@ export function Billing({ locked }: { locked?: boolean }) {
     },
   });
   const status = s?.overLimit
-    ? { label: "Store limit exceeded", cls: "bg-destructive/15 text-destructive" }
+    ? { label: t("billing.statusOverLimit"), cls: "bg-destructive/15 text-destructive" }
     : until
-      ? { label: "Active", cls: "bg-accent/15 text-accent" }
+      ? { label: t("billing.statusActive"), cls: "bg-accent/15 text-accent" }
       : s?.trial
-        ? { label: "Free trial", cls: "bg-secondary text-foreground" }
-        : { label: "Expired", cls: "bg-destructive/15 text-destructive" };
+        ? { label: t("store.freeTrial"), cls: "bg-secondary text-foreground" }
+        : { label: t("billing.statusExpired"), cls: "bg-destructive/15 text-destructive" };
   const canPay = can("admin", "manager");
   const lastPaid = history.data?.find((r) => r.status === "paid") ?? null;
   const paidInvoices = (history.data ?? []).filter((r) => r.status === "paid");
@@ -160,11 +172,11 @@ export function Billing({ locked }: { locked?: boolean }) {
         <h1 className="text-xl font-semibold">
           {locked
             ? s?.overLimit
-              ? "Your stores exceed paid capacity"
-              : "Your subscription needs attention"
-            : "Billing"}
+              ? t("billing.overLimitTitle")
+              : t("billing.needsAttentionTitle")
+            : t("billing.title")}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Your plan, payments and invoices.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("billing.sub")}</p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -175,12 +187,12 @@ export function Billing({ locked }: { locked?: boolean }) {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">
                     {sub.isPending
-                      ? "Loading…"
+                      ? t("common.loading")
                       : until
-                        ? `${s?.sub?.plan ?? "Storq"} plan`
+                        ? t("billing.planOf", { plan: s?.sub?.plan ?? "Storq" })
                         : s?.trial
-                          ? "Free trial"
-                          : "No active plan"}
+                          ? t("store.freeTrial")
+                          : t("billing.noActivePlan")}
                   </span>
                   <span
                     className={cn(
@@ -193,27 +205,30 @@ export function Billing({ locked }: { locked?: boolean }) {
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {until
-                    ? `Renews / expires ${until.toLocaleDateString(undefined, { dateStyle: "long" })}`
+                    ? t("billing.renewsExpires", {
+                        date: until.toLocaleDateString(undefined, { dateStyle: "long" }),
+                      })
                     : s?.trial && trialEnd
-                      ? `Trial ends ${trialEnd.toLocaleDateString()}`
-                      : "Subscribe to keep selling."}
+                      ? t("billing.trialEnds", { date: trialEnd.toLocaleDateString() })
+                      : t("billing.subscribeToKeep")}
                 </p>
               </div>
               <div className="text-right">
                 <div className="text-3xl font-semibold tabular">
                   {fmt(currency, PRICES[currency])}
                 </div>
-                <div className="text-xs text-muted-foreground">per store / month</div>
+                <div className="text-xs text-muted-foreground">{t("billing.perStoreMonth")}</div>
               </div>
             </div>
             <div className="mt-5">
               <div className="flex items-center justify-between text-xs font-medium">
                 <span>
-                  {stores.length} of {s?.capacity ?? 0} stores used
+                  {t("billing.storesUsed", { used: stores.length, capacity: s?.capacity ?? 0 })}
                 </span>
                 <span className="text-muted-foreground">
                   {fmt(currency, PRICES[currency])} × {stores.length} ={" "}
-                  {fmt(currency, PRICES[currency] * stores.length)}/mo
+                  {fmt(currency, PRICES[currency] * stores.length)}
+                  {t("billing.perMo")}
                 </span>
               </div>
               <Progress
@@ -228,7 +243,7 @@ export function Billing({ locked }: { locked?: boolean }) {
           <div className="mt-5 flex items-center justify-between border-t pt-4">
             {locked ? (
               <Button variant="outline" size="sm" onClick={lock}>
-                Switch staff
+                {t("billing.switchStaff")}
               </Button>
             ) : (
               <span />
@@ -240,7 +255,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 className="text-accent hover:text-accent"
                 onClick={() => setPlanOpen(true)}
               >
-                {until ? "Renew or extend" : "Upgrade plan"}{" "}
+                {until ? t("billing.renewOrExtend") : t("billing.upgradePlan")}{" "}
                 <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-3.5" />
               </Button>
             )}
@@ -250,10 +265,10 @@ export function Billing({ locked }: { locked?: boolean }) {
         <Card className="flex flex-col justify-between p-5 shadow-none">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" /> Payment
-              method
+              <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" />{" "}
+              {t("billing.payMethodTitle")}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">Change how you pay for your plan.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("billing.payMethodSub")}</p>
             <Card className="mt-4 flex items-center gap-3 p-3.5 shadow-none">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-5 text-muted-foreground" />
@@ -261,24 +276,26 @@ export function Billing({ locked }: { locked?: boolean }) {
               <div className="min-w-0 flex-1 text-sm">
                 <div className="font-medium">
                   {lastPaid
-                    ? `Last payment · ${lastPaid.currency === "USD" ? "Card / USD" : "Mobile money or card"}`
-                    : "No payment yet"}
+                    ? lastPaid.currency === "USD"
+                      ? t("billing.lastCard")
+                      : t("billing.lastMobile")
+                    : t("billing.noPaymentYet")}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {lastPaid
                     ? `${new Date(lastPaid.paid_at ?? lastPaid.created_at).toLocaleDateString(undefined, { dateStyle: "long" })} · ${fmt(lastPaid.currency as "MWK" | "USD", Number(lastPaid.amount))}`
-                    : "Airtel Money, TNM Mpamba or card via PayChangu."}
+                    : t("billing.payProviders")}
                 </div>
               </div>
               {canPay && (
                 <Button variant="outline" size="sm" onClick={() => setPayOpen(true)}>
-                  Update
+                  {t("billing.update")}
                 </Button>
               )}
             </Card>
           </div>
           <p className="mt-5 border-t pt-4 text-xs text-muted-foreground">
-            Payments are processed by PayChangu; no card details are stored on Storq.
+            {t("billing.processedBy")}
           </p>
         </Card>
       </div>
@@ -286,23 +303,20 @@ export function Billing({ locked }: { locked?: boolean }) {
       <section>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold">Billing and invoicing</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Invoices for every subscription payment.
-            </p>
+            <h2 className="text-base font-semibold">{t("billing.sectionTitle")}</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">{t("billing.sectionSub")}</p>
           </div>
           <Dialog open={downloadOpen} onOpenChange={setDownloadOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm">
-                <HugeiconsIcon icon={Download01Icon} /> Download all
+                <HugeiconsIcon icon={Download01Icon} /> {t("billing.downloadAll")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Download all invoices</DialogTitle>
+                <DialogTitle>{t("billing.downloadAllTitle")}</DialogTitle>
                 <DialogDescription>
-                  {paidInvoices.length} paid invoice{paidInvoices.length === 1 ? "" : "s"} will open
-                  one by one for printing or saving as PDF. Allow pop-ups for this site.
+                  {t("billing.downloadAllDesc", { count: paidInvoices.length })}
                 </DialogDescription>
               </DialogHeader>
               {paidInvoices.length ? (
@@ -317,7 +331,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                           icon={File01Icon}
                           className="size-4 shrink-0 text-muted-foreground"
                         />{" "}
-                        Invoice{" "}
+                        {t("billing.invoiceWord")}{" "}
                         {new Date(r.paid_at ?? r.created_at).toLocaleDateString(undefined, {
                           month: "short",
                           year: "numeric",
@@ -330,11 +344,11 @@ export function Billing({ locked }: { locked?: boolean }) {
                   ))}
                 </Card>
               ) : (
-                <p className="py-4 text-sm text-muted-foreground">No paid invoices yet.</p>
+                <p className="py-4 text-sm text-muted-foreground">{t("billing.noPaidInvoices")}</p>
               )}
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDownloadOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   disabled={!paidInvoices.length}
@@ -345,7 +359,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                     setDownloadOpen(false);
                   }}
                 >
-                  Download {paidInvoices.length} invoices
+                  {t("billing.downloadInvoicesBtn", { count: paidInvoices.length })}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -354,14 +368,16 @@ export function Billing({ locked }: { locked?: boolean }) {
 
         <Card className="divide-y overflow-hidden shadow-none">
           {history.isPending ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Loading invoices…</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {t("billing.loadingInvoices")}
+            </p>
           ) : history.isError ? (
             <p className="py-10 text-center text-sm text-destructive">
-              Invoices could not be loaded.
+              {t("billing.invoicesError")}
             </p>
           ) : !history.data?.length ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
-              No invoices yet — your subscription receipts will appear here.
+              {t("billing.noInvoicesYet")}
             </p>
           ) : (
             history.data.map((r) => {
@@ -372,10 +388,11 @@ export function Billing({ locked }: { locked?: boolean }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium">
-                        {r.stores} store{r.stores > 1 ? "s" : ""}
+                        {t("billing.storesCount", { count: r.stores })}
                         <span className="font-normal text-muted-foreground">
                           {" "}
-                          · {r.period} plan
+                          · {t(PERIOD_KEY[r.period] ?? "billing.periodMonthly")}{" "}
+                          {t("billing.planWord")}
                         </span>
                       </span>
                       <span
@@ -384,7 +401,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                           paid ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground",
                         )}
                       >
-                        {paid ? "Paid" : r.status}
+                        {paid ? t("status.completed") : r.status}
                       </span>
                     </div>
                     <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
@@ -399,7 +416,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                       size="icon"
                       variant="ghost"
                       className="shrink-0 text-muted-foreground hover:text-accent"
-                      aria-label={`Download invoice ${r.tx_ref}`}
+                      aria-label={t("billing.downloadInvoiceAria", { ref: r.tx_ref })}
                       onClick={() => printInvoice(r, business?.name ?? "")}
                     >
                       <HugeiconsIcon icon={Download01Icon} />
@@ -417,16 +434,18 @@ export function Billing({ locked }: { locked?: boolean }) {
       <Dialog open={planOpen} onOpenChange={setPlanOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{until ? "Renew or extend your plan" : "Choose a plan"}</DialogTitle>
+            <DialogTitle>
+              {until ? t("billing.renewExtendTitle") : t("billing.choosePlanTitle")}
+            </DialogTitle>
             <DialogDescription>
-              {stores.length} store{stores.length === 1 ? "" : "s"} on{" "}
-              {business?.name ?? "your account"}. Each store needs a paid slot.
+              {t("billing.choosePlanDesc", {
+                count: stores.length,
+                name: business?.name ?? t("billing.yourAccount"),
+              })}
             </DialogDescription>
           </DialogHeader>
           {!canPay ? (
-            <p className="text-sm text-muted-foreground">
-              Ask an admin or manager to renew the subscription.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("billing.askAdminRenew")}</p>
           ) : (
             <>
               <div className="flex justify-end">
@@ -450,7 +469,7 @@ export function Billing({ locked }: { locked?: boolean }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="billing-stores" className="text-sm font-medium">
-                  Store slots to subscribe
+                  {t("billing.storeSlotsLabel")}
                 </Label>
                 <Input
                   id="billing-stores"
@@ -469,10 +488,8 @@ export function Billing({ locked }: { locked?: boolean }) {
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Buy extra slots before adding stores.
-                  {s?.paid && n > s.capacity
-                    ? " Remaining prepaid time is credited across the larger store count; your expiry date is recalculated after payment."
-                    : ""}
+                  {t("billing.buyExtraSlots")}
+                  {s?.paid && n > s.capacity ? t("billing.prepaidCreditNote") : ""}
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -490,10 +507,12 @@ export function Billing({ locked }: { locked?: boolean }) {
                       )}
                     >
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium capitalize">{p}</span>
+                        <span className="text-sm font-medium">
+                          {t(PERIOD_KEY[p] ?? "billing.periodMonthly")}
+                        </span>
                         {p === "yearly" && (
                           <span className="rounded bg-accent/15 px-2 py-1 text-[10px] font-semibold text-accent">
-                            Save 15%
+                            {t("billing.save15")}
                           </span>
                         )}
                       </span>
@@ -501,7 +520,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                         {fmt(currency, amt)}
                       </span>
                       <span className="mt-1 text-xs font-normal text-muted-foreground">
-                        {p === "yearly" ? "Billed every year" : "Billed every month"}
+                        {p === "yearly" ? t("billing.billedYearly") : t("billing.billedMonthly")}
                       </span>
                     </Button>
                   );
@@ -510,29 +529,34 @@ export function Billing({ locked }: { locked?: boolean }) {
               <div className="space-y-2 border-t pt-3 text-sm">
                 <div className="flex justify-between">
                   <span>
-                    {fmt(currency, PRICES[currency])} × {n} store{n > 1 ? "s" : ""} / month
+                    {t("billing.multiplyPerMonth", {
+                      price: fmt(currency, PRICES[currency]),
+                      count: n,
+                    })}
                   </span>
                   <span>{fmt(currency, monthly)}</span>
                 </div>
                 {period === "yearly" && (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>12 months, 15% off</span>
+                    <span>{t("billing.yearDiscountLine")}</span>
                     <span>−{fmt(currency, monthly * 12 - total)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t pt-2 text-base font-bold">
-                  <span>Total</span>
+                  <span>{t("common.total")}</span>
                   <span>{fmt(currency, total)}</span>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="accent" className="w-full sm:w-auto" disabled={busy} onClick={pay}>
                   <HugeiconsIcon icon={CreditCardIcon} />
-                  {busy ? "Opening…" : `Pay ${fmt(currency, total)}`}
+                  {busy
+                    ? t("billing.opening")
+                    : t("billing.payAmount", { amount: fmt(currency, total) })}
                 </Button>
               </DialogFooter>
               <p className="text-center text-xs text-muted-foreground">
-                Airtel Money, TNM Mpamba or card via PayChangu.
+                {t("billing.payProviders")}
               </p>
             </>
           )}
@@ -542,10 +566,8 @@ export function Billing({ locked }: { locked?: boolean }) {
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Payment method</DialogTitle>
-            <DialogDescription>
-              Storq doesn't store card details. Each payment runs through PayChangu.
-            </DialogDescription>
+            <DialogTitle>{t("billing.payMethodTitle")}</DialogTitle>
+            <DialogDescription>{t("billing.noCardStored")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm">
             <Card className="flex items-center gap-3 p-3.5 shadow-none">
@@ -553,10 +575,8 @@ export function Billing({ locked }: { locked?: boolean }) {
                 <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" />
               </div>
               <div>
-                <div className="font-medium">Airtel Money / TNM Mpamba</div>
-                <div className="text-xs text-muted-foreground">
-                  Pay from your mobile money wallet at checkout.
-                </div>
+                <div className="font-medium">{t("billing.mobileMoneyTitle")}</div>
+                <div className="text-xs text-muted-foreground">{t("billing.mobileMoneyDesc")}</div>
               </div>
             </Card>
             <Card className="flex items-center gap-3 p-3.5 shadow-none">
@@ -564,25 +584,25 @@ export function Billing({ locked }: { locked?: boolean }) {
                 <HugeiconsIcon icon={CreditCardIcon} className="size-4 text-muted-foreground" />
               </div>
               <div>
-                <div className="font-medium">Debit / credit card</div>
-                <div className="text-xs text-muted-foreground">
-                  Visa and Mastercard via the PayChangu secure popup.
-                </div>
+                <div className="font-medium">{t("billing.cardTitle")}</div>
+                <div className="text-xs text-muted-foreground">{t("billing.cardDesc")}</div>
               </div>
             </Card>
           </div>
           {lastPaid && (
             <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Last paid{" "}
-              {new Date(lastPaid.paid_at ?? lastPaid.created_at).toLocaleDateString(undefined, {
-                dateStyle: "long",
-              })}{" "}
-              with {fmt(lastPaid.currency as "MWK" | "USD", Number(lastPaid.amount))}.
+              {t("billing.lastPaidLine", {
+                date: new Date(lastPaid.paid_at ?? lastPaid.created_at).toLocaleDateString(
+                  undefined,
+                  { dateStyle: "long" },
+                ),
+                amount: fmt(lastPaid.currency as "MWK" | "USD", Number(lastPaid.amount)),
+              })}
             </p>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayOpen(false)}>
-              Close
+              {t("common.close")}
             </Button>
             <Button
               onClick={() => {
@@ -590,7 +610,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 setPlanOpen(true);
               }}
             >
-              <HugeiconsIcon icon={Settings01Icon} /> Pay & set up plan
+              <HugeiconsIcon icon={Settings01Icon} /> {t("billing.paySetupPlan")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -614,16 +634,38 @@ function printInvoice(r: Inv, biz: string) {
   const c = r.currency as "MWK" | "USD";
   const d = new Date(r.paid_at ?? r.created_at).toLocaleDateString("en-ZA", { dateStyle: "long" });
   const amt = fmt(c, Number(r.amount));
+  const period = tInv(PERIOD_KEY[r.period] ?? "billing.periodMonthly");
   void downloadPdf({
     filename: `storq-invoice-${r.tx_ref}`,
-    title: "Subscription invoice",
+    title: tInv("billing.invTitle"),
     business: "Storq",
-    subtitle: `Invoice ${r.tx_ref}`,
-    badge: r.status === "paid" ? "PAID" : r.status.toUpperCase(),
-    meta: [["Billed to", biz || "—"], ["Invoice date", d], ["Plan", `${r.period} · ${r.stores} store${r.stores > 1 ? "s" : ""}`], ["Currency", c]],
-    sections: [{ type: "table", head: ["Description", "Stores", "Amount"], align: ["left", "right", "right"],
-      body: [[`Storq POS ${r.period} subscription${r.period === "yearly" ? " (15% yearly discount applied)" : ""}`, r.stores, amt]] }],
-    totals: [["Subtotal", amt], ["Total paid", amt]],
-    footerNote: "Paid via PayChangu. Thank you for using Storq.",
-  }).catch(() => toast.error("Could not create the invoice PDF."));
+    subtitle: tInv("billing.invSubtitle", { ref: r.tx_ref }),
+    badge: r.status === "paid" ? tInv("billing.badgePaid") : r.status.toUpperCase(),
+    meta: [
+      [tInv("billing.billedTo"), biz || "—"],
+      [tInv("billing.invoiceDate"), d],
+      [tInv("billing.invPlan"), tInv("billing.invPlanLine", { period, count: r.stores })],
+      [tInv("billing.currencyWord"), c],
+    ],
+    sections: [
+      {
+        type: "table",
+        head: [tInv("billing.thDescription"), tInv("billing.thStores"), tInv("billing.thAmount")],
+        align: ["left", "right", "right"],
+        body: [
+          [
+            tInv("billing.invLineDesc", { period }) +
+              (r.period === "yearly" ? tInv("billing.yearlyDiscountSuffix") : ""),
+            r.stores,
+            amt,
+          ],
+        ],
+      },
+    ],
+    totals: [
+      [tInv("doc.subtotal"), amt],
+      [tInv("billing.totalPaid"), amt],
+    ],
+    footerNote: tInv("billing.invFooter"),
+  }).catch(() => toast.error(tInv("billing.invoicePdfError")));
 }

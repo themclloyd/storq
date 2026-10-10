@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LIMITS, validateEmail, validatePassword } from "@/lib/validate";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -20,6 +22,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
+  const { t } = useI18n();
   const nav = useNavigate();
   const [mode, setMode] = useState<"in" | "up" | "forgot" | "recover">("in");
   const [email, setEmail] = useState("");
@@ -57,7 +60,7 @@ function AuthPage() {
         return;
       }
     } else if (mode === "in" && !password) {
-      toast.error("Password is required");
+      toast.error(t("validate.passwordRequired"));
       return;
     }
     setBusy(true);
@@ -88,14 +91,14 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
-        toast.success("Password updated — you're signed in.");
+        toast.success(t("auth.passwordUpdated"));
         nav({ to: "/app" });
       }
     } catch (err) {
       // Surpass raw server wording but stay helpful for genuine failures.
       toast.error(
         /rate limit|too many/i.test((err as Error).message)
-          ? "Too many attempts — try again in a moment."
+          ? t("errors.tooManyAttempts")
           : (err as Error).message,
       );
     } finally {
@@ -113,7 +116,7 @@ function AuthPage() {
         {(mode === "in" || mode === "up") && (
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:inline">
-              {mode === "in" ? "New to Storq?" : "Already have an account?"}
+              {mode === "in" ? t("auth.newToStorq") : t("auth.alreadyHaveAccount")}
             </span>
             <Button
               variant="secondary"
@@ -123,20 +126,21 @@ function AuthPage() {
                 setMode(mode === "in" ? "up" : "in");
               }}
             >
-              {mode === "in" ? "Create account" : "Sign in"}
+              {mode === "in" ? t("auth.createAccount") : t("auth.signIn")}
             </Button>
           </div>
         )}
+        <LanguageSwitcher />
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-16">
         {sent ? (
           <div className="space-y-4">
             <Alert>
-              <AlertTitle>Check your email</AlertTitle>
+              <AlertTitle>{t("auth.checkYourEmail")}</AlertTitle>
               <AlertDescription>
                 {sent === "reset"
-                  ? `We sent a password reset link to ${email}. Open it on this device to choose a new password.`
-                  : `We sent a confirmation link to ${email}. Open it on this device to continue.`}
+                  ? t("auth.resetSent", { email })
+                  : t("auth.confirmSent", { email })}
               </AlertDescription>
             </Alert>
             {sent === "reset" && (
@@ -149,7 +153,7 @@ function AuthPage() {
                   setMode("in");
                 }}
               >
-                Back to sign in
+                {t("auth.backToSignIn")}
               </Button>
             )}
           </div>
@@ -158,19 +162,19 @@ function AuthPage() {
             <div className="space-y-2">
               <h1 className="text-3xl font-semibold">
                 {mode === "in"
-                  ? "Welcome back."
+                  ? t("auth.welcomeBack")
                   : mode === "up"
-                    ? "Create your account."
+                    ? t("auth.createYourAccount")
                     : mode === "forgot"
-                      ? "Reset your password."
-                      : "Choose a new password."}
+                      ? t("auth.resetYourPassword")
+                      : t("auth.chooseNewPassword")}
               </h1>
               <p className="text-sm leading-6 text-muted-foreground">
                 {mode === "recover"
-                  ? "Pick a strong password for your business account."
+                  ? t("auth.pickStrongPassword")
                   : mode === "forgot"
-                    ? "We'll email you a secure link to set a new password."
-                    : "One account for your business. Your staff PIN comes next."}
+                    ? t("auth.emailResetHint")
+                    : t("auth.oneAccountHint")}
               </p>
             </div>
             <form onSubmit={submit} className="space-y-6">
@@ -180,7 +184,7 @@ function AuthPage() {
                     htmlFor="business-email"
                     className="text-xs font-medium text-muted-foreground"
                   >
-                    Business email
+                    {t("auth.businessEmail")}
                   </Label>
                   <Input
                     id="business-email"
@@ -197,7 +201,7 @@ function AuthPage() {
               {mode !== "forgot" && (
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-xs font-medium text-muted-foreground">
-                    Password
+                    {t("auth.password")}
                   </Label>
                   <Input
                     id="password"
@@ -210,22 +214,20 @@ function AuthPage() {
                     onChange={(e) => setPassword(e.target.value.slice(0, LIMITS.password))}
                   />
                   {(mode === "up" || mode === "recover") && (
-                    <p className="text-xs text-muted-foreground">
-                      At least 8 characters with one letter and one number.
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t("auth.passwordHint")}</p>
                   )}
                 </div>
               )}
               <Button className="h-12 w-full" size="lg" disabled={busy}>
                 {busy
-                  ? "Please wait…"
+                  ? t("common.confirming")
                   : mode === "in"
-                    ? "Sign in"
+                    ? t("auth.signIn")
                     : mode === "up"
-                      ? "Create account"
+                      ? t("auth.createAccount")
                       : mode === "forgot"
-                        ? "Send reset link"
-                        : "Update password"}
+                        ? t("auth.sendResetLink")
+                        : t("auth.updatePassword")}
               </Button>
               {mode === "in" && (
                 <Button
@@ -237,7 +239,7 @@ function AuthPage() {
                     setMode("forgot");
                   }}
                 >
-                  Forgot password?
+                  {t("auth.forgotPassword")}
                 </Button>
               )}
               {mode === "forgot" && (
@@ -250,14 +252,14 @@ function AuthPage() {
                     setMode("in");
                   }}
                 >
-                  Back to sign in
+                  {t("auth.backToSignIn")}
                 </Button>
               )}
             </form>
           </div>
         )}
       </main>
-      <div className="text-xs text-muted-foreground">Storq · Business workspace</div>
+      <div className="text-xs text-muted-foreground">{t("auth.brandTag")}</div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 // Client-safe sale/layby receipt builders. No DB access — the caller passes an
 // already-formatted `money` fn (from usePos) so amounts stay in the store currency.
+import { t } from "@/lib/i18n";
 
 export type ReceiptLine = { name: string; qty: number; price: number; total: number };
 
@@ -32,25 +33,28 @@ export type Receipt = {
 
 export type MoneyFmt = (n: number) => string;
 
-const METHOD_LABELS: Record<string, string> = {
-  cash: "Cash",
-  card: "Card",
-  mobile: "Mobile money",
-  split: "Split payment",
+const METHOD_KEYS: Record<string, string> = {
+  cash: "till.payCash",
+  card: "till.payCard",
+  mobile: "till.payMobile",
+  split: "doc.split",
 };
 
-export const methodLabel = (m: string) => METHOD_LABELS[m] ?? m;
+export const methodLabel = (m: string) => {
+  const key = METHOD_KEYS[m];
+  return key ? t(key) : m;
+};
 
 export function receiptTitle(r: Receipt) {
   if (r.kind === "layby")
-    return r.status === "layby_completed" ? "LAYBY — PAID IN FULL" : "LAYBY RECEIPT";
-  return "SALE RECEIPT";
+    return r.status === "layby_completed" ? t("doc.titleLaybyPaid") : t("doc.titleLaybyReceipt");
+  return t("doc.titleSaleReceipt");
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  completed: "PAID",
-  layby_open: "LAYBY OPEN",
-  layby_completed: "LAYBY PAID",
+const STATUS_KEYS: Record<string, string> = {
+  completed: "doc.badgePaid",
+  layby_open: "doc.badgeLaybyOpen",
+  layby_completed: "doc.badgeLaybyPaid",
 };
 
 /**
@@ -83,40 +87,47 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
   out.push(r.storeName);
   out.push(receiptTitle(r));
   out.push(rule);
-  out.push(padRow(`Invoice`, `#${r.number}`));
-  out.push(padRow(`Date`, new Date(r.date).toLocaleString()));
-  out.push(padRow(`Served by`, r.cashier));
+  out.push(padRow(t("doc.invoice"), `#${r.number}`));
+  out.push(padRow(t("doc.date"), new Date(r.date).toLocaleString()));
+  out.push(padRow(t("doc.servedBy"), r.cashier));
   out.push(rule);
   for (const l of r.lines) {
     out.push(l.name);
     out.push(padRow(`  ${l.qty} x ${money(l.price)}`, money(l.total)));
   }
   out.push(rule);
-  if (r.discount && r.discount > 0) out.push(padRow(`Discount`, `-` + money(r.discount)));
-  out.push(padRow(`Subtotal`, money(r.subtotal)));
+  if (r.discount && r.discount > 0) out.push(padRow(t("doc.discount"), `-` + money(r.discount)));
+  out.push(padRow(t("doc.subtotal"), money(r.subtotal)));
   if (r.taxRate > 0)
-    out.push(padRow(`VAT ${r.taxRate}%${r.taxInclusive ? " (incl)" : ""}`, money(r.tax)));
-  out.push(padRow(`TOTAL`, money(r.total)));
+    out.push(
+      padRow(
+        `${t("till.vat")} ${r.taxRate}%${r.taxInclusive ? ` (${t("till.included")})` : ""}`,
+        money(r.tax),
+      ),
+    );
+  out.push(padRow(t("doc.total"), money(r.total)));
   out.push(rule);
-  out.push(padRow(`Method`, methodLabel(r.method)));
-  for (const t of r.tenders ?? []) out.push(padRow(`  ${methodLabel(t.method)}`, money(t.raw)));
-  out.push(padRow(r.kind === "layby" ? "Deposit" : "Paid", money(r.paid)));
-  if (r.change > 0) out.push(padRow(`Change`, money(r.change)));
+  out.push(padRow(t("doc.method"), methodLabel(r.method)));
+  for (const tnd of r.tenders ?? [])
+    out.push(padRow(`  ${methodLabel(tnd.method)}`, money(tnd.raw)));
+  out.push(padRow(r.kind === "layby" ? t("doc.deposit") : t("doc.paid"), money(r.paid)));
+  if (r.change > 0) out.push(padRow(t("doc.change"), money(r.change)));
   if (r.customerName) {
     out.push(rule);
-    out.push(`Customer: ${r.customerName}`);
-    if (r.customerPhone) out.push(`Phone: ${r.customerPhone}`);
+    out.push(`${t("doc.customer")}: ${r.customerName}`);
+    if (r.customerPhone) out.push(`${t("till.phoneLabel")}: ${r.customerPhone}`);
   }
-  if (r.note) out.push(`Note: ${r.note}`);
+  if (r.note) out.push(`${t("doc.noteLabel")} ${r.note}`);
   out.push(rule);
-  out.push("Thank you — keep this receipt.");
+  out.push(t("doc.thankYouKeep"));
   out.push(`*${r.number}*`);
   return out.join("\n");
 }
 
 /** 80mm thermal HTML used for both the on-screen preview and printing. */
 export function receiptHtml(r: Receipt, money: MoneyFmt) {
-  const status = STATUS_LABELS[r.status] ?? "";
+  const statusKey = STATUS_KEYS[r.status];
+  const status = statusKey ? t(statusKey) : "";
   const row = (l: string, v: string, bold = false) =>
     '<div class="lr' +
     (bold ? " b" : "") +
@@ -143,19 +154,22 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
   const titleChip = status ? ' <span class="chip">' + esc(status) + "</span>" : "";
   const vatRow =
     r.taxRate > 0
-      ? row("VAT " + r.taxRate + "%" + (r.taxInclusive ? " incl" : " added"), esc(money(r.tax)))
+      ? row(
+          `${t("till.vat")} ${r.taxRate}% ${r.taxInclusive ? t("till.included") : t("till.added")}`,
+          esc(money(r.tax)),
+        )
       : "";
-  const paidRow = row(r.kind === "layby" ? "Deposit" : "Paid", esc(money(r.paid)));
+  const paidRow = row(r.kind === "layby" ? t("doc.deposit") : t("doc.paid"), esc(money(r.paid)));
   const tenderRows = (r.tenders ?? [])
-    .map((t) => row(methodLabel(t.method), esc(money(t.raw))))
+    .map((tnd) => row(methodLabel(tnd.method), esc(money(tnd.raw))))
     .join("");
   const discountRow =
-    r.discount && r.discount > 0 ? row("Discount", esc("-" + money(r.discount))) : "";
-  const changeRow = r.change > 0 ? row("Change", esc(money(r.change))) : "";
+    r.discount && r.discount > 0 ? row(t("doc.discount"), esc("-" + money(r.discount))) : "";
+  const changeRow = r.change > 0 ? row(t("doc.change"), esc(money(r.change))) : "";
   const meta =
-    (r.customerName ? row("Customer", esc(r.customerName)) : "") +
-    (r.customerPhone ? row("Phone", esc(r.customerPhone)) : "") +
-    (r.note ? row("Note", esc(r.note)) : "");
+    (r.customerName ? row(t("doc.customer"), esc(r.customerName)) : "") +
+    (r.customerPhone ? row(t("till.phoneLabel"), esc(r.customerPhone)) : "") +
+    (r.note ? row(t("doc.noteLabel"), esc(r.note)) : "");
   const metaBlock = meta ? dashed + meta : "";
   const parts = [
     '<div class="rcp">',
@@ -163,24 +177,24 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
     '<div class="sub">' + esc(r.storeName) + "</div>",
     '<div class="ttl">' + esc(receiptTitle(r)) + titleChip + "</div>",
     dashed,
-    row("Invoice", "#" + r.number),
-    row("Date", esc(new Date(r.date).toLocaleString())),
-    row("Served by", esc(r.cashier)),
+    row(t("doc.invoice"), "#" + r.number),
+    row(t("doc.date"), esc(new Date(r.date).toLocaleString())),
+    row(t("doc.servedBy"), esc(r.cashier)),
     dashed,
     itemRows,
     dashed,
     discountRow,
-    row("Subtotal", esc(money(r.subtotal))),
+    row(t("doc.subtotal"), esc(money(r.subtotal))),
     vatRow,
-    row("TOTAL", esc(money(r.total)), true),
+    row(t("doc.total"), esc(money(r.total)), true),
     dashed,
-    row("Method", esc(methodLabel(r.method))),
+    row(t("doc.method"), esc(methodLabel(r.method))),
     tenderRows,
     paidRow,
     changeRow,
     metaBlock,
     dashed,
-    '<div class="ft">Thank you \u2014 keep this receipt.</div>',
+    '<div class="ft">' + esc(t("doc.thankYouKeep")) + "</div>",
     '<div class="bc">*' + r.number + "*</div>",
     "</div>",
   ];

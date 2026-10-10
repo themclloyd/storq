@@ -31,6 +31,7 @@ import type { SaleRow } from "@/lib/sales";
 import { useStaffNames } from "@/lib/sales";
 import { usePos } from "@/lib/pos";
 import { downloadPdf } from "@/lib/pdf";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/sales_/$id")({
   head: () => ({
@@ -47,11 +48,17 @@ export const Route = createFileRoute("/_authenticated/app/sales_/$id")({
   component: SaleDetail,
 });
 
-const methodLabel: Record<string, string> = {
-  cash: "Cash",
-  card: "Card",
-  mobile: "Mobile money",
-  store_credit: "Store credit",
+const METHOD_KEYS: Record<string, string> = {
+  cash: "till.payCash",
+  card: "till.payCard",
+  mobile: "till.payMobile",
+  store_credit: "doc.storeCredit",
+};
+const METHOD_ORDER = ["cash", "card", "mobile", "store_credit"] as const;
+// Resolve a payment-method code to its localized label; unknown codes fall back to the raw value.
+const mkMethod = (t: (path: string) => string) => (m: string) => {
+  const key = METHOD_KEYS[m];
+  return key ? t(key) : m;
 };
 
 const fmtDate = (d: string) =>
@@ -88,9 +95,10 @@ const statusText: Record<string, string> = {
 };
 
 function StatusBadge({ s }: { s: string }) {
+  const { t } = useI18n();
   return (
     <Badge className={cn("rounded-full border-transparent px-2.5 py-0.5", statusStyle[s])}>
-      {statusText[s] ?? s}
+      {s in statusText ? t(`status.${s}`) : s}
     </Badge>
   );
 }
@@ -98,10 +106,15 @@ function StatusBadge({ s }: { s: string }) {
 function SaleDetail() {
   const { id } = Route.useParams();
   const { money, can, stores } = usePos();
+  const { t } = useI18n();
+  const mLabel = mkMethod(t);
   const names = useStaffNames();
   const [refundOpen, setRefundOpen] = useState(false);
   const sale = useQuery({
     queryKey: ["sale", id],
+    // A sale is immutable except for refunds/reversals, which wipe the cache;
+    // ["sale"] is also in SALE_TOUCHED, so revisit deep links load instantly.
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
@@ -114,13 +127,14 @@ function SaleDetail() {
   });
   const refunds = useRefunds({ saleId: id });
   const s = sale.data;
-  if (sale.isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
+  if (sale.isLoading)
+    return <div className="p-4 text-sm text-muted-foreground">{t("common.loading")}</div>;
   if (!s)
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-        Sale not found.{" "}
+        {t("sdetail.notFound")}{" "}
         <Link to="/app/sales" className="underline">
-          Back to sales
+          {t("sdetail.backToSales")}
         </Link>
       </Card>
     );
@@ -133,17 +147,20 @@ function SaleDetail() {
   return (
     <div className="mx-auto max-w-5xl">
       <Link to="/app/sales" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Sales
+        ← {t("sales.title")}
       </Link>
       <div className="mt-2 mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold">Sale #{s.number}</h1>
+            <h1 className="text-xl font-semibold">
+              {t("sdetail.saleTitle", { number: s.number })}
+            </h1>
             <StatusBadge s={s.status} />
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {fmtDate(s.created_at)} · {storeName}
-            {s.created_by && ` · by ${names.data?.[s.created_by] ?? "staff"}`}
+            {s.created_by &&
+              ` · ${t("sdetail.by", { name: names.data?.[s.created_by] ?? t("sdetail.staffWord") })}`}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -155,7 +172,7 @@ function SaleDetail() {
           />
           {can("admin", "manager") && REFUNDABLE.includes(s.status) && (
             <Button variant="destructive" size="sm" onClick={() => setRefundOpen(true)}>
-              Return / refund
+              {t("sdetail.returnRefund")}
             </Button>
           )}
         </div>
@@ -163,10 +180,10 @@ function SaleDetail() {
 
       <div className="mb-4 grid gap-2 sm:grid-cols-4">
         {[
-          ["Total", money(s.total)],
-          ["Paid", money(s.paid)],
-          ["Refunded", money(s.refunded)],
-          ["Net", money(Number(s.total) - Number(s.refunded))],
+          [t("common.total"), money(s.total)],
+          [t("doc.paid"), money(s.paid)],
+          [t("status.refunded"), money(s.refunded)],
+          [t("sdetail.net"), money(Number(s.total) - Number(s.refunded))],
         ].map(([k, v]) => (
           <Card key={k} className="p-3 shadow-none">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -181,14 +198,16 @@ function SaleDetail() {
         <div className="space-y-3 lg:col-span-2">
           <Card className="shadow-none">
             <CardHeader className="border-b py-3">
-              <CardTitle className="text-sm font-semibold">Items</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t("sdetail.itemsCard")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-[11px] uppercase">Item</TableHead>
-                    <TableHead className="text-right text-[11px] uppercase">Amount</TableHead>
+                    <TableHead className="text-[11px] uppercase">{t("doc.item")}</TableHead>
+                    <TableHead className="text-right text-[11px] uppercase">
+                      {t("doc.amount")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,7 +218,10 @@ function SaleDetail() {
                         <div className="truncate text-xs text-muted-foreground">
                           {money(i.price)} × {i.qty}
                           {Number(i.refunded_qty) > 0 && (
-                            <span className="text-destructive"> · {i.refunded_qty} returned</span>
+                            <span className="text-destructive">
+                              {" "}
+                              · {i.refunded_qty} {t("sdetail.returned")}
+                            </span>
                           )}
                         </div>
                       </TableCell>
@@ -211,11 +233,15 @@ function SaleDetail() {
                 </TableBody>
               </Table>
               <div className="space-y-1 border-t px-4 py-3 text-[13px]">
-                <Row k="Subtotal" v={money(subtotal)} />
-                {tax > 0 && <Row k="VAT" v={money(tax)} />}
-                <Row k="Total" v={money(s.total)} bold />
+                <Row k={t("doc.subtotal")} v={money(subtotal)} />
+                {tax > 0 && <Row k={t("till.vat")} v={money(tax)} />}
+                <Row k={t("common.total")} v={money(s.total)} bold />
                 {Number(s.refunded) > 0 && (
-                  <Row k="Refunded" v={`− ${money(s.refunded)}`} className="text-destructive" />
+                  <Row
+                    k={t("status.refunded")}
+                    v={`− ${money(s.refunded)}`}
+                    className="text-destructive"
+                  />
                 )}
               </div>
             </CardContent>
@@ -223,12 +249,12 @@ function SaleDetail() {
 
           <Card className="shadow-none">
             <CardHeader className="border-b py-3">
-              <CardTitle className="text-sm font-semibold">Refunds</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t("sdetail.refundsCard")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {(refunds.data ?? []).length === 0 ? (
                 <p className="px-4 py-3 text-[13px] text-muted-foreground">
-                  No refunds on this sale.
+                  {t("sdetail.noRefunds")}
                 </p>
               ) : (
                 <div className="divide-y">
@@ -236,7 +262,7 @@ function SaleDetail() {
                     <div key={r.id} className="px-4 py-2 text-[13px]">
                       <div className="flex justify-between gap-3">
                         <span className="font-semibold">
-                          Refund #{r.number} · {methodLabel[r.method] ?? r.method}
+                          {t("sdetail.refundNumber", { number: r.number })} · {mLabel(r.method)}
                         </span>
                         <span className="tabular font-semibold text-destructive">
                           − {money(r.amount)}
@@ -249,7 +275,10 @@ function SaleDetail() {
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {r.refund_items
-                          .map((i) => `${i.qty} × ${i.name}${i.restock ? "" : " (scrapped)"}`)
+                          .map(
+                            (i) =>
+                              `${i.qty} × ${i.name}${i.restock ? "" : ` ${t("sdetail.scrapped")}`}`,
+                          )
                           .join(", ")}
                       </div>
                     </div>
@@ -262,31 +291,30 @@ function SaleDetail() {
 
         <aside className="space-y-3">
           <Card className="p-3 text-[13px] shadow-none">
-            <CardTitle className="mb-2 text-sm font-semibold">Payment</CardTitle>
-            <Row
-              k="Method"
-              v={s.payment_method ? (methodLabel[s.payment_method] ?? s.payment_method) : "—"}
-            />
-            <Row k="Paid" v={money(s.paid)} />
+            <CardTitle className="mb-2 text-sm font-semibold">{t("doc.payment")}</CardTitle>
+            <Row k={t("doc.method")} v={s.payment_method ? mLabel(s.payment_method) : "—"} />
+            <Row k={t("doc.paid")} v={money(s.paid)} />
             {balance > 0.009 && (
-              <Row k="Balance due" v={money(balance)} className="text-destructive" />
+              <Row k={t("sdetail.balanceDue")} v={money(balance)} className="text-destructive" />
             )}
-            {s.approved_by && <Row k="Approved by" v={names.data?.[s.approved_by] ?? "—"} />}
+            {s.approved_by && (
+              <Row k={t("sdetail.approvedBy")} v={names.data?.[s.approved_by] ?? "—"} />
+            )}
           </Card>
           <Card className="p-3 text-[13px] shadow-none">
-            <CardTitle className="mb-2 text-sm font-semibold">Customer</CardTitle>
+            <CardTitle className="mb-2 text-sm font-semibold">{t("doc.customer")}</CardTitle>
             {s.customer_name || s.customer_phone ? (
               <>
                 <div className="font-medium">{s.customer_name}</div>
                 <div className="text-muted-foreground">{s.customer_phone}</div>
               </>
             ) : (
-              <p className="text-muted-foreground">Walk-in customer</p>
+              <p className="text-muted-foreground">{t("doc.walkInCustomer")}</p>
             )}
           </Card>
           {s.note && (
             <Card className="p-3 text-[13px] shadow-none">
-              <CardTitle className="mb-2 text-sm font-semibold">Note</CardTitle>
+              <CardTitle className="mb-2 text-sm font-semibold">{t("sdetail.noteCard")}</CardTitle>
               <p className="text-muted-foreground">{s.note}</p>
             </Card>
           )}
@@ -318,6 +346,8 @@ function Row({
 
 function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void }) {
   const { rpc, money } = usePos();
+  const { t } = useI18n();
+  const mLabel = mkMethod(t);
   const qc = useQueryClient();
   const [qty, setQty] = useState<Record<string, string>>({});
   const [restock, setRestock] = useState<Record<string, boolean>>({});
@@ -353,7 +383,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
         p_method: method,
         p_reason: reason,
       });
-      toast.success(`Refund #${r.number} — give back ${money(r.amount)}`);
+      toast.success(t("sdetail.refundToast", { number: r.number, amount: money(r.amount) }));
       qc.invalidateQueries();
       onClose();
     } catch (e) {
@@ -365,7 +395,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Return items from sale #{sale.number}</DialogTitle>
+          <DialogTitle>{t("sdetail.returnTitle", { number: sale.number })}</DialogTitle>
         </DialogHeader>
         <Card className="shadow-none">
           <CardContent className="p-0">
@@ -378,7 +408,8 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
                       <TableCell>
                         <div className="truncate font-semibold">{i.name}</div>
                         <div className="truncate text-xs text-muted-foreground">
-                          {left} of {i.qty} returnable · {money(i.price)} each
+                          {t("sdetail.returnableOf", { left, qty: i.qty })} · {money(i.price)}{" "}
+                          {t("sdetail.each")}
                         </div>
                       </TableCell>
                       <TableCell className="w-1 whitespace-nowrap">
@@ -387,7 +418,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
                             checked={restock[i.id] ?? true}
                             onCheckedChange={(v) => setRestock({ ...restock, [i.id]: v === true })}
                           />{" "}
-                          Back to shelf
+                          {t("sdetail.backToShelf")}
                         </label>
                       </TableCell>
                       <TableCell className="w-1 text-right">
@@ -412,31 +443,33 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
             </Table>
           </CardContent>
         </Card>
-        <p className="text-xs text-muted-foreground">
-          Refund amount includes any VAT the customer paid. Untick "Back to shelf" for damaged
-          items.
-        </p>
+        <p className="text-xs text-muted-foreground">{t("sdetail.refundHint")}</p>
         <div className="grid grid-cols-2 gap-2">
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Refund by</span>
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {t("sdetail.refundBy")}
+            </span>
             <Select value={method} onValueChange={setMethod}>
               <SelectTrigger className="h-9 bg-card text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="mobile">Mobile money</SelectItem>
-                <SelectItem value="store_credit">Store credit</SelectItem>
+                {METHOD_ORDER.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {mLabel(m)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Reason</span>
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {t("inv.reasonLabel")}
+            </span>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Faulty, wrong size…"
+              placeholder={t("sdetail.reasonPlaceholder")}
             />
           </Label>
         </div>
@@ -445,7 +478,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
           disabled={busy || amount <= 0 || !reason.trim()}
           onClick={submit}
         >
-          Refund {money(amount)}
+          {t("sdetail.refundBtn", { amount: money(amount) })}
         </Button>
       </DialogContent>
     </Dialog>
@@ -470,9 +503,16 @@ function SalePdfButton({
   }[];
 }) {
   const { money, business } = usePos();
+  const { t } = useI18n();
+  const mLabel = mkMethod(t);
   const sub = s.sale_items.reduce((a, i) => a + Number(i.qty) * Number(i.price), 0);
   const isInvoice = s.status === "pending_approval" || s.status === "rejected";
-  const docType = s.kind === "layby" ? "Layby statement" : isInvoice ? "Invoice" : "Tax invoice";
+  const docType =
+    s.kind === "layby"
+      ? t("doc.laybyStatement")
+      : isInvoice
+        ? t("doc.invoice")
+        : t("doc.taxInvoice");
   return (
     <Button
       variant="outline"
@@ -486,43 +526,43 @@ function SalePdfButton({
           badge:
             (
               {
-                completed: "PAID",
-                layby_completed: "PAID",
-                refunded: "REFUNDED",
-                partially_refunded: "PART REFUNDED",
-                pending_approval: "AWAITING APPROVAL",
-                rejected: "REJECTED",
-                layby_open: "LAYBY OPEN",
-                layby_cancelled: "CANCELLED",
+                completed: t("doc.badgePaid"),
+                layby_completed: t("doc.badgePaid"),
+                refunded: t("doc.badgeRefunded"),
+                partially_refunded: t("doc.badgePartRefunded"),
+                pending_approval: t("doc.badgeAwaiting"),
+                rejected: t("doc.badgeRejected"),
+                layby_open: t("doc.badgeLaybyOpen"),
+                layby_cancelled: t("doc.badgeCancelled"),
               } as Record<string, string>
             )[s.status] ?? s.status.toUpperCase(),
           meta: [
             [
-              "Date",
+              t("doc.date"),
               new Date(s.created_at).toLocaleString("en-ZA", {
                 dateStyle: "medium",
                 timeStyle: "short",
               }),
             ],
             [
-              "Billed to",
+              t("sdetail.billedTo"),
               s.customer_name
                 ? `${s.customer_name}${s.customer_phone ? ` · ${s.customer_phone}` : ""}`
-                : "Walk-in customer",
+                : t("doc.walkInCustomer"),
             ],
-            ["Served by", staff[s.created_by ?? ""] ?? "—"],
-            [
-              "Payment",
-              s.payment_method ? (methodLabel[s.payment_method] ?? s.payment_method) : "—",
-            ],
+            [t("doc.servedBy"), staff[s.created_by ?? ""] ?? "—"],
+            [t("doc.payment"), s.payment_method ? mLabel(s.payment_method) : "—"],
           ],
           sections: [
             {
               type: "table",
-              head: ["Item", "Qty", "Unit price", "Amount"],
+              head: [t("doc.item"), t("doc.qty"), t("doc.unitPrice"), t("doc.amount")],
               align: ["left", "right", "right", "right"],
               body: s.sale_items.map((i) => [
-                i.name + (Number(i.refunded_qty) > 0 ? ` (${i.refunded_qty} returned)` : ""),
+                i.name +
+                  (Number(i.refunded_qty) > 0
+                    ? ` (${t("sdetail.returnedCount", { count: i.refunded_qty })})`
+                    : ""),
                 i.qty,
                 money(i.price),
                 money(Number(i.qty) * Number(i.price)),
@@ -532,13 +572,19 @@ function SalePdfButton({
               ? [
                   {
                     type: "table" as const,
-                    heading: "Refunds",
-                    head: ["Refund", "Date", "Method", "Reason", "Amount"],
+                    heading: t("sdetail.refundsCard"),
+                    head: [
+                      t("sdetail.refundWord"),
+                      t("doc.date"),
+                      t("doc.method"),
+                      t("inv.reasonLabel"),
+                      t("doc.amount"),
+                    ],
                     align: ["left", "left", "left", "left", "right"] as ("left" | "right")[],
                     body: refunds.map((r) => [
                       `#${r.number}`,
                       new Date(r.created_at).toLocaleDateString("en-ZA"),
-                      methodLabel[r.method] ?? r.method,
+                      mLabel(r.method),
                       r.reason ?? "",
                       `-${money(r.amount)}`,
                     ]),
@@ -547,24 +593,31 @@ function SalePdfButton({
               : []),
           ],
           totals: [
-            ["Subtotal", money(sub)],
-            ...(Number(s.tax) > 0 ? [["VAT", money(s.tax)] as [string, string]] : []),
-            ["Paid", money(s.paid)],
+            [t("doc.subtotal"), money(sub)],
+            ...(Number(s.tax) > 0 ? [[t("till.vat"), money(s.tax)] as [string, string]] : []),
+            [t("doc.paid"), money(s.paid)],
             ...(Number(s.refunded) > 0
-              ? [["Refunded", `-${money(s.refunded)}`] as [string, string]]
+              ? [[t("status.refunded"), `-${money(s.refunded)}`] as [string, string]]
               : []),
             ...(Number(s.total) - Number(s.paid) > 0.009
-              ? [["Balance due", money(Number(s.total) - Number(s.paid))] as [string, string]]
+              ? [
+                  [t("sdetail.balanceDue"), money(Number(s.total) - Number(s.paid))] as [
+                    string,
+                    string,
+                  ],
+                ]
               : []),
-            ["Total", money(s.total)],
+            [t("common.total"), money(s.total)],
           ],
           footerNote: s.note
-            ? `Note: ${s.note}\n\nThank you for your business.`
-            : "Thank you for your business.",
+            ? `${t("doc.noteLabel")} ${s.note}
+
+${t("doc.thankYouBusiness")}`
+            : t("doc.thankYouBusiness"),
         })
       }
     >
-      Download PDF
+      {t("sdetail.downloadPdf")}
     </Button>
   );
 }

@@ -5,17 +5,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { usePos } from "@/lib/pos";
 import { useProducts, useStock } from "@/lib/products";
-import {
-  TRANSFER_STATUS_LABELS,
-  useTransferMutations,
-  useTransfers,
-  type Transfer,
-} from "@/lib/transfers";
+import { useTransferMutations, useTransfers, type Transfer } from "@/lib/transfers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, fmtDate } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/transfers")({
   head: () => ({
@@ -38,25 +34,30 @@ export const Route = createFileRoute("/_authenticated/app/transfers")({
 
 type Draft = { product_id: string; name: string; qty: string };
 
+// Transfer status is a stored code; only its display label is localized.
+const TRF_STATUS_KEYS: Record<Transfer["status"], string> = {
+  in_transit: "trf.statusInTransit",
+  received: "trf.statusReceived",
+  cancelled: "trf.statusCancelled",
+};
+
 function Transfers() {
   const { store, stores, can } = usePos();
+  const { t } = useI18n();
   const [creating, setCreating] = useState(false);
   const transfers = useTransfers(store?.id);
   const muts = useTransferMutations();
-  if (!can("admin", "manager"))
-    return <Empty>Only admins and managers can move stock between stores.</Empty>;
-  const storeName = (id: string) => stores.find((s) => s.id === id)?.name ?? "Store";
+  if (!can("admin", "manager")) return <Empty>{t("trf.onlyAdmins")}</Empty>;
+  const storeName = (id: string) => stores.find((s) => s.id === id)?.name ?? t("trf.storeWord");
   const acting = muts.isPending;
 
   async function act(action: "receive_transfer" | "cancel_transfer", id: string) {
-    if (
-      action === "cancel_transfer" &&
-      !confirm("Cancel this transfer? The stock goes back to the sending store.")
-    )
-      return;
+    if (action === "cancel_transfer" && !confirm(t("trf.cancelConfirm"))) return;
     try {
       await muts.mutateAsync({ action, args: { p_id: id } });
-      toast.success(action === "receive_transfer" ? "Stock received" : "Transfer cancelled");
+      toast.success(
+        action === "receive_transfer" ? t("trf.receivedToast") : t("trf.cancelledToast"),
+      );
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -65,36 +66,32 @@ function Transfers() {
   return (
     <>
       <PageHeader
-        title="Stock transfers"
-        sub={`Dispatch stock out of ${store?.name ?? "your store"} and receive it at the destination.`}
+        title={t("trf.title")}
+        sub={t("trf.sub", { store: store?.name ?? t("trf.yourStore") })}
         actions={
           stores.length < 2 ? undefined : (
             <Button variant="accent" onClick={() => setCreating(true)}>
-              <HugeiconsIcon icon={PlusSignIcon} /> New transfer
+              <HugeiconsIcon icon={PlusSignIcon} /> {t("trf.newTransfer")}
             </Button>
           )
         }
       />
-      {stores.length < 2 && (
-        <Empty>
-          Add a second location under Settings before you can transfer stock between stores.
-        </Empty>
-      )}
+      {stores.length < 2 && <Empty>{t("trf.needSecond")}</Empty>}
       {transfers.isPending ? (
-        <p className="text-sm text-muted-foreground">Loading transfers…</p>
+        <p className="text-sm text-muted-foreground">{t("trf.loading")}</p>
       ) : (transfers.data?.length ?? 0) === 0 ? (
-        <Empty>No transfers yet.</Empty>
+        <Empty>{t("trf.none")}</Empty>
       ) : (
         <div className="space-y-2">
-          {transfers.data!.map((t) => (
+          {transfers.data!.map((tr) => (
             <TransferRow
-              key={t.id}
-              t={t}
+              key={tr.id}
+              transfer={tr}
               storeName={storeName}
-              canReceive={store?.id === t.to_store}
+              canReceive={store?.id === tr.to_store}
               busy={acting}
-              onReceive={() => void act("receive_transfer", t.id)}
-              onCancel={() => void act("cancel_transfer", t.id)}
+              onReceive={() => void act("receive_transfer", tr.id)}
+              onCancel={() => void act("cancel_transfer", tr.id)}
             />
           ))}
         </div>
@@ -111,60 +108,65 @@ const statusTone: Record<Transfer["status"], string> = {
 };
 
 function TransferRow({
-  t,
+  transfer,
   storeName,
   canReceive,
   busy,
   onReceive,
   onCancel,
 }: {
-  t: Transfer;
+  transfer: Transfer;
   storeName: (id: string) => string;
   canReceive: boolean;
   busy: boolean;
   onReceive: () => void;
   onCancel: () => void;
 }) {
-  const units = t.stock_transfer_lines.reduce((a, l) => a + l.qty, 0);
+  const { t } = useI18n();
+  const units = transfer.stock_transfer_lines.reduce((a, l) => a + l.qty, 0);
   return (
     <div className="pos-card p-4 text-[13px]">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-bold">Transfer #{t.number}</span>
+        <span className="font-bold">{t("trf.transferNumber", { number: transfer.number })}</span>
         <span
-          className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-medium", statusTone[t.status])}
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+            statusTone[transfer.status],
+          )}
         >
-          {TRANSFER_STATUS_LABELS[t.status]}
+          {t(TRF_STATUS_KEYS[transfer.status])}
         </span>
-        <span className="ml-auto text-muted-foreground">{fmtDate(t.created_at)}</span>
+        <span className="ml-auto text-muted-foreground">{fmtDate(transfer.created_at)}</span>
       </div>
       <div className="mt-1 text-muted-foreground">
-        {storeName(t.from_store)} <span aria-hidden>→</span> {storeName(t.to_store)} · {units} unit
-        {units === 1 ? "" : "s"} across {t.stock_transfer_lines.length} item
-        {t.stock_transfer_lines.length === 1 ? "" : "s"}
+        {storeName(transfer.from_store)} <span aria-hidden>→</span> {storeName(transfer.to_store)} ·{" "}
+        {units} {units === 1 ? t("trf.unitWord") : t("trf.unitsWord")} {t("trf.acrossWord")}{" "}
+        {transfer.stock_transfer_lines.length}{" "}
+        {transfer.stock_transfer_lines.length === 1 ? t("trf.itemWord") : t("trf.itemsWord")}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        {t.stock_transfer_lines.map((l) => (
+        {transfer.stock_transfer_lines.map((l) => (
           <span key={l.id}>
             {l.name} × {l.qty}
           </span>
         ))}
       </div>
-      {t.note && <div className="mt-1.5 text-xs italic">{t.note}</div>}
-      {t.status === "in_transit" && (
+      {transfer.note && <div className="mt-1.5 text-xs italic">{transfer.note}</div>}
+      {transfer.status === "in_transit" && (
         <div className="mt-3 flex flex-wrap gap-2">
           {canReceive && (
             <Button size="sm" variant="success" disabled={busy} onClick={onReceive}>
-              Receive at {storeName(t.to_store)}
+              {t("trf.receiveAt", { store: storeName(transfer.to_store) })}
             </Button>
           )}
           <Button size="sm" variant="outline" disabled={busy} onClick={onCancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
         </div>
       )}
-      {t.status === "received" && t.received_at && (
+      {transfer.status === "received" && transfer.received_at && (
         <div className="mt-1.5 text-xs text-muted-foreground">
-          Received {fmtDate(t.received_at)}
+          {t("trf.receivedWord")} {fmtDate(transfer.received_at)}
         </div>
       )}
     </div>
@@ -173,6 +175,7 @@ function TransferRow({
 
 function CreateDialog({ onClose }: { onClose: () => void }) {
   const { store, stores } = usePos();
+  const { t } = useI18n();
   const products = useProducts();
   const others = stores.filter((s) => s.id !== store?.id);
   const [from, setFrom] = useState(store?.id ?? "");
@@ -183,7 +186,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   const stock = useStock(from || undefined);
   const muts = useTransferMutations(onClose);
 
-  const fromName = (id: string) => stores.find((s) => s.id === id)?.name ?? "Store";
+  const fromName = (id: string) => stores.find((s) => s.id === id)?.name ?? t("trf.storeWord");
   const list = (products.data ?? []).filter((p) => p.active);
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -209,7 +212,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   async function dispatch() {
     if (!valid) return;
     if (from === to) {
-      toast.error("Pick two different stores");
+      toast.error(t("trf.pickTwo"));
       return;
     }
     try {
@@ -222,7 +225,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           p_items: draft.map((d) => ({ product_id: d.product_id, qty: Number(d.qty) })),
         },
       });
-      toast.success("Stock dispatched — now in transit");
+      toast.success(t("trf.dispatched"));
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -233,17 +236,17 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>New stock transfer</DialogTitle>
+          <DialogTitle>{t("trf.newTitle")}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="From store">
+          <Field label={t("trf.fromStore")}>
             <NativeSelect
               value={from}
               onChange={setFrom}
               options={stores.map((s) => ({ value: s.id, label: s.name }))}
             />
           </Field>
-          <Field label="To store">
+          <Field label={t("trf.toStore")}>
             <NativeSelect
               value={to}
               onChange={setTo}
@@ -254,15 +257,11 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           </Field>
         </div>
         {from === to && (
-          <p className="text-xs font-medium text-destructive">Choose two different stores.</p>
+          <p className="text-xs font-medium text-destructive">{t("trf.chooseTwo")}</p>
         )}
 
-        <Field label="Add items">
-          <Input
-            placeholder="Search by name or SKU"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+        <Field label={t("trf.addItems")}>
+          <Input placeholder={t("trf.searchPh")} value={q} onChange={(e) => setQ(e.target.value)} />
         </Field>
         <div className="max-h-40 overflow-auto rounded-md border">
           {shown.map((p) => {
@@ -286,19 +285,21 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
             );
           })}
           {shown.length === 0 && (
-            <p className="p-3 text-center text-xs text-muted-foreground">No matching items.</p>
+            <p className="p-3 text-center text-xs text-muted-foreground">{t("trf.noMatch")}</p>
           )}
         </div>
 
         {draft.length > 0 && (
           <div className="space-y-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground">Transferring</span>
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {t("trf.transferring")}
+            </span>
             {draft.map((d) => (
               <div key={d.product_id} className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{d.name}</span>
                 <Input
                   inputMode="decimal"
-                  aria-label={`Quantity for ${d.name}`}
+                  aria-label={t("trf.qtyFor", { name: d.name })}
                   className="tabular h-8 w-20 text-right"
                   value={d.qty}
                   onChange={(e) => setQty(d.product_id, e.target.value.replace(/[^0-9.]/g, ""))}
@@ -307,7 +308,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
                   size="icon"
                   variant="ghost"
                   className="size-8 shrink-0"
-                  aria-label={`Remove ${d.name}`}
+                  aria-label={t("trf.removeFor", { name: d.name })}
                   onClick={() => remove(d.product_id)}
                 >
                   <HugeiconsIcon icon={Delete02Icon} />
@@ -317,20 +318,20 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <Field label="Note (optional)">
+        <Field label={t("trf.noteOptional")}>
           <Input maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
 
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="accent"
             disabled={!valid || muts.isPending}
             onClick={() => void dispatch()}
           >
-            Dispatch stock
+            {t("trf.dispatch")}
           </Button>
         </div>
       </DialogContent>

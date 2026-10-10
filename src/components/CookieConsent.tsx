@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CookieIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Consent is remembered per device under this key: "all" allows optional
@@ -11,6 +12,8 @@ import { Button } from "@/components/ui/button";
 export const CONSENT_KEY = "storq-cookie-consent";
 export type Consent = "all" | "necessary";
 
+// Co-located with the banner it configures; fast-refresh advisory only.
+// eslint-disable-next-line react-refresh/only-export-components
 export function readConsent(): Consent | null {
   try {
     const v = localStorage.getItem(CONSENT_KEY);
@@ -21,6 +24,7 @@ export function readConsent(): Consent | null {
 }
 
 export function CookieConsent() {
+  const { t } = useI18n();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [visible, setVisible] = useState(false);
 
@@ -48,7 +52,7 @@ export function CookieConsent() {
 
   return (
     <section
-      aria-label="Cookie consent"
+      aria-label={t("consent.ariaLabel")}
       className="fixed inset-x-4 bottom-4 z-40 sm:inset-x-auto sm:left-6 sm:w-[380px]"
     >
       <div
@@ -59,16 +63,15 @@ export function CookieConsent() {
         <div className="flex gap-3">
           <HugeiconsIcon icon={CookieIcon} className="mt-0.5 size-5 shrink-0 text-accent" />
           <div>
-            <h2 className="text-sm font-semibold">We use cookies</h2>
+            <h2 className="text-sm font-semibold">{t("consent.title")}</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Necessary cookies keep you signed in. Optional ones help us see how shops use Storq.
-              We never sell your business data.
+              {t("consent.body")}
             </p>
           </div>
         </div>
         <div className="mt-4 flex gap-2">
           <Button size="sm" className="flex-1" onClick={() => choose("all")}>
-            Accept all
+            {t("consent.acceptAll")}
           </Button>
           <Button
             size="sm"
@@ -76,7 +79,7 @@ export function CookieConsent() {
             className="flex-1"
             onClick={() => choose("necessary")}
           >
-            Necessary only
+            {t("consent.necessaryOnly")}
           </Button>
         </div>
       </div>

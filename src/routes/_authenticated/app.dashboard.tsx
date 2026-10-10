@@ -11,6 +11,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
+import { useI18n } from "@/lib/i18n";
 import { useSaleItemCosts, useSales } from "@/lib/sales";
 import { useExpenses } from "@/lib/expenses";
 import { useLowStock } from "@/lib/transfers";
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/_authenticated/app/dashboard")({
 const DONE = ["completed", "layby_completed"];
 
 function Dashboard() {
+  const { t, locale } = useI18n();
   const { store, money, can } = usePos();
   const [range, setRange] = useState<RangeKey>("today");
   const start = useMemo(() => rangeStart(range), [range]);
@@ -71,7 +73,7 @@ function Dashboard() {
 
   // Alerts: pending invoices, open laybys, low stock
   const alerts = useQuery({
-    queryKey: ["dash-alerts", storeId, store?.store_type, can("admin", "manager")],
+    queryKey: ["dash-alerts", storeId, store?.store_type, can("admin", "manager"), locale],
     enabled: !!storeId,
     queryFn: async () => {
       const out: AlertItem[] = [];
@@ -86,7 +88,7 @@ function Dashboard() {
         if ((pend.count ?? 0) > 0)
           out.push({
             icon: Alert02Icon,
-            text: `${pend.count} invoice${pend.count === 1 ? "" : "s"} waiting for approval`,
+            text: t("dashboard.alertInvoices", { count: pend.count ?? 0 }),
             to: "/app/invoices",
             tone: "warn",
           });
@@ -100,7 +102,7 @@ function Dashboard() {
       if ((lay.count ?? 0) > 0)
         out.push({
           icon: Wallet01Icon,
-          text: `${lay.count} open layby${lay.count === 1 ? "" : "s"} with balances due`,
+          text: t("dashboard.alertLaybys", { count: lay.count ?? 0 }),
           to: "/app/laybys",
           tone: "info",
         });
@@ -112,10 +114,12 @@ function Dashboard() {
           .lte("qty", 5)
           .limit(5);
         for (const r of low ?? []) {
-          const name = (r as { products?: { name?: string } | null }).products?.name ?? "Item";
+          const name =
+            (r as { products?: { name?: string } | null }).products?.name ??
+            t("dashboard.genericItem");
           out.push({
             icon: MoneyBag02Icon,
-            text: `Low stock: ${name} (${Number((r as { qty: number }).qty)} left)`,
+            text: t("dashboard.alertLowStock", { name, qty: Number((r as { qty: number }).qty) }),
             to: can("admin", "manager") ? "/app/inventory" : "/app/stocktake",
             tone: "warn",
           });
@@ -159,21 +163,31 @@ function Dashboard() {
 
   const cards = [
     {
-      label: "Sales",
+      label: t("dashboard.sales"),
       value: money(d.revenue),
-      sub: `${d.count} sale${d.count === 1 ? "" : "s"}`,
+      sub: t("dashboard.salesCount", { count: d.count }),
       icon: ChartLineData01Icon,
     },
-    { label: "Expenses", value: money(d.expTotal), sub: "All sources", icon: BanknoteIcon },
+    {
+      label: t("dashboard.expenses"),
+      value: money(d.expTotal),
+      sub: t("dashboard.allSources"),
+      icon: BanknoteIcon,
+    },
     ...(seesProfit
       ? [
           {
-            label: "Gross profit",
+            label: t("dashboard.grossProfit"),
             value: money(d.gross),
-            sub: "Sales minus cost of goods",
+            sub: t("dashboard.grossProfitSub"),
             icon: MoneyBag02Icon,
           },
-          { label: "Net profit", value: money(d.net), sub: "After expenses", icon: Wallet01Icon },
+          {
+            label: t("dashboard.netProfit"),
+            value: money(d.net),
+            sub: t("dashboard.netProfitSub"),
+            icon: Wallet01Icon,
+          },
         ]
       : []),
   ];
@@ -181,7 +195,7 @@ function Dashboard() {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
+        title={t("dashboard.title")}
         sub={store?.name ?? ""}
         actions={<RangeToggle value={range} onChange={setRange} options={ranges} />}
       />
@@ -196,7 +210,7 @@ function Dashboard() {
       {/* Trend chart */}
       <div className="mt-4">
         <DashboardSection
-          title={hourly ? "Sales vs expenses by hour" : "Sales vs expenses by day"}
+          title={hourly ? t("dashboard.byHour") : t("dashboard.byDay")}
           note={`${ranges.find((r) => r.key === range)?.label} · ${rangeSpanLabel(start)}`}
         >
           <TrendChart data={d.trend} money={money} loading={loading} />
@@ -205,25 +219,28 @@ function Dashboard() {
 
       {/* Bottom row: payment methods + notifications */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <DashboardSection title="Payment methods" note="How customers paid">
+        <DashboardSection
+          title={t("dashboard.paymentMethods")}
+          note={t("dashboard.paymentMethodsNote")}
+        >
           <PaymentMethods data={d.pie} money={money} loading={loading} />
         </DashboardSection>
 
         <DashboardSection
-          title="Notifications"
+          title={t("dashboard.notifications")}
           icon={Notification01Icon}
-          note="Needs your attention"
+          note={t("dashboard.notificationsNote")}
         >
           <div className="space-y-1.5">
             {(alerts.data ?? []).length === 0 ? (
-              <EmptyState>All clear — nothing needs attention right now.</EmptyState>
+              <EmptyState>{t("dashboard.allClear")}</EmptyState>
             ) : (
               (alerts.data ?? []).map((a, i) => <AlertRow key={i} item={a} />)
             )}
           </div>
           {!can("admin", "manager") && (
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Profit figures are visible to owners and managers only on the Reports page.
+              {t("dashboard.profitVisibilityNote")}
             </p>
           )}
         </DashboardSection>
@@ -240,28 +257,33 @@ function Dashboard() {
 // for the roles that manage inventory. Replaces the old fixed "5 units" guess
 // with each product's own reorder point.
 function NeedsReorder({ storeId }: { storeId?: string | undefined }) {
+  const { t } = useI18n();
   const { can } = usePos();
   const low = useLowStock(storeId);
   if (!can("admin", "manager") || !storeId) return null;
   const rows = low.data ?? [];
   return (
     <DashboardSection
-      title="Needs reorder"
+      title={t("dashboard.needsReorder")}
       icon={Alert02Icon}
-      note={`${rows.length} item${rows.length === 1 ? "" : "s"} at or below the reorder point`}
+      note={t("dashboard.reorderNote", { count: rows.length })}
     >
       <div className="space-y-1.5">
         {low.isPending ? (
-          <EmptyState>Checking stock levels…</EmptyState>
+          <EmptyState>{t("dashboard.checkingStock")}</EmptyState>
         ) : rows.length === 0 ? (
-          <EmptyState>Nothing is below its reorder point.</EmptyState>
+          <EmptyState>{t("dashboard.nothingBelowReorder")}</EmptyState>
         ) : (
           rows.slice(0, 8).map((r) => (
             <AlertRow
               key={r.product_id}
               item={{
                 icon: MoneyBag02Icon,
-                text: `${r.name} — ${r.qty} left, reorder at ${r.reorder_point}`,
+                text: t("dashboard.reorderLine", {
+                  name: r.name,
+                  qty: r.qty,
+                  point: r.reorder_point,
+                }),
                 to: "/app/inventory",
                 tone: "warn",
               }}

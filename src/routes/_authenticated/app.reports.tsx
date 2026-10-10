@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { usePos } from "@/lib/pos";
+import { useI18n } from "@/lib/i18n";
 import { useSaleItemCosts, useSales, useStaffNames } from "@/lib/sales";
 import { rangeDays, sinceFor, useExpenses } from "@/lib/expenses";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,16 @@ export const Route = createFileRoute("/_authenticated/app/reports")({
 
 const DONE = COUNTED;
 
+const RANGE_LABEL_KEY: Record<keyof typeof rangeDays, string> = {
+  today: "reports.rangeToday",
+  "7 days": "reports.range7d",
+  "30 days": "reports.range30d",
+  "90 days": "reports.range90d",
+};
+
 function Reports() {
   const { store, stores, money, can, business } = usePos();
+  const { t } = useI18n();
   const [range, setRange] = useState<keyof typeof rangeDays>("30 days");
   const [all, setAll] = useState(false);
   const since = useMemo(() => sinceFor(range), [range]);
@@ -191,17 +200,17 @@ function Reports() {
     () =>
       Object.entries(r.byStaff)
         .map(([id, v]) => ({
-          name: `${names.data?.[id] ?? "Unknown"} · ${v.sales}`,
+          name: `${names.data?.[id] ?? t("reports.unknownStaff")} · ${v.sales}`,
           value: v.revenue,
         }))
         .sort((a, b) => b.value - a.value),
-    [r, names.data],
+    [r, names.data, t],
   );
 
   if (!can("admin", "manager"))
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-        Only admins and managers can view reports.
+        {t("reports.onlyAdmins")}
       </Card>
     );
   const loading = sales.isLoading || expenses.isLoading || refundsQ.isLoading;
@@ -210,9 +219,9 @@ function Reports() {
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Business report</h1>
+          <h1 className="text-xl font-semibold">{t("reports.title")}</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {all ? "All stores" : (store?.name ?? "")}
+            {all ? t("reports.allStores") : (store?.name ?? "")}
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -222,9 +231,8 @@ function Reports() {
               size="sm"
               variant={range === k ? "default" : "outline"}
               onClick={() => setRange(k)}
-              className="capitalize"
             >
-              {k}
+              {t(RANGE_LABEL_KEY[k])}
             </Button>
           ))}
           <Button
@@ -234,59 +242,62 @@ function Reports() {
             onClick={() =>
               void downloadPdf({
                 filename: `storq-business-report-${fileStamp()}`,
-                title: "Business report",
+                title: t("reports.title"),
                 business: business?.name,
-                subtitle: `${all ? "All stores" : (store?.name ?? "")} · last ${range}`,
-                badge: "P&L",
+                subtitle: t("reports.subtitle", {
+                  scope: all ? t("reports.allStores") : (store?.name ?? ""),
+                  range: t(RANGE_LABEL_KEY[range]),
+                }),
+                badge: t("reports.badgePl"),
                 kpis: [
-                  ["Net sales", money(r.revenue)],
-                  ["Gross profit", money(r.gross)],
-                  ["Expenses", money(r.expTotal)],
-                  ["Net profit", money(r.net)],
+                  [t("reports.netSales"), money(r.revenue)],
+                  [t("reports.grossProfit"), money(r.gross)],
+                  [t("reports.expenses"), money(r.expTotal)],
+                  [t("reports.netProfit"), money(r.net)],
                 ],
                 sections: [
                   {
                     type: "pairs",
-                    heading: "Profit & loss",
+                    heading: t("reports.profitLoss"),
                     rows: [
-                      ["Net sales (after refunds)", money(r.revenue)],
-                      ["Refunds", `-${money(r.refunds)}`],
-                      ["Buying cost of items sold", `-${money(r.cogs)}`],
-                      ["Gross profit", money(r.gross)],
-                      ["Gross margin", `${r.margin.toFixed(1)}%`],
-                      ["Operating expenses", `-${money(r.expTotal)}`],
-                      ["Net profit", money(r.net)],
+                      [t("reports.netSalesAfterRefunds"), money(r.revenue)],
+                      [t("reports.refunds"), `-${money(r.refunds)}`],
+                      [t("reports.buyingCostSold"), `-${money(r.cogs)}`],
+                      [t("reports.grossProfit"), money(r.gross)],
+                      [t("reports.grossMargin"), `${r.margin.toFixed(1)}%`],
+                      [t("reports.operatingExpenses"), `-${money(r.expTotal)}`],
+                      [t("reports.netProfit"), money(r.net)],
                     ],
                   },
                   {
                     type: "pairs",
-                    heading: "Tax summary (VAT)",
+                    heading: t("reports.taxSummary"),
                     rows: [
-                      ["Sales incl. tax", money(r.revenue)],
-                      ["VAT collected", money(r.tax)],
-                      ["Sales excl. tax", money(r.revenue - r.tax)],
+                      [t("reports.salesInclTax"), money(r.revenue)],
+                      [t("reports.vatCollected"), money(r.tax)],
+                      [t("reports.salesExclTax"), money(r.revenue - r.tax)],
                     ],
                   },
                   {
                     type: "pairs",
-                    heading: "Till cash check",
+                    heading: t("reports.tillCheck"),
                     rows: [
-                      ["Cash taken from sales", money(r.cashIn)],
-                      ["Cash paid out (expenses)", `-${money(r.tillOut)}`],
-                      ["Expected cash in till", money(r.cashIn - r.tillOut)],
+                      [t("reports.cashFromSales"), money(r.cashIn)],
+                      [t("reports.cashPaidOut"), `-${money(r.tillOut)}`],
+                      [t("reports.expectedCash"), money(r.cashIn - r.tillOut)],
                     ],
                   },
                   {
                     type: "table",
-                    heading: "Sales by payment method",
-                    head: ["Method", "Amount"],
+                    heading: t("reports.salesByMethod"),
+                    head: [t("reports.thMethod"), t("reports.thAmount")],
                     align: ["left", "right"],
                     body: Object.entries(r.byMethod).map(([m, v]) => [m, money(v)]),
                   },
                   {
                     type: "table",
-                    heading: "Expenses by category",
-                    head: ["Category", "Amount"],
+                    heading: t("reports.expByCategory"),
+                    head: [t("reports.thCategory"), t("reports.thAmount")],
                     align: ["left", "right"],
                     body: Object.entries(r.exByCat)
                       .sort((a, b) => b[1] - a[1])
@@ -294,8 +305,14 @@ function Reports() {
                   },
                   {
                     type: "table",
-                    heading: "Item performance",
-                    head: ["Item", "Qty", "Sales", "Profit", "Margin"],
+                    heading: t("reports.itemPerf"),
+                    head: [
+                      t("reports.thItem"),
+                      t("reports.thQty"),
+                      t("reports.thSales"),
+                      t("reports.thProfit"),
+                      t("reports.thMargin"),
+                    ],
                     align: ["left", "right", "right", "right", "right"],
                     body: r.items.map((i) => [
                       i.name,
@@ -307,11 +324,11 @@ function Reports() {
                   },
                   {
                     type: "table",
-                    heading: "Staff performance",
-                    head: ["Staff", "Sales", "Revenue"],
+                    heading: t("reports.staffPerf"),
+                    head: [t("reports.thStaff"), t("reports.thSales"), t("reports.thRevenue")],
                     align: ["left", "right", "right"],
                     body: Object.entries(r.byStaff).map(([id, v]) => [
-                      names.data?.[id] ?? "Unknown",
+                      names.data?.[id] ?? t("reports.unknownStaff"),
                       v.sales,
                       money(v.revenue),
                     ]),
@@ -320,8 +337,14 @@ function Reports() {
                     ? [
                         {
                           type: "table" as const,
-                          heading: "Stores",
-                          head: ["Store", "Sales", "Profit", "Expenses", "Net"],
+                          heading: t("reports.stores"),
+                          head: [
+                            t("reports.thStore"),
+                            t("reports.thSales"),
+                            t("reports.thProfit"),
+                            t("reports.thExpenses"),
+                            t("reports.thNet"),
+                          ],
                           align: ["left", "right", "right", "right", "right"] as (
                             "left" | "right"
                           )[],
@@ -339,66 +362,74 @@ function Reports() {
               })
             }
           >
-            Download PDF
+            {t("reports.downloadPdf")}
           </Button>
           {stores.length > 1 && (
             <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
-              All stores
+              {t("reports.allStores")}
             </Button>
           )}
         </div>
       </div>
       {loading ? (
         <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-          Loading report…
+          {t("reports.loading")}
         </Card>
       ) : (
         <div className="space-y-4">
           <Card className="overflow-hidden shadow-none">
             <div className="grid divide-y sm:grid-cols-5 sm:divide-x sm:divide-y-0">
               <Stat
-                k="Net sales"
+                k={t("reports.netSales")}
                 v={money(r.revenue)}
-                sub={`${r.count} sales · ${money(r.refunds)} refunded`}
+                sub={t("reports.statSalesSub", { count: r.count, refunds: money(r.refunds) })}
               />
-              <Stat k="Buying cost" v={`− ${money(r.cogs)}`} sub="Cost of items sold" />
-              <Stat k="Gross profit" v={money(r.gross)} sub={`${r.margin.toFixed(1)}% margin`} />
               <Stat
-                k="Expenses"
+                k={t("reports.buyingCost")}
+                v={`− ${money(r.cogs)}`}
+                sub={t("reports.costOfItemsSold")}
+              />
+              <Stat
+                k={t("reports.grossProfit")}
+                v={money(r.gross)}
+                sub={t("reports.marginSub", { margin: r.margin.toFixed(1) })}
+              />
+              <Stat
+                k={t("reports.expenses")}
                 v={`− ${money(r.expTotal)}`}
-                sub={`${Object.keys(r.exByCat).length} categories`}
+                sub={t("reports.categoriesSub", { count: Object.keys(r.exByCat).length })}
               />
               <Stat
-                k="Net profit"
+                k={t("reports.netProfit")}
                 v={money(r.net)}
-                sub="What you keep"
+                sub={t("reports.whatYouKeep")}
                 strong
                 tone={r.net >= 0 ? "pos" : "neg"}
               />
             </div>
           </Card>
 
-          <Panel title={range === "today" ? "Sales vs profit by hour" : "Sales vs profit by day"}>
+          <Panel title={range === "today" ? t("reports.byHour") : t("reports.byDay")}>
             <ProfitTrendChart data={trend} money={money} />
           </Panel>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <Panel title="Till cash check">
-              <Row k="Cash taken from sales" v={money(r.cashIn)} />
-              <Row k="Cash paid out (expenses)" v={`− ${money(r.tillOut)}`} />
-              <Row k="Expected cash in till" v={money(r.cashIn - r.tillOut)} bold />
+            <Panel title={t("reports.tillCheck")}>
+              <Row k={t("reports.cashFromSales")} v={money(r.cashIn)} />
+              <Row k={t("reports.cashPaidOut")} v={`− ${money(r.tillOut)}`} />
+              <Row k={t("reports.expectedCash")} v={money(r.cashIn - r.tillOut)} bold />
             </Panel>
-            <Panel title="Tax summary (VAT)">
-              <Row k="Sales incl. tax" v={money(r.revenue)} />
-              <Row k="VAT collected" v={money(r.tax)} />
-              <Row k="Sales excl. tax" v={money(r.revenue - r.tax)} bold />
+            <Panel title={t("reports.taxSummary")}>
+              <Row k={t("reports.salesInclTax")} v={money(r.revenue)} />
+              <Row k={t("reports.vatCollected")} v={money(r.tax)} />
+              <Row k={t("reports.salesExclTax")} v={money(r.revenue - r.tax)} bold />
             </Panel>
-            <Panel title="Sales by payment method">
+            <Panel title={t("reports.salesByMethod")}>
               <PaymentMethods data={methodSlices} money={money} />
             </Panel>
-            <Panel title="Expenses by category">
+            <Panel title={t("reports.expByCategory")}>
               {expSlices.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No expenses.</p>
+                <p className="text-sm text-muted-foreground">{t("reports.noExpenses")}</p>
               ) : (
                 <HBarsChart data={expSlices} money={money} />
               )}
@@ -406,17 +437,17 @@ function Reports() {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <Panel title="Top items by profit">
+            <Panel title={t("reports.topItems")}>
               {itemSlices.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No items sold.</p>
+                <p className="text-sm text-muted-foreground">{t("reports.noItemsSold")}</p>
               ) : (
                 <HBarsChart data={itemSlices} money={money} />
               )}
             </Panel>
             <div className="space-y-3">
-              <Panel title="Staff performance — revenue">
+              <Panel title={t("reports.staffRevenue")}>
                 {staffSlices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No sales.</p>
+                  <p className="text-sm text-muted-foreground">{t("reports.noSales")}</p>
                 ) : (
                   staffSlices
                     .slice(0, 6)
@@ -432,7 +463,7 @@ function Reports() {
                 )}
               </Panel>
               {r.lowMargin.length > 0 && (
-                <Panel title="Low margin warning (under 10%)">
+                <Panel title={t("reports.lowMargin")}>
                   {r.lowMargin.map((i) => (
                     <Row
                       key={i.name}
@@ -440,16 +471,14 @@ function Reports() {
                       v={`${((i.profit / i.revenue) * 100).toFixed(0)}%`}
                     />
                   ))}
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Check the selling and buying prices of these items in Inventory.
-                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">{t("reports.lowMarginNote")}</p>
                 </Panel>
               )}
             </div>
           </div>
 
           {all && stores.length > 1 && (
-            <Panel title="Net profit by store">
+            <Panel title={t("reports.netByStore")}>
               <HBarsChart
                 data={stores
                   .map((s) => {
@@ -461,12 +490,7 @@ function Reports() {
               />
             </Panel>
           )}
-          <p className="text-xs text-muted-foreground">
-            Profit uses the buying price set on each item at the time it was sold. Refunds are taken
-            off sales and profit; restocked items return their buying cost. Sales waiting for
-            approval and open laybys are not counted until completed. For exact till balances use
-            Cash drawer shifts.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("reports.footerNote")}</p>
         </div>
       )}
     </>

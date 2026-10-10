@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusSignIcon } from "@hugeicons/core-free-icons";
 import { supabase } from "@/integrations/supabase/client";
-import { roleLabel, usePos, type Role } from "@/lib/pos";
+import { usePos, type Role } from "@/lib/pos";
 import { NativeSelect } from "@/components/pos/bits";
+import { useI18n } from "@/lib/i18n";
 import { LIMITS, validatePin, requireText, sanitizeText } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,17 +38,28 @@ export const Route = createFileRoute("/_authenticated/app/staff")({
 
 type StaffRow = { id: string; name: string; role: Role; store_id: string | null; active: boolean };
 
-const roleOptions: { value: Role; label: string }[] = [
-  { value: "cashier", label: "Cashier" },
-  { value: "manager", label: "Manager / Approver" },
-  { value: "admin", label: "Admin" },
+const roleOptions: { value: Role; labelKey: string }[] = [
+  { value: "cashier", labelKey: "staff.roleCashier" },
+  { value: "manager", labelKey: "staff.roleManager" },
+  { value: "admin", labelKey: "staff.roleAdmin" },
 ];
+
+// Staff role is a stored code; only its display label is localized.
+const ROLE_LABEL_KEYS: Record<Role, string> = {
+  cashier: "staff.roleCashier",
+  manager: "staff.roleManager",
+  admin: "staff.roleAdmin",
+};
 
 function Staff() {
   const { can, stores, autoLockMinutes, setAutoLockMinutes } = usePos();
+  const { t } = useI18n();
   const [edit, setEdit] = useState<Partial<StaffRow> | null>(null);
   const staff = useQuery({
     queryKey: ["staff"],
+    // Roster changes only through this screen, which wipes the cache on save;
+    // a long staleTime keeps it resident instead of re-pulling on every mount.
+    staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("staff")
@@ -60,59 +72,49 @@ function Staff() {
   if (!can("admin"))
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-        Only admins can manage staff.
+        {t("staff.onlyAdmins")}
       </Card>
     );
   return (
     <>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Staff</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Each person unlocks this device with their own 4-digit PIN. Their PIN decides what they
-            can do.
-          </p>
+          <h1 className="text-xl font-semibold">{t("staff.title")}</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">{t("staff.sub")}</p>
         </div>
         <Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}>
-          <HugeiconsIcon icon={PlusSignIcon} /> Add staff
+          <HugeiconsIcon icon={PlusSignIcon} /> {t("staff.addBtn")}
         </Button>
       </div>
       <div className="mb-4 grid gap-2 text-[13px] sm:grid-cols-3">
         <Card className="p-3 shadow-none">
-          <b>Admin</b>
-          <p className="text-muted-foreground">Everything: staff, stores, stock, approvals.</p>
+          <b>{t("staff.roleAdmin")}</b>
+          <p className="text-muted-foreground">{t("staff.roleAdminDesc")}</p>
         </Card>
         <Card className="p-3 shadow-none">
-          <b>Manager / Approver</b>
-          <p className="text-muted-foreground">
-            Sell, approve invoices, manage stock and stock takes.
-          </p>
+          <b>{t("staff.roleManager")}</b>
+          <p className="text-muted-foreground">{t("staff.roleManagerDesc")}</p>
         </Card>
         <Card className="p-3 shadow-none">
-          <b>Cashier</b>
-          <p className="text-muted-foreground">
-            Sell, create invoices, take layby payments, count stock.
-          </p>
+          <b>{t("staff.roleCashier")}</b>
+          <p className="text-muted-foreground">{t("staff.roleCashierDesc")}</p>
         </Card>
       </div>
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-3 shadow-none">
         <div className="text-[13px]">
-          <b>Till auto-lock</b>
-          <p className="text-muted-foreground">
-            Lock this device back to the PIN pad after a spell of inactivity. Quick-lock anytime
-            with Ctrl/Cmd + Shift + L.
-          </p>
+          <b>{t("staff.autoLockTitle")}</b>
+          <p className="text-muted-foreground">{t("staff.autoLockDesc")}</p>
         </div>
         <NativeSelect
           className="w-40"
           value={String(autoLockMinutes)}
           onChange={(v) => setAutoLockMinutes(Number(v))}
           options={[
-            { value: "2", label: "After 2 minutes" },
-            { value: "5", label: "After 5 minutes" },
-            { value: "10", label: "After 10 minutes" },
-            { value: "15", label: "After 15 minutes" },
-            { value: "0", label: "Never" },
+            { value: "2", label: t("staff.afterMin", { n: 2 }) },
+            { value: "5", label: t("staff.afterMin", { n: 5 }) },
+            { value: "10", label: t("staff.afterMin", { n: 10 }) },
+            { value: "15", label: t("staff.afterMin", { n: 15 }) },
+            { value: "0", label: t("staff.never") },
           ]}
         />
       </Card>
@@ -124,15 +126,18 @@ function Staff() {
             </span>
             <div className="min-w-0 flex-1">
               <div className="truncate font-semibold">
-                {s.name} {!s.active && <span className="text-xs text-destructive">(inactive)</span>}
+                {s.name}{" "}
+                {!s.active && (
+                  <span className="text-xs text-destructive">{t("staff.inactive")}</span>
+                )}
               </div>
               <div className="truncate text-xs text-muted-foreground">
-                {roleLabel[s.role]} ·{" "}
-                {stores.find((x) => x.id === s.store_id)?.name ?? "All stores"}
+                {t(ROLE_LABEL_KEYS[s.role])} ·{" "}
+                {stores.find((x) => x.id === s.store_id)?.name ?? t("sales.allStores")}
               </div>
             </div>
             <Button size="sm" variant="outline" onClick={() => setEdit(s)}>
-              Edit
+              {t("common.edit")}
             </Button>
           </div>
         ))}
@@ -144,6 +149,7 @@ function Staff() {
 
 function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void }) {
   const { rpc, stores } = usePos();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [f, setF] = useState({
     name: s.name ?? "",
@@ -153,7 +159,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
     active: s.active ?? true,
   });
   async function save() {
-    const nameErr = requireText(f.name, "Name", LIMITS.name);
+    const nameErr = requireText(f.name, t("common.name"), LIMITS.name);
     if (nameErr) {
       toast.error(nameErr);
       return;
@@ -174,7 +180,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
         p_store: f.store === "all" ? null : f.store,
         p_active: f.active,
       });
-      toast.success("Saved");
+      toast.success(t("common.saved"));
       qc.invalidateQueries();
       onClose();
     } catch (e) {
@@ -185,10 +191,10 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{s.id ? "Edit staff" : "Add staff"}</DialogTitle>
+          <DialogTitle>{s.id ? t("staff.editTitle") : t("staff.addBtn")}</DialogTitle>
         </DialogHeader>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">Name</span>
+          <span className="text-[11px] font-medium text-muted-foreground">{t("common.name")}</span>
           <Input
             maxLength={LIMITS.name}
             value={f.name}
@@ -197,7 +203,9 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
         </Label>
         <div className="grid grid-cols-2 gap-2">
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Role</span>
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {t("staff.roleLabel")}
+            </span>
             <Select value={f.role} onValueChange={(v) => setF({ ...f, role: v as Role })}>
               <SelectTrigger className="h-9 bg-card text-sm">
                 <SelectValue />
@@ -205,20 +213,22 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
               <SelectContent>
                 {roleOptions.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                    {t(o.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Store</span>
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {t("staff.storeLabel")}
+            </span>
             <Select value={f.store} onValueChange={(v) => setF({ ...f, store: v })}>
               <SelectTrigger className="h-9 bg-card text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All stores</SelectItem>
+                <SelectItem value="all">{t("sales.allStores")}</SelectItem>
                 {stores.map((x) => (
                   <SelectItem key={x.id} value={x.id}>
                     {x.name}
@@ -230,7 +240,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
         </div>
         <Label className="block space-y-1">
           <span className="text-[11px] font-medium text-muted-foreground">
-            {s.id ? "New PIN (leave blank to keep)" : "4-digit PIN"}
+            {s.id ? t("staff.newPin") : t("staff.pinLabel")}
           </span>
           <Input
             inputMode="numeric"
@@ -245,7 +255,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
               checked={f.active}
               onCheckedChange={(v) => setF({ ...f, active: v === true })}
             />
-            Active
+            {t("staff.active")}
           </Label>
         )}
         <Button
@@ -254,7 +264,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
           }
           onClick={save}
         >
-          Save
+          {t("common.save")}
         </Button>
       </DialogContent>
     </Dialog>

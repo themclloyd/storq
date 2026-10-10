@@ -312,7 +312,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.checkout(p_token uuid, p_store uuid, p_kind text, p_items jsonb, p_payment numeric, p_method text, p_customer_name text, p_customer_phone text, p_note text,
   p_tenders jsonb DEFAULT NULL, p_discounts jsonb DEFAULT NULL, p_override_pin text DEFAULT NULL)
  RETURNS json LANGUAGE sql SET search_path TO 'public'
-AS $$ SELECT app.checkout($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) $$;
+AS $$ SELECT app.checkout($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) $$;
 
 CREATE OR REPLACE FUNCTION public.checkout_ref(p_token uuid, p_client_ref uuid, p_store uuid, p_kind text, p_items jsonb, p_payment numeric, p_method text, p_customer_name text, p_customer_phone text, p_note text,
   p_tenders jsonb DEFAULT NULL, p_discounts jsonb DEFAULT NULL, p_override_pin text DEFAULT NULL)
@@ -528,7 +528,7 @@ AS $$ SELECT app.low_stock($1,$2) $$;
 
 -- ---------- 7. Re-affirm the RPC surface for everything changed above ----------
 DO $$
-DECLARE f record;
+DECLARE f text;
 BEGIN
   FOREACH f IN ARRAY ARRAY[
     'app.save_product(uuid,uuid,text,text,text,numeric,numeric,boolean,numeric)',

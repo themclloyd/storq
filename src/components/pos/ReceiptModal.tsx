@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { downloadPdf } from "@/lib/pdf";
+import { useI18n } from "@/lib/i18n";
 import {
   methodLabel,
   printReceipt,
@@ -42,12 +43,13 @@ export function ReceiptModal({
   money: MoneyFmt;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const doneLabel =
     receipt.status === "layby_completed"
-      ? "Layby fully paid"
+      ? t("till.laybyFullyPaid")
       : receipt.kind === "layby"
-        ? "Layby opened"
-        : "Sale complete";
+        ? t("till.laybyOpened")
+        : t("till.saleComplete");
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -65,7 +67,10 @@ export function ReceiptModal({
 
         <ScrollArea className="max-h-[46vh] bg-secondary/30">
           <div className="px-5 py-5">
-            <div className="thermal" dangerouslySetInnerHTML={{ __html: receiptHtml(receipt, money) }} />
+            <div
+              className="thermal"
+              dangerouslySetInnerHTML={{ __html: receiptHtml(receipt, money) }}
+            />
           </div>
         </ScrollArea>
 
@@ -77,13 +82,46 @@ export function ReceiptModal({
             onClick={() => {
               const r = receipt;
               void downloadPdf({
-                filename: `storq-receipt-${r.number}`, title: `${r.kind === "layby" ? "Layby receipt" : "Receipt"} #${r.number}`,
-                business: r.bizName, subtitle: r.storeName, badge: r.status === "layby_open" ? "LAYBY OPEN" : "PAID",
-                meta: [["Date", r.date], ["Served by", r.cashier], ["Payment", methodLabel(r.method)], ["Customer", r.customerName ? `${r.customerName}${r.customerPhone ? ` · ${r.customerPhone}` : ""}` : "Walk-in"]],
-                sections: [{ type: "table", head: ["Item", "Qty", "Unit price", "Amount"], align: ["left", "right", "right", "right"], body: r.lines.map((l) => [l.name, l.qty, money(l.price), money(l.total)]) }],
-                totals: [["Subtotal", money(r.subtotal)], ...(r.tax > 0 ? [[`VAT ${r.taxRate}%${r.taxInclusive ? " (incl.)" : ""}`, money(r.tax)] as [string, string]] : []), ["Paid", money(r.paid)], ...(r.change > 0 ? [["Change", money(r.change)] as [string, string]] : []), ["Total", money(r.total)]],
-                footerNote: `${r.note ? `Note: ${r.note}\n\n` : ""}Thank you for shopping with us.`,
-              }).then(() => toast.success("Receipt PDF downloaded."));
+                filename: `storq-receipt-${r.number}`,
+                title: `${r.kind === "layby" ? t("doc.laybyReceipt") : t("doc.receipt")} #${r.number}`,
+                business: r.bizName,
+                subtitle: r.storeName,
+                badge: r.status === "layby_open" ? t("doc.badgeLaybyOpen") : t("doc.badgePaid"),
+                meta: [
+                  [t("doc.date"), r.date],
+                  [t("doc.servedBy"), r.cashier],
+                  [t("doc.payment"), methodLabel(r.method)],
+                  [
+                    t("doc.customer"),
+                    r.customerName
+                      ? `${r.customerName}${r.customerPhone ? ` · ${r.customerPhone}` : ""}`
+                      : t("doc.walkIn"),
+                  ],
+                ],
+                sections: [
+                  {
+                    type: "table",
+                    head: [t("doc.item"), t("doc.qty"), t("doc.unitPrice"), t("doc.amount")],
+                    align: ["left", "right", "right", "right"],
+                    body: r.lines.map((l) => [l.name, l.qty, money(l.price), money(l.total)]),
+                  },
+                ],
+                totals: [
+                  [t("doc.subtotal"), money(r.subtotal)],
+                  ...(r.tax > 0
+                    ? [
+                        [
+                          `${t("till.vat")} ${r.taxRate}%${r.taxInclusive ? ` (${t("till.included")})` : ""}`,
+                          money(r.tax),
+                        ] as [string, string],
+                      ]
+                    : []),
+                  [t("doc.paid"), money(r.paid)],
+                  ...(r.change > 0 ? [[t("doc.change"), money(r.change)] as [string, string]] : []),
+                  [t("doc.total"), money(r.total)],
+                ],
+                footerNote: `${r.note ? `${t("doc.noteLabel")} ${r.note}\n\n` : ""}${t("doc.thankYou")}`,
+              }).then(() => toast.success(t("till.receiptDownloaded")));
             }}
           >
             <HugeiconsIcon icon={Download01Icon} /> PDF
@@ -93,15 +131,15 @@ export function ReceiptModal({
             variant="accent"
             className="flex-1"
             onClick={() => {
-              if (!printReceipt(receipt, money)) toast.error("Allow pop-ups to print the receipt.");
+              if (!printReceipt(receipt, money)) toast.error(t("till.printPopupBlock"));
             }}
           >
-            <HugeiconsIcon icon={PrinterIcon} /> Print
+            <HugeiconsIcon icon={PrinterIcon} /> {t("till.print")}
           </Button>
         </DialogFooter>
         <div className="border-t px-5 py-3">
           <Button variant="ghost" size="lg" className="w-full" onClick={onClose}>
-            New sale
+            {t("till.newSale")}
           </Button>
         </div>
       </DialogContent>

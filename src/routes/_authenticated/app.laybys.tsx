@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/laybys")({
   head: () => ({
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/app/laybys")({
 
 function Laybys() {
   const { store, money, can, rpc } = usePos();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"open" | "done">("open");
   const open = useSales("laybys-open", { storeId: store?.id, statuses: ["layby_open"] });
@@ -40,15 +42,10 @@ function Laybys() {
   );
 
   async function cancel(s: SaleRow) {
-    if (
-      !confirm(
-        `Cancel layby #${s.number}? Items go back into stock. Refund ${money(s.paid)} separately.`,
-      )
-    )
-      return;
+    if (!confirm(t("laybys.cancelConfirm", { number: s.number, amount: money(s.paid) }))) return;
     try {
       await rpc("cancel_layby", { p_sale: s.id });
-      toast.success("Layby cancelled");
+      toast.success(t("status.layby_cancelled"));
       qc.invalidateQueries();
     } catch (e) {
       toast.error((e as Error).message);
@@ -57,26 +54,28 @@ function Laybys() {
 
   return (
     <>
-      <PageHeader title="Laybys" sub="Stock is reserved while the customer pays it off." />
+      <PageHeader title={t("laybys.title")} sub={t("laybys.sub")} />
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {(["open", "done"] as const).map((t) => (
+        {(["open", "done"] as const).map((k) => (
           <Button
-            key={t}
+            key={k}
             size="sm"
-            variant={tab === t ? "default" : "outline"}
-            onClick={() => setTab(t)}
+            variant={tab === k ? "default" : "outline"}
+            onClick={() => setTab(k)}
           >
-            {t === "open" ? `Open (${open.data?.length ?? 0})` : "Closed"}
+            {k === "open"
+              ? `${t("laybys.openTab")} (${open.data?.length ?? 0})`
+              : t("laybys.closedTab")}
           </Button>
         ))}
         <Input
           className="ml-auto h-8 w-56 bg-card"
-          placeholder="Search customer or number"
+          placeholder={t("laybys.searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
-      {rows?.length === 0 && <Empty>No laybys here.</Empty>}
+      {rows?.length === 0 && <Empty>{t("laybys.none")}</Empty>}
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {rows?.map((s) => {
           const pct = Math.min(100, (Number(s.paid) / Number(s.total)) * 100);
@@ -86,7 +85,8 @@ function Laybys() {
                 <div className="min-w-0">
                   <div className="truncate font-bold">{s.customer_name}</div>
                   <div className="truncate text-xs text-muted-foreground">
-                    #{s.number} · {s.customer_phone ?? "no phone"} · {fmtDate(s.created_at)}
+                    #{s.number} · {s.customer_phone ?? t("laybys.noPhone")} ·{" "}
+                    {fmtDate(s.created_at)}
                   </div>
                 </div>
                 <Status s={s.status} />
@@ -95,9 +95,11 @@ function Laybys() {
                 <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
               </div>
               <div className="tabular mt-1.5 flex justify-between gap-2 text-[13px]">
-                <span className="truncate">Paid {money(s.paid)}</span>
+                <span className="truncate">
+                  {t("doc.paid")} {money(s.paid)}
+                </span>
                 <span className="truncate font-bold">
-                  Owing {money(Number(s.total) - Number(s.paid))}
+                  {t("laybys.owing")} {money(Number(s.total) - Number(s.paid))}
                 </span>
               </div>
               <p className="mt-1.5 truncate text-xs text-muted-foreground">
@@ -107,7 +109,7 @@ function Laybys() {
                 <div className="mt-3 flex gap-2">
                   {can("admin", "manager") && (
                     <Button size="sm" variant="outline" onClick={() => cancel(s)}>
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                   )}
                   <Button
@@ -116,7 +118,7 @@ function Laybys() {
                     className="flex-1"
                     onClick={() => setPaying(s)}
                   >
-                    Take payment
+                    {t("laybys.takePayment")}
                   </Button>
                 </div>
               )}
@@ -148,6 +150,7 @@ function PayDialog({
   onPaid: () => void;
 }) {
   const { money, rpc } = usePos();
+  const { t } = useI18n();
   const owing = Number(s.total) - Number(s.paid);
   const [amt, setAmt] = useState(String(owing));
   const [method, setMethod] = useState("cash");
@@ -158,9 +161,7 @@ function PayDialog({
         p_amount: Number(amt),
         p_method: method,
       });
-      toast.success(
-        st === "layby_completed" ? "Layby fully paid — hand over the goods" : "Payment recorded",
-      );
+      toast.success(st === "layby_completed" ? t("laybys.fullyPaid") : t("laybys.paymentRecorded"));
       onPaid();
     } catch (e) {
       toast.error((e as Error).message);
@@ -170,25 +171,29 @@ function PayDialog({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Layby payment — {s.customer_name}</DialogTitle>
+          <DialogTitle>
+            {t("laybys.payTitle", { customer: s.customer_name ?? t("doc.walkInCustomer") })}
+          </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">Owing {money(owing)}</p>
-        <Field label="Amount">
+        <p className="text-sm text-muted-foreground">
+          {t("laybys.owing")} {money(owing)}
+        </p>
+        <Field label={t("doc.amount")}>
           <Input inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} />
         </Field>
-        <Field label="Method">
+        <Field label={t("doc.method")}>
           <NativeSelect
             value={method}
             onChange={setMethod}
             options={[
-              { value: "cash", label: "Cash" },
-              { value: "card", label: "Card" },
-              { value: "mobile", label: "Mobile money" },
+              { value: "cash", label: t("till.payCash") },
+              { value: "card", label: t("till.payCard") },
+              { value: "mobile", label: t("till.payMobile") },
             ]}
           />
         </Field>
         <Button variant="success" onClick={pay}>
-          Record payment
+          {t("laybys.recordPayment")}
         </Button>
       </DialogContent>
     </Dialog>
