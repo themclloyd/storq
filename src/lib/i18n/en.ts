@@ -505,7 +505,6 @@ export const en = {
     sortStock: "In stock",
     setCount: "Set exact count",
     newTotal: "New total",
-    adjustTab: "Adjust",
   },
   reason: {
     sale: "Sold",

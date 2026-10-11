@@ -146,10 +146,11 @@ function Inventory() {
       );
       if (hit) {
         setQ(normalizeCode(hit.sku));
+        setPage(0);
         return true;
       }
       // Unknown code → pre-fill a New Item dialog with the scanned code.
-      setEdit({ active: true, price: 0, cost: 0, sku: code });
+      setEdit({ active: true, price: 0, cost: 0, sku: normalizeCode(code) });
       return true;
     },
     { enabled: !edit && !adj && !qr && !sheet && !imp },
@@ -382,12 +383,12 @@ function Inventory() {
             className="w-56 bg-card pl-9"
             placeholder={t("inv.searchPlaceholder")}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(0); }}
           />
         </div>
         <button
           type="button"
-          onClick={() => setLowOnly((v) => !v)}
+          onClick={() => { setLowOnly((v) => !v); setPage(0); }}
           className={cn(
             "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
             lowOnly
@@ -398,7 +399,7 @@ function Inventory() {
           {t("inv.lowStock")}
           {lowCount > 0 ? ` · ${lowCount}` : ""}
         </button>
-        <Select value={colFilter} onValueChange={setColFilter}>
+        <Select value={colFilter} onValueChange={(v) => { setColFilter(v); setPage(0); }}>
           <SelectTrigger className="h-9 w-auto bg-card text-sm">
             <SelectValue />
           </SelectTrigger>
@@ -411,7 +412,7 @@ function Inventory() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={sort} onValueChange={(v) => setSort(v as "name" | "price" | "stock")}>
+        <Select value={sort} onValueChange={(v) => { setSort(v as "name" | "price" | "stock"); setPage(0); }}>
           <SelectTrigger className="h-9 w-auto bg-card text-sm">
             <SelectValue />
           </SelectTrigger>
@@ -684,7 +685,6 @@ function ProductDialog({
   const [f, setF] = useState({
     name: p.name ?? "",
     sku: p.sku ?? "",
-    category: p.category ?? "",
     price: String(p.price ?? ""),
     cost: String(p.cost ?? ""),
     qty: p.id ? String(currentQty) : "",
@@ -730,7 +730,9 @@ function ProductDialog({
           p_id: p.id ?? null,
           p_name: sanitizeText(f.name, LIMITS.productName),
           p_sku: code || null,
-          p_category: null,
+          // Category has no UI field yet — pass through whatever was stored on
+          // edit so we don't silently clear it; leave null on create.
+          p_category: p.category ?? null,
           p_price: Number(f.price || 0),
           p_cost: Number(f.cost || 0),
           p_active: f.active,
@@ -895,7 +897,7 @@ function ProductDialog({
                 inputMode="decimal"
                 placeholder={p.id ? String(currentQty) : "0"}
                 value={f.qty}
-                onChange={(e) => setF({ ...f, qty: e.target.value })}
+                onChange={(e) => setF({ ...f, qty: e.target.value.replace(/[^0-9.]/g, "") })}
               />
               <span className="text-xs text-muted-foreground">
                 {p.id ? t("inv.currentlyInStock", { qty: currentQty }) : t("inv.startingStock")}
@@ -910,7 +912,7 @@ function ProductDialog({
           />{" "}
           {t("inv.availableForSale")}
         </Label>
-        <Button disabled={!f.name} onClick={save}>
+        <Button disabled={!f.name.trim()} onClick={save}>
           {t("inv.saveItem")}
         </Button>
       </DialogContent>
@@ -933,7 +935,7 @@ function LabelSheetDialog({
 }) {
   const { t } = useI18n();
   const [copies, setCopies] = useState("2");
-  const n = Math.min(60, Math.max(1, Math.trunc(Number(copies) || 1)));
+  const n = Math.min(240, Math.max(1, Math.trunc(Number(copies) || 1)));
   const missing = rows.filter((r) => !normalizeCode(r.sku)).length;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -963,7 +965,7 @@ function LabelSheetDialog({
             <Input
               className="max-w-24"
               inputMode="numeric"
-              maxLength={2}
+              maxLength={3}
               value={copies}
               onChange={(e) => setCopies(e.target.value.replace(/[^0-9]/g, ""))}
             />
@@ -1053,7 +1055,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
         label: t("inv.quantity"),
         required: true,
         min: mode === "set" ? 0 : 0.01,
-        max: 1_200_000,
+        max: mode === "set" ? 1_200_000 : 1_000_000,
       }),
       optionalText(note, t("inv.noteField"), LIMITS.note),
     );
@@ -1342,7 +1344,8 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
             p_id: r.existing?.id ?? null,
             p_name: r.name,
             p_sku: r.sku || null,
-            p_category: null,
+            // Category is not a CSV column — preserve whatever is stored.
+            p_category: r.existing?.category ?? null,
             p_price: r.price,
             p_cost: r.cost,
             p_active: r.active,

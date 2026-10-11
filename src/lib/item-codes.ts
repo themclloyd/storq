@@ -51,7 +51,10 @@ export function suggestCode(taken: Iterable<string>): string {
     const candidate = AUTO_PREFIX + randomChars(AUTO_BODY);
     if (!used.has(candidate)) return candidate;
   }
-  return AUTO_PREFIX + randomChars(AUTO_BODY * 2);
+  // After 40 attempts we're almost certainly in a tiny test catalog with a
+  // pathological collision rate. Return a new random candidate anyway — the
+  // server will detect a real collision and reject it with a clear error.
+  return AUTO_PREFIX + randomChars(AUTO_BODY);
 }
 
 /** Codes currently in the catalog — the pool a generated candidate must avoid. */

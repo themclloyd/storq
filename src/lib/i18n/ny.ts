@@ -518,7 +518,6 @@ export const ny = {
     sortStock: "Zolipo",
     setCount: "Ikani chiwerengero chenicheni",
     newTotal: "Chonse chatsopano",
-    adjustTab: "Sinthani",
   },
   reason: {
     sale: "Kugulitsa",
