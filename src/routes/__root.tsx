@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      // Figtree ships inside appCss (see styles.css) — self-hosted, so no
+      // Fonts ship inside appCss (see styles.css) — self-hosted, so no
       // render-blocking third-party stylesheet and no extra CSP origin.
       { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
       { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },

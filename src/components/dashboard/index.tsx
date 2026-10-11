@@ -43,7 +43,7 @@ export function StatCard({
   icon: DashIcon;
 }) {
   return (
-    <Card className="min-w-0 p-3">
+    <Card className="min-w-0 border border-border/50 p-3">
       <div className="flex items-center justify-between gap-2">
         <CardDescription className="truncate text-xs">{label}</CardDescription>
         <HugeiconsIcon icon={icon} className="size-[15px] shrink-0 text-primary" />
@@ -73,7 +73,7 @@ export function DashboardSection({
   contentClassName?: string | undefined;
 }) {
   return (
-    <Card className={cn("p-0", className)}>
+    <Card className={cn("border border-border/50 p-0", className)}>
       <CardHeader className="flex-row items-baseline justify-between gap-2 space-y-0 p-3">
         <CardTitle className="flex items-center gap-1.5 font-display text-sm font-medium">
           {icon && <HugeiconsIcon icon={icon} className="size-4 text-primary" />}
@@ -361,6 +361,102 @@ export function PaymentMethods({
               {Math.round((p.value / total) * 100)}%
             </span>
             <span className="tabular w-24 shrink-0 text-right font-semibold">{money(p.value)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Categorical ramp for the split bar. `--chart-N` is numbered by meaning (1
+ *  sales, 2 profit, …) rather than by contrast, so the order below is picked so
+ *  no two neighbours share a hue: flame → violet → green → gold → burnt umber.
+ *  A lightness ramp of one hue (the usual version of this pattern) is unreadable
+ *  for colour-blind users, in grayscale and on a thermal printer. */
+const SPLIT_RAMP = [
+  "var(--chart-1)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+];
+
+/** Past this many groups the tail folds into one "Other" slice, so every slice
+ *  keeps a distinct hue instead of recycling the ramp. */
+const SPLIT_MAX = SPLIT_RAMP.length;
+
+/** `48%` for a normal share, `0.4%` for a sliver — never a rounding `0%`. */
+function shareLabel(ratio: number): string {
+  return ratio >= 0.1 ? `${Math.round(ratio * 100)}%` : `${(ratio * 100).toFixed(1)}%`;
+}
+
+/** How one money total splits across groups: a stacked proportion bar over a
+ *  legend whose cells are exactly as wide as the slices they name, so each
+ *  figure sits under the segment it describes. The 2px gaps between slices keep
+ *  the boundaries legible where two hues are close, and the bar itself is
+ *  `aria-hidden` because every value is repeated as text in the legend. */
+export function ValueSplitBar({
+  data,
+  money,
+  loading,
+}: {
+  data: MethodSlice[];
+  money: MoneyFmt;
+  loading?: boolean;
+}) {
+  const { t } = useI18n();
+  if (loading) return <Skeleton className="h-24 w-full" />;
+  const sorted = data.filter((s) => s.value > 0).sort((a, b) => b.value - a.value);
+  const slices =
+    sorted.length <= SPLIT_MAX
+      ? sorted
+      : [
+          ...sorted.slice(0, SPLIT_MAX - 1),
+          {
+            name: t("dashboard.other"),
+            value: sorted.slice(SPLIT_MAX - 1).reduce((a, s) => a + s.value, 0),
+          },
+        ];
+  const total = slices.reduce((a, s) => a + s.value, 0);
+  if (slices.length === 0 || total <= 0) {
+    return <EmptyState>{t("dashboard.nothingToShow")}</EmptyState>;
+  }
+  return (
+    <div>
+      <div
+        className="flex h-3 w-full gap-0.5 overflow-hidden rounded-full bg-secondary"
+        aria-hidden
+      >
+        {slices.map((s, i) => (
+          <div
+            key={s.name}
+            className="min-w-[3px]"
+            style={{
+              background: SPLIT_RAMP[i % SPLIT_RAMP.length],
+              flexGrow: s.value,
+              flexBasis: 0,
+            }}
+          />
+        ))}
+      </div>
+      {/* flex-grow from the raw value makes each cell share the bar's geometry;
+          the min-width keeps a sliver readable and wraps to a stack on a phone. */}
+      <ul className="mt-2.5 flex flex-wrap gap-y-2">
+        {slices.map((s, i) => (
+          <li
+            key={s.name}
+            className="min-w-0 border-l-2 pl-2 pr-3"
+            style={{
+              borderColor: SPLIT_RAMP[i % SPLIT_RAMP.length],
+              flex: `${s.value} 0 0%`,
+              minWidth: "7.5rem",
+            }}
+          >
+            <p className="truncate text-[13px] font-medium">{s.name}</p>
+            <p className="tabular mt-0.5 flex items-baseline gap-1.5 text-[13px]">
+              <span className="text-muted-foreground">{shareLabel(s.value / total)}</span>
+              <span className="font-semibold">{money(s.value)}</span>
+            </p>
           </li>
         ))}
       </ul>

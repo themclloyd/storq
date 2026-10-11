@@ -4,10 +4,10 @@
 /* Fonts are bundled from here instead of fetched from Google Fonts: the browser
    pulls only the unicode-range subsets it needs from our own origin, which
    removes a render-blocking cross-origin request (weights interpolate from one
-   variable file, so no weight ever falls back silently). Figtree is the single
-   geometric-humanist face used for both interface and display — a close
-   open-source stand-in for GoDaddy's proprietary "Sherpa". */
-@import "@fontsource-variable/figtree/wght.css";
+   variable file, so no weight ever falls back silently). DM Sans is the
+   interface face; Fraunces is the display face for titles and big numbers. */
+@import "@fontsource-variable/dm-sans/wght.css";
+@import "@fontsource-variable/fraunces/wght.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -92,8 +92,8 @@
 
 :root {
   --radius: 0.75rem;
-  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
 
   /* GoDaddy surfaces are white + a cool section-gray, text is near-black ink,
      and the one brand color is "Everyday Blue" teal (hue 196). */
@@ -246,7 +246,6 @@
 @layer base {
   body {
     font-family: var(--font-sans);
-    font-weight: 450; /* GoDaddy Sherpa body sits slightly heavier than a regular 400 */
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
   }
@@ -255,10 +254,10 @@
   }
 }
 
-/* Display face: logo, page titles, card titles, big totals (GoDaddy runs bold headings). */
+/* Display face: logo, page titles, card titles, big totals. */
 .font-display {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.015em;
 }
 

@@ -16,6 +16,7 @@ import {
   HBarsChart,
   PaymentMethods,
   ProfitTrendChart,
+  ValueSplitBar,
   type MethodSlice,
   type ProfitTrendPoint,
 } from "@/components/dashboard";
@@ -207,6 +208,16 @@ function Reports() {
         }))
         .sort((a, b) => b.value - a.value),
     [r, names.data, t],
+  );
+
+  // Share of revenue per location: the proportion read that the net-profit bars
+  // under it can't give, since profit hides which store actually moves the stock.
+  const storeRevenue = useMemo<MethodSlice[]>(
+    () =>
+      stores
+        .map((s) => ({ name: s.name, value: r.byStore[s.id]?.revenue ?? 0 }))
+        .filter((x) => x.value > 0),
+    [stores, r],
   );
 
   if (!can("admin", "manager"))
@@ -483,6 +494,11 @@ function Reports() {
             </div>
           </div>
 
+          {all && stores.length > 1 && (
+            <Panel title={t("reports.revenueShare")}>
+              <ValueSplitBar data={storeRevenue} money={money} loading={loading} />
+            </Panel>
+          )}
           {all && stores.length > 1 && (
             <Panel title={t("reports.netByStore")}>
               <HBarsChart

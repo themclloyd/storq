@@ -79,12 +79,18 @@ export function cartCapBlocked(gross: number, discountTotal: number): boolean {
   return gross > 0 && discountTotal > round2(gross * DISCOUNT_CAP_RATIO);
 }
 
-export function useStock(storeId?: string) {
+export function useStock(storeId?: string, opts: { live?: boolean } = {}) {
   return useQuery({
     queryKey: ["stock", storeId],
     enabled: !!storeId,
     // Stock changes only through our own writes, which invalidate ["stock"].
     staleTime: 60_000,
+    // `live` is for the till: quantities also move on other tills and through
+    // CSV imports, whose invalidation cannot reach this device's cache. Without
+    // a gentle re-read the badge keeps advertising units that are already gone
+    // and the sale fails on the server. Polling stays off every other screen.
+    refetchInterval: opts.live ? 30_000 : false,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("store_stock")

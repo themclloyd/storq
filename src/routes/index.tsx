@@ -139,9 +139,9 @@ const landingJsonLd = {
 export const Route = createFileRoute("/")({
   head: () => {
     const seo = buildSeo({
-      title: "Storq POS — Know what your shop made, every day",
+      title: "Storq POS — Know your stock, your profit, your whole business",
       description:
-        "Run your till, your stock and your staff from the phone in your pocket, and see every kwacha before you close. One plan at MK60,000 per store, free trial included.",
+        "Keep your till, your stock and your staff in order from the phone in your pocket, and see the real profit behind every sale before you close. One plan at MK60,000 per store, free trial included.",
       path: "/",
     });
     return {
@@ -291,7 +291,7 @@ function Landing() {
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-light tracking-tight">
+          <Link to="/" className="font-display flex items-center gap-2 text-lg tracking-tight">
             <img src="/logo.svg" alt="Storq logo" className="h-8 w-8 rounded-lg" />
             Storq
           </Link>
@@ -332,7 +332,7 @@ function Landing() {
           <Eyebrow>{t("marketing.heroEyebrow")}</Eyebrow>
         </Rise>
         <Rise delay={80}>
-          <h1 className="mx-auto mt-4 max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+          <h1 className="font-display mx-auto mt-4 max-w-4xl text-5xl leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
             {t("marketing.heroH1")}
           </h1>
         </Rise>
@@ -375,7 +375,7 @@ function Landing() {
             <CardDescription className="text-xs font-medium">
               {t("marketing.heroTakings")}
             </CardDescription>
-            <p className="mt-1 text-3xl font-light">MK18,450</p>
+            <p className="font-display tabular mt-1 text-3xl">MK5,910</p>
             <p className="text-sm font-semibold text-success">{t("marketing.heroTrend")}</p>
           </Card>
         </Rise>
@@ -385,7 +385,7 @@ function Landing() {
       <section id="shops" className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
-            <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
+            <h2 className="font-display max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
               {t("marketing.shopsH2")}
             </h2>
           </Reveal>
@@ -461,7 +461,7 @@ function Landing() {
         </Reveal>
         <Reveal delay={120}>
           <Eyebrow>{t("marketing.counterEyebrow")}</Eyebrow>
-          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">
+          <h2 className="font-display mt-3 text-4xl leading-tight tracking-tight md:text-6xl">
             {t("marketing.counterH2")}
           </h2>
           <p className="mt-5 text-lg text-muted-foreground">{t("marketing.counterLead")}</p>
@@ -485,7 +485,7 @@ function Landing() {
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
-            <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
+            <h2 className="font-display max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
               {t("marketing.controlH2")}
             </h2>
           </Reveal>
@@ -500,7 +500,7 @@ function Landing() {
                     icon={UserMultipleIcon}
                     className="h-8 w-8 transition-transform duration-300 group-hover:scale-110"
                   />
-                  <CardTitle className="mt-6 text-3xl font-light">
+                  <CardTitle className="font-display mt-6 text-3xl">
                     {t("marketing.controlPin")}
                   </CardTitle>
                   <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
@@ -516,7 +516,7 @@ function Landing() {
                     icon={ShieldCheckIcon}
                     className="h-8 w-8 transition-transform duration-300 group-hover:scale-110"
                   />
-                  <CardTitle className="mt-6 text-3xl font-light">
+                  <CardTitle className="font-display mt-6 text-3xl">
                     {t("marketing.controlOk")}
                   </CardTitle>
                   <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
@@ -532,7 +532,7 @@ function Landing() {
                     icon={BoxesIcon}
                     className="h-8 w-8 transition-transform duration-300 group-hover:scale-110"
                   />
-                  <CardTitle className="mt-6 text-3xl font-light">
+                  <CardTitle className="font-display mt-6 text-3xl">
                     {t("marketing.controlStock")}
                   </CardTitle>
                   <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
@@ -559,20 +559,20 @@ function Landing() {
         </Reveal>
         <Reveal delay={120}>
           <Eyebrow>{t("marketing.stockEyebrow")}</Eyebrow>
-          <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">
+          <h2 className="font-display mt-3 text-4xl leading-tight tracking-tight md:text-6xl">
             {t("marketing.stockH2")}
           </h2>
           <p className="mt-5 text-lg text-muted-foreground">{t("marketing.stockLead")}</p>
           <div className="mt-8 grid grid-cols-2 gap-4">
             <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 transition-colors duration-300 hover:bg-accent/10">
               <CardHeader className="gap-1 p-0">
-                <CardTitle className="text-3xl font-light">{t("marketing.stockSells")}</CardTitle>
+                <CardTitle className="font-display text-3xl">{t("marketing.stockSells")}</CardTitle>
                 <CardDescription>{t("marketing.stockSellsDesc")}</CardDescription>
               </CardHeader>
             </Card>
             <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 transition-colors duration-300 hover:bg-accent/10">
               <CardHeader className="gap-1 p-0">
-                <CardTitle className="text-3xl font-light">{t("marketing.stockLow")}</CardTitle>
+                <CardTitle className="font-display text-3xl">{t("marketing.stockLow")}</CardTitle>
                 <CardDescription>{t("marketing.stockLowDesc")}</CardDescription>
               </CardHeader>
             </Card>
@@ -585,7 +585,7 @@ function Landing() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
           <Reveal>
             <Eyebrow>{t("marketing.laybyEyebrow")}</Eyebrow>
-            <h2 className="mt-3 text-4xl font-light leading-tight tracking-tight md:text-6xl">
+            <h2 className="font-display mt-3 text-4xl leading-tight tracking-tight md:text-6xl">
               {t("marketing.laybyH2")}
             </h2>
             <p className="mt-5 text-lg text-muted-foreground">{t("marketing.laybyLead")}</p>
@@ -598,7 +598,7 @@ function Landing() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <CardDescription>{t("marketing.laybyRef")}</CardDescription>
-                  <CardTitle className="mt-1 text-2xl font-light">
+                  <CardTitle className="font-display mt-1 text-2xl">
                     {t("marketing.laybyItem")}
                   </CardTitle>
                 </div>
@@ -650,7 +650,7 @@ function Landing() {
           </Reveal>
           <Reveal delay={120} className="md:col-span-3">
             <Eyebrow>{t("marketing.storyEyebrow")}</Eyebrow>
-            <blockquote className="mt-6 text-3xl font-light leading-snug tracking-tight md:text-4xl">
+            <blockquote className="font-display mt-6 text-3xl leading-snug tracking-tight md:text-4xl">
               {t("marketing.storyQuote")}
             </blockquote>
             <p className="mt-6 text-lg font-semibold">Chisomo B.</p>
@@ -670,7 +670,9 @@ function Landing() {
               delay={i * 100}
               className="transition-transform duration-300 hover:-translate-y-1"
             >
-              <p className="text-5xl font-light tracking-tight text-accent md:text-6xl">{n}</p>
+              <p className="font-display tabular text-5xl tracking-tight text-accent md:text-6xl">
+                {n}
+              </p>
               <p className="mt-2 text-muted-foreground">{t(labelKey as string)}</p>
             </Reveal>
           ))}
@@ -682,7 +684,7 @@ function Landing() {
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
             <Eyebrow>{t("marketing.insideEyebrow")}</Eyebrow>
-            <h2 className="mt-3 max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
+            <h2 className="font-display mt-3 max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
               {t("marketing.insideH2")}
             </h2>
           </Reveal>
@@ -702,7 +704,7 @@ function Landing() {
                     icon={I}
                     className="h-8 w-8 text-accent transition-transform duration-300 group-hover:-translate-y-1"
                   />
-                  <h3 className="mt-5 text-2xl font-light">{t(tKey as string)}</h3>
+                  <h3 className="font-display mt-5 text-2xl">{t(tKey as string)}</h3>
                   <p className="mt-2 text-muted-foreground">{t(dKey as string)}</p>
                 </Reveal>
               );
@@ -714,7 +716,7 @@ function Landing() {
       {/* How to get started — the shortest path to a first sale */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <Reveal>
-          <h2 className="max-w-3xl text-4xl font-light leading-tight tracking-tight md:text-6xl">
+          <h2 className="font-display max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
             {t("marketing.startH2")}
           </h2>
         </Reveal>
@@ -728,7 +730,7 @@ function Landing() {
               <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-xl font-light text-primary-foreground transition-transform duration-300 group-hover:scale-110">
                 {n}
               </span>
-              <h3 className="mt-6 text-2xl font-light">{t(tKey as string)}</h3>
+              <h3 className="font-display mt-6 text-2xl">{t(tKey as string)}</h3>
               <p className="mt-2 text-muted-foreground">{t(dKey as string)}</p>
             </Reveal>
           ))}
@@ -742,7 +744,7 @@ function Landing() {
       <section id="pricing" className="border-t border-border bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
-            <h2 className="text-center text-4xl font-light tracking-tight md:text-6xl">
+            <h2 className="font-display text-center text-4xl tracking-tight md:text-6xl">
               {t("marketing.pricingH2")}
             </h2>
           </Reveal>
@@ -755,7 +757,7 @@ function Landing() {
             <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary p-10 text-primary-foreground transition-all duration-300 hover:-translate-y-1.5">
               <CardHeader className="p-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle className="text-lg font-semibold">
+                  <CardTitle className="font-display text-lg">
                     {t("marketing.pricingCardTitle")}
                   </CardTitle>
                   <Badge className="rounded-full border-0 bg-primary-foreground/15 px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary-foreground/15">
@@ -764,7 +766,7 @@ function Landing() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <p className="mt-4 text-6xl font-light tracking-tight">
+                <p className="font-display tabular mt-4 text-6xl tracking-tight">
                   MK{PRICES.MWK.toLocaleString("en-US")}
                   <span className="text-lg font-medium opacity-60">
                     {t("marketing.pricingPerStore")}
@@ -794,7 +796,7 @@ function Landing() {
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center">
           <Reveal>
-            <h2 className="mx-auto max-w-4xl text-5xl font-light leading-[0.95] tracking-tight md:text-7xl">
+            <h2 className="font-display mx-auto max-w-4xl text-5xl leading-[0.95] tracking-tight md:text-7xl">
               {t("marketing.closeH2")}
             </h2>
           </Reveal>
@@ -821,7 +823,7 @@ function Faq() {
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">
       <Reveal>
-        <h2 className="text-3xl font-light tracking-tight md:text-4xl">{t("marketing.faqH2")}</h2>
+        <h2 className="font-display text-3xl tracking-tight md:text-4xl">{t("marketing.faqH2")}</h2>
       </Reveal>
       <Accordion type="single" collapsible defaultValue="faq-0" className="mt-8">
         {faqKeys.map(([qKey, aKey], i) => (

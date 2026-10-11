@@ -56,7 +56,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Empty, Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
+import { Empty, Field, NativeSelect } from "@/components/pos/bits";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
 import { QuickAddItem } from "@/components/pos/QuickAddItem";
@@ -113,7 +113,9 @@ function Register() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const products = useProducts();
-  const stock = useStock(store?.id);
+  // Live screen: re-read quantities so a CSV import or another till's sale is
+  // never sold against a badge this device cached earlier.
+  const stock = useStock(store?.id, { live: true });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
   const [cart, setCart] = useState<Line[]>([]);
@@ -418,7 +420,6 @@ function Register() {
               />
             </div>
             <ScanCameraButton onOpen={() => setScanning(true)} />
-            <StoreTypeTag type={store.store_type} />
           </div>
           {cats.length > 0 && (
             <div className="mb-4 flex justify-start gap-2 overflow-x-auto pb-1">

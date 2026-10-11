@@ -5,7 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStaffNames } from "@/lib/sales";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PackageIcon, PlusSignIcon, QrCode01Icon, Refresh01Icon, Search01Icon } from "@/lib/icons";
+import {
+  BarChartIcon,
+  PackageIcon,
+  PlusSignIcon,
+  QrCode01Icon,
+  Refresh01Icon,
+  Search01Icon,
+} from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useProducts, useStock, type Product } from "@/lib/products";
@@ -59,9 +66,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { DashboardSection, ValueSplitBar } from "@/components/dashboard";
 import { useCollections } from "@/lib/collections";
 import { downloadCsv, downloadLabelSheet, downloadPdf, fileStamp, parseCsv } from "@/lib/pdf";
 import { t as tt, useI18n } from "@/lib/i18n";
+import { useScannerWedge } from "@/components/pos/use-scanner";
 
 export const Route = createFileRoute("/_authenticated/app/inventory")({
   head: () => ({
@@ -125,6 +134,26 @@ function Inventory() {
   const [sort, setSort] = useState<"name" | "price" | "stock">("name");
   const [page, setPage] = useState(0);
   const low = useLowStock(store?.id);
+  // A hardware scanner on the inventory page jumps to the matching item in the
+  // table (by setting the search field) or opens a pre-filled New Item dialog
+  // when the code is unknown — the same shortcuts as the till, without a sale.
+  useScannerWedge(
+    (code) => {
+      // No modals open — only intercept when the page is idle.
+      if (edit || adj || qr || sheet || imp) return false;
+      const hit = (products.data ?? []).find(
+        (p) => normalizeCode(p.sku).toLowerCase() === normalizeCode(code).toLowerCase(),
+      );
+      if (hit) {
+        setQ(normalizeCode(hit.sku));
+        return true;
+      }
+      // Unknown code → pre-fill a New Item dialog with the scanned code.
+      setEdit({ active: true, price: 0, cost: 0, sku: code });
+      return true;
+    },
+    { enabled: !edit && !adj && !qr && !sheet && !imp },
+  );
   // The filter, sort and stock-value total scan the whole cached catalog, so
   // memoize them (unrelated re-renders no longer re-scan every product) and
   // defer the search term to keep typing responsive on large stores. These
@@ -161,6 +190,26 @@ function Inventory() {
     () => rows.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost), 0),
     [rows, stock.data],
   );
+  // Where the money is tied up, as a share of the store's stock value. Grouped
+  // over the whole catalog rather than the filtered `rows`, so searching the
+  // table never redraws the store's split. An item in k collections hands 1/k of
+  // its value to each, so the slices still add up to the total instead of
+  // double-counting.
+  const valueByCollection = useMemo(() => {
+    const s = stock.data ?? {};
+    const names = new Map((cols.data?.list ?? []).map((c) => [c.id, c.name]));
+    const acc: Record<string, number> = {};
+    for (const p of products.data ?? []) {
+      const v = (s[p.id] ?? 0) * Number(p.cost);
+      if (v <= 0) continue;
+      const groups = [
+        ...new Set((cols.data?.byProduct[p.id] ?? []).map((id) => names.get(id))),
+      ].filter((n): n is string => !!n);
+      const keys = groups.length > 0 ? groups : [t("inv.noCollection")];
+      for (const k of keys) acc[k] = (acc[k] ?? 0) + v / keys.length;
+    }
+    return Object.entries(acc).map(([name, value]) => ({ name, value }));
+  }, [products.data, stock.data, cols.data, t]);
   const lowCount = low.data?.length ?? 0;
   const pickedRows = useMemo(
     () => (products.data ?? []).filter((p) => picked[p.id]),
@@ -235,6 +284,17 @@ function Inventory() {
                 {t("inv.importCsv")}
               </span>
             </label>
+            <Button
+              variant="outline"
+              onClick={() =>
+                downloadCsv(`storq-inventory-template.csv`, [
+                  ["name", "sku", "cost", "price", "quantity", "active"],
+                  ["Example Item", "ABC-001", "10.00", "25.00", "50", "yes"],
+                ])
+              }
+            >
+              {t("inv.downloadTemplate")}
+            </Button>
             <ExportMenu
               onExport={(kind) => {
                 const all = products.data ?? [];
@@ -402,6 +462,20 @@ function Inventory() {
           <p className="font-display tabular mt-1 text-2xl text-destructive">{lowCount}</p>
         </Card>
       </div>
+      {valueByCollection.length > 1 && (
+        <DashboardSection
+          className="mb-4"
+          title={t("inv.valueByGroup")}
+          note={t("inv.valueByGroupNote")}
+          icon={BarChartIcon}
+        >
+          <ValueSplitBar
+            data={valueByCollection}
+            money={money}
+            loading={products.isPending || stock.isPending}
+          />
+        </DashboardSection>
+      )}
       {rows.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -585,7 +659,7 @@ function Inventory() {
           }}
         />
       )}
-      {imp && <ImportDialog rows={imp} stock={stock.data ?? {}} onClose={() => setImp(null)} />}
+      {imp && <ImportDialog rows={imp} onClose={() => setImp(null)} />}
     </>
   );
 }
@@ -664,11 +738,14 @@ function ProductDialog({
         })) as string | null) ?? p.id;
       if (pid) await rpc("set_product_collections", { p_product: pid, p_collections: chosen });
       const qty = f.qty === "" ? null : Number(f.qty);
-      if (pid && qty !== null && qty !== currentQty && store?.id) {
-        await rpc("adjust_stock_reason", {
+      // Send the absolute quantity, never target - cached: set_stock_qty works
+      // out the movement against the locked row, so a balance that moved while
+      // this sheet was open cannot write a number nobody typed.
+      if (pid && qty !== null && store?.id) {
+        await rpc("set_stock_qty", {
           p_store: store.id,
           p_product: pid,
-          p_delta: qty - currentQty,
+          p_qty: qty,
           p_reason: "correction",
           p_note: "Edited on item",
         });
@@ -984,15 +1061,28 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
       toast.error(err);
       return;
     }
-    const delta = mode === "set" ? Number(n) - current : (mode === "in" ? 1 : -1) * Number(n);
+    const noteCell = note ? sanitizeText(note, LIMITS.note) : null;
     try {
-      await rpc("adjust_stock_reason", {
-        p_store: store!.id,
-        p_product: p.id,
-        p_delta: delta,
-        p_reason: mode === "set" ? "correction" : reason,
-        p_note: note ? sanitizeText(note, LIMITS.note) : null,
-      });
+      if (mode === "set") {
+        // Absolute target for the same reason as the item sheet and the CSV:
+        // the server owns the delta, so this screen's `current` can be stale
+        // without the balance landing anywhere wrong.
+        await rpc("set_stock_qty", {
+          p_store: store!.id,
+          p_product: p.id,
+          p_qty: Number(n),
+          p_reason: "correction",
+          p_note: noteCell,
+        });
+      } else {
+        await rpc("adjust_stock_reason", {
+          p_store: store!.id,
+          p_product: p.id,
+          p_delta: (mode === "in" ? 1 : -1) * Number(n),
+          p_reason: reason,
+          p_note: noteCell,
+        });
+      }
       toast.success(t("inv.stockUpdated"));
       invalidateKeys(qc, [["stock"], ["movements"], ["dash-alerts"]]);
       onClose();
@@ -1161,6 +1251,9 @@ type ImportRow = {
   qty: number | null;
   active: boolean;
   existing: Product | null;
+  /** True when the row was matched by code but the name in the CSV differs from
+   * the catalog name — the item will be renamed on import. */
+  renamed: boolean;
   error?: string | undefined;
 };
 
@@ -1193,12 +1286,17 @@ function readImport(text: string, products: Product[]): ImportRow[] {
     // case-insensitive, so "abc-1" and "ABC-1" update one item instead of duplicating it.
     const sku = ci.sku >= 0 ? normalizeCode(r[ci.sku]) : "";
     const needle = sku.toLowerCase();
-    const existing =
-      products.find(
-        (p) =>
-          (needle && normalizeCode(p.sku).toLowerCase() === needle) ||
-          p.name.toLowerCase() === name.toLowerCase(),
-      ) ?? null;
+    // A row that carries a code may only match on that code. Falling back to a
+    // name match let an edited spreadsheet move stock onto whichever item
+    // happened to share the name, while the coded item kept its old quantity.
+    const existing = sku
+      ? (products.find((p) => normalizeCode(p.sku).toLowerCase() === needle) ?? null)
+      : (products.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? null);
+    // Flag when a code match found a different display name — the item will be
+    // renamed. This is intentional (e.g. correcting a typo) but we surface it
+    // in the preview so the user isn't surprised.
+    const renamed =
+      !!sku && !!existing && existing.name.toLowerCase() !== name.toLowerCase();
     const cost = ci.cost >= 0 && r[ci.cost]?.trim() ? num(r[ci.cost]) : Number(existing?.cost ?? 0);
     const price =
       ci.price >= 0 && r[ci.price]?.trim() ? num(r[ci.price]) : Number(existing?.price ?? 0);
@@ -1215,19 +1313,11 @@ function readImport(text: string, products: Product[]): ImportRow[] {
               (qty !== null && (Number.isNaN(qty) || qty < 0 || qty > 1_200_000))
             ? tt("inv.errNumber")
             : undefined;
-    return { name, sku, cost, price, qty, active, existing, error };
+    return { name, sku, cost, price, qty, active, existing, renamed, error };
   });
 }
 
-function ImportDialog({
-  rows,
-  stock,
-  onClose,
-}: {
-  rows: ImportRow[];
-  stock: Record<string, number>;
-  onClose: () => void;
-}) {
+function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => void }) {
   const { rpc, store, money } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -1237,7 +1327,14 @@ function ImportDialog({
   const bad = rows.length - ok.length;
   async function run() {
     setBusy(true);
-    let fails = 0;
+    // Re-pull the catalog before applying anything. The preview matched rows
+    // against a 30-minute cache, so an item created or renamed since then would
+    // import as a duplicate instead of updating the real one.
+    await Promise.all([
+      qc.refetchQueries({ queryKey: ["products"] }),
+      qc.refetchQueries({ queryKey: ["stock"] }),
+    ]);
+    const failed: string[] = [];
     for (const r of ok) {
       try {
         const id =
@@ -1253,23 +1350,36 @@ function ImportDialog({
             // through the update instead of clearing it.
             p_reorder_point: r.existing?.reorder_point ?? null,
           })) as string | null) ?? r.existing?.id;
-        const cur = r.existing ? (stock[r.existing.id] ?? 0) : 0;
-        if (id && store && r.qty !== null && r.qty !== cur)
-          await rpc("adjust_stock_reason", {
+        // The quantity column states what should be on the shelf, so it is sent
+        // as an absolute value: SQL computes the movement against the live,
+        // locked row. The old client-side `target - cached snapshot` delta went
+        // wrong whenever stock moved after the page loaded, and the `target is
+        // unchanged` guard skipped the write entirely while still reporting
+        // success - which is how the till came to sell units that were never there.
+        if (id && store && r.qty !== null)
+          await rpc("set_stock_qty", {
             p_store: store.id,
             p_product: id,
-            p_delta: r.qty - cur,
+            p_qty: r.qty,
             p_reason: "correction",
             p_note: "CSV import",
           });
-      } catch {
-        fails++;
+      } catch (e) {
+        failed.push(`${r.name}: ${(e as Error).message}`);
       }
       setDone((d) => d + 1);
     }
+    // Every screen that reads a quantity or a price has to re-read the imported
+    // numbers, including the till's own long-lived catalog and stock badge.
     invalidateKeys(qc, [["products"], ["stock"], ["movements"], ["collections"], ["dash-alerts"]]);
-    if (fails) toast.error(t("inv.importedFailed", { ok: ok.length - fails, fails }));
-    else toast.success(t("inv.itemsImported", { count: ok.length }));
+    if (failed.length) {
+      const more = failed.length > 3 ? ` (+${failed.length - 3})` : "";
+      const counts = t("inv.importedFailed", {
+        ok: ok.length - failed.length,
+        fails: failed.length,
+      });
+      toast.error(`${counts} — ${failed.slice(0, 3).join("; ")}${more}`, { duration: 9000 });
+    } else toast.success(t("inv.itemsImported", { count: ok.length }));
     onClose();
   }
   return (
@@ -1280,7 +1390,10 @@ function ImportDialog({
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
           {ok.filter((r) => !r.existing).length} {t("inv.newWord")} ·{" "}
-          {ok.filter((r) => r.existing).length} {t("inv.updatesWord")}
+          {ok.filter((r) => r.existing && !r.renamed).length} {t("inv.updatesWord")}
+          {ok.filter((r) => r.renamed).length > 0
+            ? ` · ${ok.filter((r) => r.renamed).length} ${t("inv.renamedWord")}`
+            : ""}
           {bad ? ` · ${bad} ${t("inv.skippedWord")}` : ""}.{" "}
           {t("inv.qtySetNote", { store: store?.name ?? "" })}
         </p>
@@ -1305,7 +1418,20 @@ function ImportDialog({
                   <TableCell className="tabular text-right">{money(r.price)}</TableCell>
                   <TableCell className="tabular text-right">{r.qty ?? "—"}</TableCell>
                   <TableCell className="px-3 text-xs">
-                    {r.error ?? (r.existing ? t("inv.updateTag") : t("inv.newTag"))}
+                    {r.error ?? (
+                      r.existing ? (
+                        r.renamed ? (
+                          <span>
+                            {t("inv.renameTag")}{" "}
+                            <span className="text-muted-foreground">← {r.existing.name}</span>
+                          </span>
+                        ) : (
+                          t("inv.updateTag")
+                        )
+                      ) : (
+                        t("inv.newTag")
+                      )
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

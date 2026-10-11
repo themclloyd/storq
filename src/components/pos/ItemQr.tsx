@@ -92,7 +92,7 @@ export function ItemCodeCard({
 
   function saveSvg() {
     if (!matrix) return;
-    saveFile(`storq-${slug}.svg`, new Blob([qrSvgString(matrix)], { type: "image/svg" }));
+    saveFile(`storq-${slug}.svg`, new Blob([qrSvgString(matrix)], { type: "image/svg+xml" }));
   }
 
   if (!item.code.trim())
