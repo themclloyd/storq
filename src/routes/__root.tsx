@@ -66,7 +66,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content: "Point of sale, stock and layby for single and multi-store businesses.",
       },
-      { name: "theme-color", content: "#ff5722" },
+      { name: "theme-color", content: "#00a4a6" },
       { name: "robots", content: PUBLIC_ROBOTS },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE_NAME },
@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      // Inter ships inside appCss (see styles.css) — self-hosted, so no
+      // Figtree ships inside appCss (see styles.css) — self-hosted, so no
       // render-blocking third-party stylesheet and no extra CSP origin.
       { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
       { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },

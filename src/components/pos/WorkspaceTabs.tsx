@@ -38,7 +38,7 @@ export function WorkspaceTabs({
   return (
     <nav
       aria-label={t(GROUP_LABEL_KEY[group])}
-      className="mb-5 inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl bg-muted p-1"
+      className="mb-4 inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl bg-muted p-1"
     >
       {pages.map((page) => {
         const active = current?.to === page.to;

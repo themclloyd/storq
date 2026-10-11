@@ -43,8 +43,8 @@ declare global {
 
 const fmt = (c: "MWK" | "USD", n: number) =>
   c === "MWK"
-    ? `MK${Math.round(n).toLocaleString()}`
-    : `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    ? `MK${Math.round(n).toLocaleString("en-US")}`
+    : `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
 const PERIOD_KEY: Record<string, string> = {
   monthly: "billing.periodMonthly",

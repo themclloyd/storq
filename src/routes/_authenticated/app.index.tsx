@@ -56,7 +56,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Empty, Field, NativeSelect, PageHeader, StoreTypeTag } from "@/components/pos/bits";
+import { Empty, Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
 import { QuickAddItem } from "@/components/pos/QuickAddItem";
@@ -394,7 +394,9 @@ function Register() {
 
   return (
     <>
-      <PageHeader breadcrumb={t("till.pointOfSale")} title={t("till.newSale")} sub={store.name} />
+      {/* No PageHeader: the tab bar, sidebar store picker and sale panel already
+          carry the breadcrumb, title and store name — the register keeps the full
+          viewport for items. */}
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <section className="min-w-0">
           <div className="mb-4 flex items-center gap-3">
@@ -755,7 +757,7 @@ function SalePanel({
             {money(total)}
           </span>
         </div>
-        <Button size="xl" variant="default" className="w-full" disabled={!has} onClick={onCharge}>
+        <Button size="xl" variant="soft" className="w-full" disabled={!has} onClick={onCharge}>
           {approval ? t("till.sendForApproval") : t("till.charge", { amount: money(total) })}
         </Button>
         <Button size="lg" variant="outline" className="w-full" disabled={!has} onClick={onLayby}>
@@ -803,7 +805,6 @@ function CheckoutDialog({
   const pay = Number(tendered || 0);
   const splitting = extra.length > 0;
   const rate = Number(business?.tax_rate ?? 0);
-  const currency = business?.currency ?? "R";
   // Notes a cashier is likely holding: the next round amounts above the total.
   const step = total >= 5000 ? 5000 : total >= 1000 ? 1000 : 100;
   const upTo = (m: number) => Math.ceil(total / m) * m;
@@ -939,7 +940,7 @@ function CheckoutDialog({
                   </Tender>
                   {notes.map((v) => (
                     <Tender key={v} active={pay === v} onClick={() => setTendered(String(v))}>
-                      {currency} {v.toLocaleString("en-ZA")}
+                      {money(v)}
                     </Tender>
                   ))}
                 </div>

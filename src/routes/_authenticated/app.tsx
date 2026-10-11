@@ -570,7 +570,7 @@ function Shell() {
           />
           <UserMenu variant="icon" settingsTo={settingsEntry?.to} />
         </header>
-        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-9">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">
           {staff && <WorkspaceTabs path={path} role={staff.role} storeType={store?.store_type} />}
           <div key={store?.id}>
             <Outlet />

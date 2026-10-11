@@ -4,15 +4,16 @@
 /* Fonts are bundled from here instead of fetched from Google Fonts: the browser
    pulls only the unicode-range subsets it needs from our own origin, which
    removes a render-blocking cross-origin request (weights interpolate from one
-   variable file, so no weight ever falls back silently). DM Sans is the
-   interface face; Fraunces is the display face for titles and big numbers. */
-@import "@fontsource-variable/dm-sans/wght.css";
-@import "@fontsource-variable/fraunces/wght.css";
+   variable file, so no weight ever falls back silently). Figtree is the single
+   geometric-humanist face used for both interface and display — a close
+   open-source stand-in for GoDaddy's proprietary "Sherpa". */
+@import "@fontsource-variable/figtree/wght.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition (SOFT theme: warm off-white + muted sage accent).
+ * Design system definition (GoDaddy "Everyday Blue": white/cool-gray surfaces,
+ * near-black ink text, a single brand teal accent at hue ~196).
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
@@ -77,6 +78,8 @@
   --color-success-soft: var(--success-soft);
   --color-warning-soft: var(--warning-soft);
   --color-destructive-soft: var(--destructive-soft);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -88,136 +91,138 @@
 }
 
 :root {
-  --radius: 0.875rem;
-  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+  --radius: 0.75rem;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
 
-  /* Warm neutrals (hue ~80). One muted sage accent (hue ~160). */
-  --background: oklch(0.9765 0.0054 275);
-  --foreground: oklch(0.27 0.006 70);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.27 0.006 70);
+  /* GoDaddy surfaces are white + a cool section-gray, text is near-black ink,
+     and the one brand color is "Everyday Blue" teal (hue 196). */
+  --background: oklch(0.9749 0.0025 228.77); /* #f5f7f8 section gray */
+  --foreground: oklch(0.1776 0 0); /* #111 ink */
+  --card: oklch(1 0 0); /* #fff */
+  --card-foreground: oklch(0.1776 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.27 0.006 70);
+  --popover-foreground: oklch(0.1776 0 0);
 
-  --primary: oklch(0.52 0.06 160);
-  --primary-foreground: oklch(0.99 0 0);
-  --button: oklch(0.2046 0 0);
-  --button-foreground: oklch(0.99 0 0);
-  /* Flat charcoal button: both gradient stops equal so the default button is solid. */
-  --button-gradient-from: oklch(0.2046 0 0);
-  --button-gradient-to: oklch(0.2046 0 0);
+  --primary: oklch(0.6514 0.111 196.31); /* #00a4a6 Everyday Blue */
+  --primary-foreground: oklch(0.999 0 0); /* white on Everyday Blue (brand fill) */
+  /* GoDaddy filled CTA is neutral ink, not blue-tinted charcoal. */
+  --button: oklch(0.1776 0 0); /* #111 ink */
+  --button-foreground: oklch(0.999 0 0);
 
-  --secondary: oklch(0.94 0.014 150);
-  --secondary-foreground: oklch(0.37 0.05 160);
-  --muted: oklch(0.95 0.006 80);
-  --muted-foreground: oklch(0.5 0.012 75);
-  --accent: oklch(0.52 0.06 160);
-  --accent-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.9358 0.0025 228.77); /* #e8eaeb */
+  --secondary-foreground: oklch(0.5121 0.0852 200.17); /* #09757a dark teal */
+  --muted: oklch(0.9358 0.0025 228.77);
+  --muted-foreground: oklch(0.5658 0 0); /* #767676 gray */
+  --accent: oklch(0.6514 0.111 196.31); /* Everyday Blue */
+  --accent-foreground: oklch(0.999 0 0);
 
-  --success: oklch(0.56 0.1 155);
+  --success: oklch(0.55 0.13 155);
   --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.8 0.1 80);
-  --warning-foreground: oklch(0.38 0.07 65);
-  --destructive: oklch(0.55 0.13 35);
+  --warning: oklch(0.8305 0.1453 74.18); /* #ffb84d warm gold */
+  --warning-foreground: oklch(0.35 0.06 70);
+  --destructive: oklch(0.55 0.19 25);
   --destructive-foreground: oklch(0.99 0 0);
 
   /* Soft tints for badges, banners and tinted cells (low stock, loss, warnings) */
-  --success-soft: oklch(0.95 0.02 155);
-  --warning-soft: oklch(0.965 0.03 90);
-  --destructive-soft: oklch(0.955 0.025 35);
+  --success-soft: oklch(0.95 0.03 155);
+  --warning-soft: oklch(0.965 0.04 80);
+  --destructive-soft: oklch(0.955 0.03 25);
+  /* Tinted primary: soft Everyday-Blue surface with dark-teal text (AA on tint). */
+  --primary-soft: oklch(0.94 0.03 196);
+  --primary-soft-foreground: oklch(0.5121 0.0852 200.17);
 
-  --border: oklch(0.93 0.008 80);
-  --input: oklch(0.9 0.01 80);
-  --ring: oklch(0.52 0.06 160);
+  --border: oklch(0.8875 0.0103 238.52); /* #d4dbe0 */
+  --input: oklch(0.8497 0.0139 240.98); /* #c6cfd6 */
+  --ring: oklch(0.6514 0.111 196.31); /* Everyday Blue */
   --rail: oklch(1 0 0);
 
-  /* Pastel tiles for item thumbnails: sage, blush, sky, sand, lilac, stone.
-     tile-foreground is now DARK because the tiles are light. */
-  --tile-1: oklch(0.92 0.03 150);
-  --tile-2: oklch(0.91 0.04 30);
-  --tile-3: oklch(0.92 0.025 255);
-  --tile-4: oklch(0.92 0.045 85);
-  --tile-5: oklch(0.92 0.03 300);
-  --tile-6: oklch(0.93 0.01 80);
-  --tile-foreground: oklch(0.38 0.04 120);
+  /* Pastel tiles for item thumbnails, tuned to the brand teal/gold/sky family.
+     tile-foreground is DARK because the tiles are light. */
+  --tile-1: oklch(0.93 0.03 196);
+  --tile-2: oklch(0.94 0.035 189);
+  --tile-3: oklch(0.95 0.045 82);
+  --tile-4: oklch(0.94 0.04 35);
+  --tile-5: oklch(0.93 0.03 235);
+  --tile-6: oklch(0.93 0.03 300);
+  --tile-foreground: oklch(0.4 0.02 200);
 
-  --chart-1: oklch(0.52 0.06 160); /* sage: sales */
-  --chart-2: oklch(0.82 0.06 40); /* blush: profit */
-  --chart-3: oklch(0.76 0.06 250); /* sky */
-  --chart-4: oklch(0.8 0.08 85); /* sand */
-  --chart-5: oklch(0.7 0.07 300); /* lilac */
+  --chart-1: oklch(0.6514 0.111 196.31); /* Everyday Blue: sales */
+  --chart-2: oklch(0.8305 0.1453 74.18); /* warm gold: profit */
+  --chart-3: oklch(0.5121 0.0852 200.17); /* dark teal */
+  --chart-4: oklch(0.55 0.14 295.56); /* Sherpa purple */
+  --chart-5: oklch(0.8 0.12 190); /* bright turquoise */
 
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.27 0.006 70);
-  --sidebar-primary: oklch(0.52 0.06 160);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.014 150);
-  --sidebar-accent-foreground: oklch(0.37 0.05 160);
-  --sidebar-border: oklch(0.93 0.008 80);
-  --sidebar-ring: oklch(0.52 0.06 160);
+  --sidebar-foreground: oklch(0.1776 0 0);
+  --sidebar-primary: oklch(0.6514 0.111 196.31);
+  --sidebar-primary-foreground: oklch(0.999 0 0);
+  --sidebar-accent: oklch(0.94 0.01 200);
+  --sidebar-accent-foreground: oklch(0.5121 0.0852 200.17);
+  --sidebar-border: oklch(0.8875 0.0103 238.52);
+  --sidebar-ring: oklch(0.6514 0.111 196.31);
 }
 
 .dark {
-  --background: oklch(0.2 0.006 70);
-  --foreground: oklch(0.94 0.006 80);
-  --card: oklch(0.24 0.007 70);
-  --card-foreground: oklch(0.94 0.006 80);
-  --popover: oklch(0.26 0.008 70);
-  --popover-foreground: oklch(0.94 0.006 80);
+  --background: oklch(0.19 0.01 210);
+  --foreground: oklch(0.97 0.005 196);
+  --card: oklch(0.23 0.012 205);
+  --card-foreground: oklch(0.97 0.005 196);
+  --popover: oklch(0.25 0.012 205);
+  --popover-foreground: oklch(0.97 0.005 196);
 
-  --primary: oklch(0.72 0.08 158);
-  --primary-foreground: oklch(0.2 0.03 160);
-  --button: oklch(0.72 0.08 158);
-  --button-foreground: oklch(0.2 0.03 160);
-  --button-gradient-from: oklch(0.72 0.08 158);
-  --button-gradient-to: oklch(0.72 0.08 158);
+  --primary: oklch(0.72 0.11 196.31);
+  --primary-foreground: oklch(0.18 0.02 200);
+  --button: oklch(0.72 0.11 196.31);
+  --button-foreground: oklch(0.18 0.02 200);
 
-  --secondary: oklch(0.3 0.02 155);
-  --secondary-foreground: oklch(0.94 0.006 80);
-  --muted: oklch(0.28 0.008 70);
-  --muted-foreground: oklch(0.7 0.01 75);
-  --accent: oklch(0.72 0.08 158);
-  --accent-foreground: oklch(0.2 0.03 160);
+  --secondary: oklch(0.3 0.02 200);
+  --secondary-foreground: oklch(0.9 0.03 196);
+  --muted: oklch(0.28 0.012 205);
+  --muted-foreground: oklch(0.7 0.015 200);
+  --accent: oklch(0.72 0.11 196.31);
+  --accent-foreground: oklch(0.18 0.02 200);
 
-  --success: oklch(0.7 0.11 155);
+  --success: oklch(0.72 0.13 155);
   --success-foreground: oklch(0.18 0.03 155);
-  --warning: oklch(0.82 0.1 80);
+  --warning: oklch(0.83 0.13 74);
   --warning-foreground: oklch(0.22 0.05 70);
-  --destructive: oklch(0.68 0.12 35);
-  --destructive-foreground: oklch(0.18 0.03 35);
+  --destructive: oklch(0.66 0.19 25);
+  --destructive-foreground: oklch(0.18 0.03 25);
 
-  --success-soft: oklch(0.3 0.03 155);
-  --warning-soft: oklch(0.32 0.04 85);
-  --destructive-soft: oklch(0.31 0.04 35);
+  --success-soft: oklch(0.3 0.05 155);
+  --warning-soft: oklch(0.32 0.06 80);
+  --destructive-soft: oklch(0.31 0.06 25);
+  --primary-soft: oklch(0.3 0.05 196);
+  --primary-soft-foreground: oklch(0.82 0.09 196);
 
-  --border: oklch(0.32 0.008 70);
-  --input: oklch(0.35 0.01 70);
-  --ring: oklch(0.72 0.08 158);
-  --rail: oklch(0.24 0.007 70);
+  --border: oklch(0.32 0.012 205);
+  --input: oklch(0.38 0.012 205);
+  --ring: oklch(0.72 0.11 196.31);
+  --rail: oklch(0.23 0.012 205);
 
-  --tile-1: oklch(0.34 0.04 150);
-  --tile-2: oklch(0.34 0.05 30);
-  --tile-3: oklch(0.34 0.04 255);
-  --tile-4: oklch(0.36 0.05 85);
-  --tile-5: oklch(0.34 0.04 300);
-  --tile-6: oklch(0.32 0.01 80);
-  --tile-foreground: oklch(0.9 0.02 120);
+  --tile-1: oklch(0.34 0.05 196);
+  --tile-2: oklch(0.34 0.05 189);
+  --tile-3: oklch(0.36 0.06 82);
+  --tile-4: oklch(0.34 0.05 35);
+  --tile-5: oklch(0.34 0.05 235);
+  --tile-6: oklch(0.32 0.02 300);
+  --tile-foreground: oklch(0.9 0.03 196);
 
-  --chart-1: oklch(0.72 0.08 158);
-  --chart-2: oklch(0.76 0.07 40);
-  --chart-3: oklch(0.74 0.06 250);
-  --chart-4: oklch(0.82 0.08 85);
-  --chart-5: oklch(0.74 0.07 300);
+  --chart-1: oklch(0.72 0.11 196);
+  --chart-2: oklch(0.83 0.13 74);
+  --chart-3: oklch(0.62 0.1 200);
+  --chart-4: oklch(0.62 0.15 296);
+  --chart-5: oklch(0.8 0.12 190);
 
-  --sidebar: oklch(0.22 0.006 70);
-  --sidebar-foreground: oklch(0.94 0.006 80);
-  --sidebar-primary: oklch(0.72 0.08 158);
-  --sidebar-primary-foreground: oklch(0.2 0.03 160);
-  --sidebar-accent: oklch(0.3 0.02 155);
-  --sidebar-accent-foreground: oklch(0.94 0.006 80);
-  --sidebar-border: oklch(0.32 0.008 70);
-  --sidebar-ring: oklch(0.72 0.08 158);
+  --sidebar: oklch(0.21 0.012 205);
+  --sidebar-foreground: oklch(0.97 0.005 196);
+  --sidebar-primary: oklch(0.72 0.11 196);
+  --sidebar-primary-foreground: oklch(0.18 0.02 200);
+  --sidebar-accent: oklch(0.3 0.02 200);
+  --sidebar-accent-foreground: oklch(0.9 0.03 196);
+  --sidebar-border: oklch(0.32 0.012 205);
+  --sidebar-ring: oklch(0.72 0.11 196);
 }
 
 @layer base {
@@ -241,6 +246,7 @@
 @layer base {
   body {
     font-family: var(--font-sans);
+    font-weight: 450; /* GoDaddy Sherpa body sits slightly heavier than a regular 400 */
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
   }
@@ -249,11 +255,11 @@
   }
 }
 
-/* Display face: logo, page titles, card titles, big totals. */
+/* Display face: logo, page titles, card titles, big totals (GoDaddy runs bold headings). */
 .font-display {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 /* Below-the-fold scroll reveals: fade + rise; stagger with inline transition-delay.

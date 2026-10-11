@@ -2,27 +2,28 @@
  * Shared number & money formatting (redesign spec §1).
  *
  * One source of truth so every screen renders amounts identically:
- * - Space as the thousands separator (a non-breaking space so a figure never
- *   wraps mid-number on a narrow table cell or drawer).
+ * - Comma as the thousands separator (`6,000,000`) — the format owners read on
+ *   receipts, price tags and bank statements in our markets.
+ * - Currency symbol sits flush against the digits (`MK6,000`), no space.
  * - Decimals shown only when the value is fractional.
  * - Negatives use a real minus glyph (U+2212) in leading position, placed
- *   before the currency symbol: `−MWK 41 400` — never `MWK -41 400` and never
+ *   before the currency symbol: `−MK41,400` — never `MK -41,400` and never
  *   an en-dash with a space.
  */
 
-const NBSP = "\u00A0";
 const MINUS = "\u2212";
+const COMMA = ",";
 
-/** Group an absolute numeric string (e.g. "41400" or "41400.5") with NBSP thousands. */
+/** Group an absolute numeric string (e.g. "41400" or "41400.5") with comma thousands. */
 function group(abs: string): string {
   const [int, dec] = abs.split(".");
-  const grouped = int!.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+  const grouped = int!.replace(/\B(?=(\d{3})+(?!\d))/g, COMMA);
   return dec ? `${grouped}.${dec}` : grouped;
 }
 
 /**
- * Format `n` as `<currency> <digits>` with the rules above. `currency` is the
- * configured symbol (e.g. "MWK", "R", "$"); an empty symbol yields bare digits.
+ * Format `n` as `<currency><digits>` with the rules above. `currency` is the
+ * configured symbol (e.g. "MK", "R", "$"); an empty symbol yields bare digits.
  */
 export function formatMoney(currency: string, n: number | string | null | undefined): string {
   const num = Number(n ?? 0);
@@ -30,7 +31,7 @@ export function formatMoney(currency: string, n: number | string | null | undefi
   const abs = Math.round(Math.abs(num) * 100) / 100;
   const whole = Math.abs(abs - Math.round(abs)) < 1e-9;
   const fixed = whole ? String(Math.round(abs)) : abs.toFixed(2);
-  const body = currency ? `${currency} ${group(fixed)}` : group(fixed);
+  const body = currency ? `${currency}${group(fixed)}` : group(fixed);
   return (negative ? MINUS : "") + body;
 }
 

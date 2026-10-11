@@ -1060,10 +1060,10 @@ export const en = {
     laybyLead:
       "Take a deposit, hold the goods aside and record every instalment as it arrives. Your customer walks out happy, the sale is yours, and there's never an argument about what has been paid.",
     laybyRef: "Layby #1042 · Thandi M.",
-    laybyItem: "Couch set — MK 9 600",
+    laybyItem: "Couch set — MK9,600",
     laybyOnTrack: "On track",
-    laybyPaid: "MK 5 950 paid",
-    laybyLeft: "MK 3 650 left",
+    laybyPaid: "MK5,950 paid",
+    laybyLeft: "MK3,650 left",
     laybyDeposit: "Deposit · Cash",
     laybyMobile: "Mobile money",
     laybyCard: "Card",

@@ -1080,10 +1080,10 @@ export const ny = {
     laybyLead:
       "Landirani ndalama yoyamba, sungani katundu, ndipo lembani malipiro onse akafika. Kasitomala wasangalala, malonda ndi anu, ndipo sipadzakhala mkangano pa zolipira.",
     laybyRef: "Ngongole #1042 · Thandi M.",
-    laybyItem: "Seti ya sofa — MK 9 600",
+    laybyItem: "Seti ya sofa — MK9,600",
     laybyOnTrack: "Ili pa njira yabwino",
-    laybyPaid: "MK 5 950 yalipidwa",
-    laybyLeft: "MK 3 650 yatsala",
+    laybyPaid: "MK5,950 yalipidwa",
+    laybyLeft: "MK3,650 yatsala",
     laybyDeposit: "Ndalama Yoyamba · Ndalama",
     laybyMobile: "Ndalama pa foni",
     laybyCard: "Khadi",

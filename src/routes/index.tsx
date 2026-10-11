@@ -68,7 +68,7 @@ const faqKeys: [string, string][] = [
 const faqItems: [string, string][] = [
   [
     "What does it cost?",
-    `MK${PRICES.MWK.toLocaleString()} a month for each store you run — that is the whole plan, with every feature in it. Your first store runs free on the trial, and you pay by Airtel Money, TNM Mpamba or card.`,
+    `MK${PRICES.MWK.toLocaleString("en-US")} a month for each store you run — that is the whole plan, with every feature in it. Your first store runs free on the trial, and you pay by Airtel Money, TNM Mpamba or card.`,
   ],
   [
     "Do I need to buy hardware?",
@@ -141,7 +141,7 @@ export const Route = createFileRoute("/")({
     const seo = buildSeo({
       title: "Storq POS — Know what your shop made, every day",
       description:
-        "Run your till, your stock and your staff from the phone in your pocket, and see every kwacha before you close. One plan at MK 60 000 per store, free trial included.",
+        "Run your till, your stock and your staff from the phone in your pocket, and see every kwacha before you close. One plan at MK60,000 per store, free trial included.",
       path: "/",
     });
     return {
@@ -263,7 +263,7 @@ function Cta({ label, invert = false }: { label?: string; invert?: boolean }) {
       asChild
       size="lg"
       variant={invert ? "secondary" : "default"}
-      className="group/cta h-14 rounded-full px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+      className="group/cta h-14 rounded-lg px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
     >
       <Link to="/auth">
         {label ?? t("marketing.trial")}{" "}
@@ -313,12 +313,12 @@ function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <LanguageSwitcher className="mr-1" />
-            <Button asChild variant="ghost" className="hidden rounded-full sm:inline-flex">
+            <Button asChild variant="ghost" className="hidden rounded-lg sm:inline-flex">
               <Link to="/auth">{t("marketing.logIn")}</Link>
             </Button>
             <Button
               asChild
-              className="rounded-full px-5 font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+              className="rounded-lg px-5 font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
             >
               <Link to="/auth">{t("marketing.trial")}</Link>
             </Button>
@@ -347,7 +347,7 @@ function Landing() {
             asChild
             size="lg"
             variant="outline"
-            className="group/cta h-14 rounded-full px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            className="group/cta h-14 rounded-lg px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
           >
             <a href="#features">
               {t("marketing.seeHow")}{" "}
@@ -375,7 +375,7 @@ function Landing() {
             <CardDescription className="text-xs font-medium">
               {t("marketing.heroTakings")}
             </CardDescription>
-            <p className="mt-1 text-3xl font-light">MK 18 450</p>
+            <p className="mt-1 text-3xl font-light">MK18,450</p>
             <p className="text-sm font-semibold text-success">{t("marketing.heroTrend")}</p>
           </Card>
         </Rise>
@@ -614,9 +614,9 @@ function Landing() {
               <Separator className="mt-6" />
               <div className="mt-6 space-y-3 text-sm">
                 {[
-                  ["12 Sep", "marketing.laybyDeposit", "MK 2 000"],
-                  ["26 Sep", "marketing.laybyMobile", "MK 1 950"],
-                  ["03 Oct", "marketing.laybyCard", "MK 2 000"],
+                  ["12 Sep", "marketing.laybyDeposit", "MK2,000"],
+                  ["26 Sep", "marketing.laybyMobile", "MK1,950"],
+                  ["03 Oct", "marketing.laybyCard", "MK2,000"],
                 ].map(([d, mKey, a], i) => (
                   <Reveal
                     key={d}
@@ -765,7 +765,7 @@ function Landing() {
               </CardHeader>
               <CardContent className="p-0">
                 <p className="mt-4 text-6xl font-light tracking-tight">
-                  MK{PRICES.MWK.toLocaleString()}
+                  MK{PRICES.MWK.toLocaleString("en-US")}
                   <span className="text-lg font-medium opacity-60">
                     {t("marketing.pricingPerStore")}
                   </span>
@@ -817,7 +817,7 @@ function Landing() {
 
 function Faq() {
   const { t } = useI18n();
-  const price = PRICES.MWK.toLocaleString();
+  const price = PRICES.MWK.toLocaleString("en-US");
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">
       <Reveal>

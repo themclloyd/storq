@@ -228,8 +228,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   };
 
   const currency = businessQ.data?.currency ?? "R";
-  // Single shared money format (spec §1): NBSP thousands, decimals only when
-  // fractional, real minus before the symbol for negatives (e.g. "−MWK 41 400").
+  // Single shared money format (spec §1): comma thousands, decimals only when
+  // fractional, real minus before the symbol for negatives (e.g. "−MK41,400").
   const money = useMemo(
     () => (n: number | string | null | undefined) => formatMoney(currency, n),
     [currency],
