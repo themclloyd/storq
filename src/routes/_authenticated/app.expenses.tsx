@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete02Icon } from "@hugeicons/core-free-icons";
+import { Delete02Icon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { useStaffNames } from "@/lib/sales";

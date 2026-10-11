@@ -75,9 +75,7 @@ function StockTake() {
         }
         actions={
           !open && can("admin", "manager") ? (
-            <Button variant="accent" onClick={start}>
-              {t("stk.start")}
-            </Button>
+            <Button onClick={start}>{t("stk.start")}</Button>
           ) : undefined
         }
       />
@@ -220,7 +218,7 @@ function Counting({ take }: { take: Take }) {
               {can("admin", "manager") && (
                 <span
                   className={cn(
-                    "tabular w-12 shrink-0 text-right font-bold",
+                    "tabular w-12 shrink-0 text-right font-medium",
                     diff === null
                       ? "text-muted-foreground"
                       : diff < 0

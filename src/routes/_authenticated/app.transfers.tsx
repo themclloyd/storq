@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
+import { Delete02Icon, PlusSignIcon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useProducts, useStock } from "@/lib/products";
 import { useTransferMutations, useTransfers, type Transfer } from "@/lib/transfers";
@@ -70,7 +70,7 @@ function Transfers() {
         sub={t("trf.sub", { store: store?.name ?? t("trf.yourStore") })}
         actions={
           stores.length < 2 ? undefined : (
-            <Button variant="accent" onClick={() => setCreating(true)}>
+            <Button onClick={() => setCreating(true)}>
               <HugeiconsIcon icon={PlusSignIcon} /> {t("trf.newTransfer")}
             </Button>
           )
@@ -102,9 +102,9 @@ function Transfers() {
 }
 
 const statusTone: Record<Transfer["status"], string> = {
-  in_transit: "bg-accent/15 text-accent",
-  received: "bg-success/15 text-success",
-  cancelled: "bg-destructive/15 text-destructive",
+  in_transit: "bg-warning-soft text-warning-foreground",
+  received: "bg-success-soft text-success",
+  cancelled: "bg-destructive-soft text-destructive",
 };
 
 function TransferRow({
@@ -127,7 +127,7 @@ function TransferRow({
   return (
     <div className="pos-card p-4 text-[13px]">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-bold">{t("trf.transferNumber", { number: transfer.number })}</span>
+        <span className="font-medium">{t("trf.transferNumber", { number: transfer.number })}</span>
         <span
           className={cn(
             "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
@@ -326,11 +326,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           <Button variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button
-            variant="accent"
-            disabled={!valid || muts.isPending}
-            onClick={() => void dispatch()}
-          >
+          <Button disabled={!valid || muts.isPending} onClick={() => void dispatch()}>
             {t("trf.dispatch")}
           </Button>
         </div>

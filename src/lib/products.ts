@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeCode } from "@/lib/item-codes";
 import { usePos } from "@/lib/pos";
 
 // Buying costs live in the gated product_costs table (admin/manager only): a
@@ -51,13 +52,15 @@ export function useProducts(opts: { withCost?: boolean } = {}) {
   });
 }
 /**
- * Exact barcode/SKU lookup for the till scanner. Trimmed, case-insensitive,
- * matched against the already-cached catalog — never a fresh network fetch.
+ * Exact lookup for the one item code (typed SKU, scanner gun, printed QR).
+ * Normalized on both sides — trimmed, space-collapsed, case-folded — so a code
+ * stored with a stray double space still resolves to exactly one active item.
+ * Matched against the already-cached catalog, never a fresh network fetch.
  */
 export function findByBarcode(list: Product[], code: string): Product | undefined {
-  const c = code.trim().toLowerCase();
+  const c = normalizeCode(code).toLowerCase();
   if (!c) return undefined;
-  return list.find((p) => p.active && p.sku?.trim().toLowerCase() === c);
+  return list.find((p) => p.active && normalizeCode(p.sku).toLowerCase() === c);
 }
 
 // ---- manual discount caps (mirror app.checkout: 10% for cashiers) ----

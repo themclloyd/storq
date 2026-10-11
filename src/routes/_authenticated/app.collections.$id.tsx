@@ -3,12 +3,7 @@ import { useEffect, useState, useMemo, useDeferredValue } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowLeft01Icon,
-  Delete02Icon,
-  Share01Icon,
-  Cancel01Icon,
-} from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, Delete02Icon, Share01Icon, Cancel01Icon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useProducts } from "@/lib/products";
 import { useCollections, shareUrl } from "@/lib/collections";
@@ -164,7 +159,7 @@ function CollectionPage() {
                 <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")}
               </Button>
             )}
-            <Button size="sm" variant="accent" disabled={!f.name || saving} onClick={save}>
+            <Button size="sm" disabled={!f.name || saving} onClick={save}>
               {saving ? t("col.saving") : t("common.save")}
             </Button>
           </div>
@@ -173,7 +168,7 @@ function CollectionPage() {
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <div className="pos-card flex flex-col gap-3 self-start p-4">
-          <div className="text-sm font-bold">{t("col.details")}</div>
+          <div className="font-display text-sm font-medium">{t("col.details")}</div>
           <Field label={t("common.name")}>
             <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           </Field>
@@ -196,7 +191,7 @@ function CollectionPage() {
 
         <div className="flex flex-col gap-4">
           <div className="pos-card">
-            <div className="border-b px-4 py-2.5 text-sm font-bold">
+            <div className="font-display border-b px-4 py-2.5 text-sm font-medium">
               {t("col.itemsHeading", { count: inCol.length })}
             </div>
             <div className="divide-y">
@@ -229,7 +224,7 @@ function CollectionPage() {
 
           <div className="pos-card">
             <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
-              <div className="text-sm font-bold">{t("col.addItems")}</div>
+              <div className="font-display text-sm font-medium">{t("col.addItems")}</div>
               <Input
                 className="h-8 max-w-56"
                 placeholder={t("col.searchItems")}

@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { PageHeader } from "@/components/pos/bits";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +33,7 @@ import {
   File01Icon,
   Settings01Icon,
   Wallet01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 
 declare global {
   interface Window {
@@ -155,12 +157,12 @@ export function Billing({ locked }: { locked?: boolean }) {
     },
   });
   const status = s?.overLimit
-    ? { label: t("billing.statusOverLimit"), cls: "bg-destructive/15 text-destructive" }
+    ? { label: t("billing.statusOverLimit"), cls: "bg-destructive-soft text-destructive" }
     : until
-      ? { label: t("billing.statusActive"), cls: "bg-accent/15 text-accent" }
+      ? { label: t("billing.statusActive"), cls: "bg-success-soft text-success" }
       : s?.trial
-        ? { label: t("store.freeTrial"), cls: "bg-secondary text-foreground" }
-        : { label: t("billing.statusExpired"), cls: "bg-destructive/15 text-destructive" };
+        ? { label: t("store.freeTrial"), cls: "bg-secondary text-secondary-foreground" }
+        : { label: t("billing.statusExpired"), cls: "bg-destructive-soft text-destructive" };
   const canPay = can("admin", "manager");
   const lastPaid = history.data?.find((r) => r.status === "paid") ?? null;
   const paidInvoices = (history.data ?? []).filter((r) => r.status === "paid");
@@ -168,24 +170,25 @@ export function Billing({ locked }: { locked?: boolean }) {
 
   return (
     <div className={cn("mx-auto w-full max-w-6xl space-y-8", locked && "py-6")}>
-      <div>
-        <h1 className="text-xl font-semibold">
-          {locked
+      <PageHeader
+        breadcrumb={locked ? undefined : `${t("nav.settings")} / ${t("nav.subscription")}`}
+        title={
+          locked
             ? s?.overLimit
               ? t("billing.overLimitTitle")
               : t("billing.needsAttentionTitle")
-            : t("billing.title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("billing.sub")}</p>
-      </div>
+            : t("billing.title")
+        }
+        sub={t("billing.sub")}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Card className="flex flex-col justify-between p-5 shadow-none">
+        <Card className="flex flex-col justify-between p-5">
           <div>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-medium">
                     {sub.isPending
                       ? t("common.loading")
                       : until
@@ -214,7 +217,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-semibold tabular">
+                <div className="font-display text-3xl font-medium tabular">
                   {fmt(currency, PRICES[currency])}
                 </div>
                 <div className="text-xs text-muted-foreground">{t("billing.perStoreMonth")}</div>
@@ -234,7 +237,7 @@ export function Billing({ locked }: { locked?: boolean }) {
               <Progress
                 value={usagePct}
                 className={cn(
-                  "mt-2 h-1.5 bg-muted [&>div]:bg-accent",
+                  "mt-2 h-1.5 bg-muted [&>div]:bg-primary",
                   s?.overLimit && "[&>div]:bg-destructive",
                 )}
               />
@@ -252,7 +255,7 @@ export function Billing({ locked }: { locked?: boolean }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-accent hover:text-accent"
+                className="text-primary hover:text-primary"
                 onClick={() => setPlanOpen(true)}
               >
                 {until ? t("billing.renewOrExtend") : t("billing.upgradePlan")}{" "}
@@ -262,14 +265,14 @@ export function Billing({ locked }: { locked?: boolean }) {
           </div>
         </Card>
 
-        <Card className="flex flex-col justify-between p-5 shadow-none">
+        <Card className="flex flex-col justify-between p-5">
           <div>
-            <div className="flex items-center gap-2 text-sm font-semibold">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" />{" "}
               {t("billing.payMethodTitle")}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{t("billing.payMethodSub")}</p>
-            <Card className="mt-4 flex items-center gap-3 p-3.5 shadow-none">
+            <Card className="mt-4 flex items-center gap-3 p-3.5">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-5 text-muted-foreground" />
               </div>
@@ -303,7 +306,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       <section>
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold">{t("billing.sectionTitle")}</h2>
+            <h2 className="font-display text-base font-medium">{t("billing.sectionTitle")}</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">{t("billing.sectionSub")}</p>
           </div>
           <Dialog open={downloadOpen} onOpenChange={setDownloadOpen}>
@@ -320,7 +323,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 </DialogDescription>
               </DialogHeader>
               {paidInvoices.length ? (
-                <Card className="max-h-64 divide-y overflow-y-auto text-sm shadow-none">
+                <Card className="max-h-64 divide-y overflow-y-auto text-sm">
                   {paidInvoices.map((r) => (
                     <div
                       key={r.tx_ref}
@@ -366,7 +369,7 @@ export function Billing({ locked }: { locked?: boolean }) {
           </Dialog>
         </div>
 
-        <Card className="divide-y overflow-hidden shadow-none">
+        <Card className="divide-y overflow-hidden">
           {history.isPending ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
               {t("billing.loadingInvoices")}
@@ -398,7 +401,9 @@ export function Billing({ locked }: { locked?: boolean }) {
                       <span
                         className={cn(
                           "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
-                          paid ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground",
+                          paid
+                            ? "bg-success-soft text-success"
+                            : "bg-secondary text-muted-foreground",
                         )}
                       >
                         {paid ? t("status.completed") : r.status}
@@ -408,14 +413,14 @@ export function Billing({ locked }: { locked?: boolean }) {
                       {when.toLocaleDateString(undefined, { dateStyle: "medium" })} · {r.tx_ref}
                     </div>
                   </div>
-                  <div className="tabular shrink-0 text-sm font-semibold">
+                  <div className="tabular shrink-0 text-sm font-medium">
                     {fmt(r.currency as "MWK" | "USD", Number(r.amount))}
                   </div>
                   {paid ? (
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="shrink-0 text-muted-foreground hover:text-accent"
+                      className="shrink-0 text-muted-foreground hover:text-primary"
                       aria-label={t("billing.downloadInvoiceAria", { ref: r.tx_ref })}
                       onClick={() => printInvoice(r, business?.name ?? "")}
                     >
@@ -432,7 +437,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       </section>
 
       <Dialog open={planOpen} onOpenChange={setPlanOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle>
               {until ? t("billing.renewExtendTitle") : t("billing.choosePlanTitle")}
@@ -449,23 +454,15 @@ export function Billing({ locked }: { locked?: boolean }) {
           ) : (
             <>
               <div className="flex justify-end">
-                <div className="flex gap-1 rounded-full bg-muted p-1">
-                  {(["MWK", "USD"] as const).map((c) => (
-                    <Button
-                      key={c}
-                      size="sm"
-                      variant="ghost"
-                      aria-pressed={currency === c}
-                      onClick={() => setCurrency(c)}
-                      className={cn(
-                        "text-xs font-semibold",
-                        currency === c ? "bg-secondary text-foreground" : "text-muted-foreground",
-                      )}
-                    >
-                      {c}
-                    </Button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  size="sm"
+                  value={currency}
+                  onChange={setCurrency}
+                  options={[
+                    { value: "MWK", label: "MWK" },
+                    { value: "USD", label: "USD" },
+                  ]}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="billing-stores" className="text-sm font-medium">
@@ -502,8 +499,8 @@ export function Billing({ locked }: { locked?: boolean }) {
                       aria-pressed={period === p}
                       onClick={() => setPeriod(p)}
                       className={cn(
-                        "billing-plan h-auto rounded-xl flex-col items-stretch justify-start gap-0 whitespace-normal p-4 text-left shadow-none",
-                        period === p && "border-accent",
+                        "billing-plan h-auto rounded-xl flex-col items-stretch justify-start gap-0 whitespace-normal p-4 text-left",
+                        period === p && "border-primary bg-secondary/40",
                       )}
                     >
                       <span className="flex items-center justify-between gap-2">
@@ -511,7 +508,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                           {t(PERIOD_KEY[p] ?? "billing.periodMonthly")}
                         </span>
                         {p === "yearly" && (
-                          <span className="rounded bg-accent/15 px-2 py-1 text-[10px] font-semibold text-accent">
+                          <span className="rounded bg-success-soft px-2 py-1 text-[10px] font-semibold text-success">
                             {t("billing.save15")}
                           </span>
                         )}
@@ -542,13 +539,18 @@ export function Billing({ locked }: { locked?: boolean }) {
                     <span>−{fmt(currency, monthly * 12 - total)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t pt-2 text-base font-bold">
+                <div className="flex justify-between border-t pt-2 text-base font-semibold">
                   <span>{t("common.total")}</span>
                   <span>{fmt(currency, total)}</span>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="accent" className="w-full sm:w-auto" disabled={busy} onClick={pay}>
+                <Button
+                  variant="default"
+                  className="w-full sm:w-auto"
+                  disabled={busy}
+                  onClick={pay}
+                >
                   <HugeiconsIcon icon={CreditCardIcon} />
                   {busy
                     ? t("billing.opening")
@@ -564,13 +566,13 @@ export function Billing({ locked }: { locked?: boolean }) {
       </Dialog>
 
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle>{t("billing.payMethodTitle")}</DialogTitle>
             <DialogDescription>{t("billing.noCardStored")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm">
-            <Card className="flex items-center gap-3 p-3.5 shadow-none">
+            <Card className="flex items-center gap-3 p-3.5">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" />
               </div>
@@ -579,7 +581,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 <div className="text-xs text-muted-foreground">{t("billing.mobileMoneyDesc")}</div>
               </div>
             </Card>
-            <Card className="flex items-center gap-3 p-3.5 shadow-none">
+            <Card className="flex items-center gap-3 p-3.5">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-4 text-muted-foreground" />
               </div>

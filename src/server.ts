@@ -22,12 +22,13 @@ async function getServerEntry(): Promise<ServerEntry> {
 // URLs for exports, so 'unsafe-inline' + blob: are required for the app to
 // work; frame-ancestors 'none' and object-src 'none' close the click-jacking
 // and plugin surfaces. Supabase is the only outbound API and only its public
-// host is needed. Public marketing pages remain independent of this header.
+// host is needed; Inter ships bundled with our stylesheet, so no font origin is
+// allowed. Public marketing pages remain independent of this header.
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
   "img-src 'self' data: blob: https:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "frame-src 'none'",

@@ -6,6 +6,7 @@ import { usePos } from "@/lib/pos";
 import { useSales, type SaleRow } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 import { useI18n } from "@/lib/i18n";
@@ -56,18 +57,16 @@ function Laybys() {
     <>
       <PageHeader title={t("laybys.title")} sub={t("laybys.sub")} />
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {(["open", "done"] as const).map((k) => (
-          <Button
-            key={k}
-            size="sm"
-            variant={tab === k ? "default" : "outline"}
-            onClick={() => setTab(k)}
-          >
-            {k === "open"
-              ? `${t("laybys.openTab")} (${open.data?.length ?? 0})`
-              : t("laybys.closedTab")}
-          </Button>
-        ))}
+        <SegmentedControl
+          aria-label={t("laybys.title")}
+          size="sm"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "open", label: `${t("laybys.openTab")} (${open.data?.length ?? 0})` },
+            { value: "done", label: t("laybys.closedTab") },
+          ]}
+        />
         <Input
           className="ml-auto h-8 w-56 bg-card"
           placeholder={t("laybys.searchPlaceholder")}
@@ -83,7 +82,7 @@ function Laybys() {
             <div key={s.id} className="pos-card min-w-0 p-3">
               <div className="flex min-w-0 justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate font-bold">{s.customer_name}</div>
+                  <div className="truncate font-medium">{s.customer_name}</div>
                   <div className="truncate text-xs text-muted-foreground">
                     #{s.number} · {s.customer_phone ?? t("laybys.noPhone")} ·{" "}
                     {fmtDate(s.created_at)}
@@ -91,14 +90,14 @@ function Laybys() {
                 </div>
                 <Status s={s.status} />
               </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
               </div>
               <div className="tabular mt-1.5 flex justify-between gap-2 text-[13px]">
                 <span className="truncate">
                   {t("doc.paid")} {money(s.paid)}
                 </span>
-                <span className="truncate font-bold">
+                <span className="truncate font-medium">
                   {t("laybys.owing")} {money(Number(s.total) - Number(s.paid))}
                 </span>
               </div>
@@ -114,7 +113,7 @@ function Laybys() {
                   )}
                   <Button
                     size="sm"
-                    variant="accent"
+                    variant="default"
                     className="flex-1"
                     onClick={() => setPaying(s)}
                   >

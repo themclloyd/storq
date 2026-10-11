@@ -30,6 +30,10 @@ export function useRefunds(filter: {
 }) {
   return useQuery({
     queryKey: ["refunds", filter],
+    // Refunds are recorded through the refund flow, which wipes the query
+    // cache; a short floor keeps the feed resident across remounts rather than
+    // re-reading up to 1000 refund rows (with their items) on every visit.
+    staleTime: 60_000,
     queryFn: async () => {
       // refunds/refund_items read via any-cast (tables predate type regeneration)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

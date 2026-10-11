@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Camera01Icon } from "@hugeicons/core-free-icons";
+import { Camera01Icon } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { cameraScanSupported } from "@/components/pos/use-scanner";
 import { useI18n } from "@/lib/i18n";
@@ -140,7 +140,7 @@ export function ScanCamera({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm gap-0 overflow-hidden p-0 shadow-[var(--shadow-pop)] sm:max-w-sm">
+      <DialogContent className="max-w-sm gap-0 overflow-hidden p-0 sm:max-w-sm">
         <DialogHeader className="space-y-0 border-b px-5 py-4 text-left">
           <DialogTitle>{t("till.scanBarcode")}</DialogTitle>
           <DialogDescription className="mt-1 text-xs">

@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Download01Icon, PrinterIcon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { Download01Icon, PrinterIcon, Tick02Icon } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -53,7 +53,7 @@ export function ReceiptModal({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0 shadow-[var(--shadow-pop)]">
+      <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0">
         <style>{THERMAL}</style>
         <DialogHeader className="items-center gap-2 border-b px-5 py-5 text-center sm:text-center">
           <span className="grid size-11 place-items-center rounded-full bg-success/15 text-success">

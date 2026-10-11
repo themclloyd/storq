@@ -314,3 +314,98 @@ export function parseCsv(text: string): string[][] {
 }
 
 export const fileStamp = () => new Date().toISOString().slice(0, 10);
+
+// ---------- Printable QR labels ----------
+// Shelf/stock labels for the one item code. The QR image is generated from the
+// same module grid the dialog previewed (src/lib/qr.ts), and the human-readable
+// code is printed under it so the label still works if the print goes smudged.
+
+export type LabelSpec = {
+  name: string;
+  code: string;
+  /** Already-formatted price text ("MK1,200"), or nothing to omit the line. */
+  price?: string | null | undefined;
+  /** How many copies of this label to cut (default 1). */
+  copies?: number | undefined;
+};
+
+export async function downloadLabelSheet(d: {
+  labels: LabelSpec[];
+  business?: string | undefined;
+  storeName?: string | undefined;
+}) {
+  const [{ jsPDF }, { qrPngDataUrl }] = await Promise.all([import("jspdf"), import("@/lib/qr")]);
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 28;
+  const COLS = 3;
+  const GAP = 10;
+  const LW = (W - 2 * M - GAP * (COLS - 1)) / COLS;
+  const LH = 92;
+  const QR = 62;
+
+  // One PNG per code, reused across copies: 4x the drawn size keeps it sharp.
+  const images = new Map<string, string>();
+  for (const l of d.labels) {
+    const code = l.code.trim();
+    if (!code || images.has(code)) continue;
+    images.set(code, await qrPngDataUrl(code, 640));
+  }
+
+  let col = 0;
+  let y = M;
+  for (const l of d.labels) {
+    const code = l.code.trim();
+    const img = images.get(code);
+    const copies = Math.max(1, Math.trunc(l.copies ?? 1));
+    for (let c = 0; c < copies; c++) {
+      if (col === COLS) col = 0;
+      if (col === 0 && y + LH > H - M) {
+        doc.addPage();
+        y = M;
+      }
+      const x = M + col * (LW + GAP);
+      col = (col + 1) % COLS;
+      if (col === 0) y += LH + GAP;
+
+      doc.setDrawColor(...LINE).setFillColor(...SOFT);
+      doc.roundedRect(x, y, LW, LH, 6, 6, "FD");
+      if (img) doc.addImage(img, "PNG", x + 8, y + (LH - QR) / 2, QR, QR);
+
+      const tx = x + 8 + QR + 8;
+      const tw = LW - QR - 32;
+      doc
+        .setTextColor(...INK)
+        .setFont("helvetica", "bold")
+        .setFontSize(9);
+      const nameLines = doc.splitTextToSize(clean(l.name), tw).slice(0, 2) as string[];
+      doc.text(nameLines, tx, y + 20);
+      let ty = y + 22 + nameLines.length * 11;
+      if (l.price) {
+        doc.setFont("helvetica", "bold").setFontSize(11);
+        doc.text(clean(l.price), tx, ty);
+        ty += 15;
+      }
+      // Code text pinned to the label foot: readable even if the QR wears off.
+      doc
+        .setFont("helvetica", "normal")
+        .setFontSize(7.5)
+        .setTextColor(...MUTED)
+        .text(clean(code), tx, Math.min(ty, y + LH - 9));
+    }
+  }
+
+  const pages = doc.getNumberOfPages();
+  const who = [d.business, d.storeName].filter(Boolean).join(" · ");
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    doc
+      .setFont("helvetica", "normal")
+      .setFontSize(7.5)
+      .setTextColor(...MUTED);
+    doc.text(clean(who || "Storq"), M, H - 14);
+    doc.text(t("doc.labelPage", { page: p, total: pages }), W - M, H - 14, { align: "right" });
+  }
+  doc.save(`storq-labels-${fileStamp()}.pdf`);
+}

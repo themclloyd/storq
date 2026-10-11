@@ -4,7 +4,7 @@
 // edits the discount amounts, which live on the cart in the register.
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete02Icon } from "@hugeicons/core-free-icons";
+import { Delete02Icon } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -85,7 +85,7 @@ export function DiscountDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0 shadow-[var(--shadow-pop)]">
+      <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0">
         <DialogHeader className="space-y-0 border-b px-5 py-4 pr-12 text-left">
           <DialogTitle>{t("till.discountsTitle")}</DialogTitle>
           <DialogDescription className="mt-1.5 text-xs">

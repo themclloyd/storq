@@ -35,6 +35,10 @@ export const sourceLabel: Record<Expense["source"], string> = {
 export function useExpenses(filter: { storeId?: string | undefined; since?: string }) {
   return useQuery({
     queryKey: ["expenses", filter],
+    // Expense create/delete invalidate the ["expenses"] prefix from this
+    // screen; a short floor keeps the list resident across remounts instead of
+    // re-pulling up to 1000 rows every time the user navigates back.
+    staleTime: 60_000,
     queryFn: async () => {
       // expenses reads via any-cast (source column predates type regeneration)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

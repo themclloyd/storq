@@ -15,7 +15,9 @@ import {
   ShoppingBag01Icon,
   StoreIcon,
   BarChartIcon,
-} from "@hugeicons/core-free-icons";
+  Settings01Icon,
+  LanguagesIcon,
+} from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, usePos } from "@/lib/pos";
 import {
@@ -48,20 +50,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
-import { useI18n } from "@/lib/i18n";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useI18n, type Locale } from "@/lib/i18n";
 import {
   LIMITS,
   firstError,
@@ -333,7 +331,7 @@ function PinPad() {
             key={d}
             disabled={busy}
             onClick={() => press(d)}
-            className="pos-key size-20 bg-card text-2xl font-semibold shadow-[var(--shadow-card)] hover:bg-secondary"
+            className="pos-key size-20 border border-border bg-card text-2xl font-semibold hover:bg-secondary"
           >
             {d}
           </button>
@@ -342,7 +340,7 @@ function PinPad() {
         <button
           disabled={busy}
           onClick={() => press("0")}
-          className="pos-key size-20 bg-card text-2xl font-semibold shadow-[var(--shadow-card)] hover:bg-secondary"
+          className="pos-key size-20 border border-border bg-card text-2xl font-semibold hover:bg-secondary"
         >
           0
         </button>
@@ -372,14 +370,99 @@ const navIcons: Record<WorkspaceGroup, typeof BoxesIcon> = {
   settings: StoreIcon,
 };
 
+/**
+ * Staff menu: settings, lock and sign out live here so the sidebar stays a short
+ * list of work screens. The sidebar footer renders the card variant (avatar +
+ * name + role); the headers reuse the same items behind a compact avatar icon.
+ */
+function UserMenu({
+  variant,
+  settingsTo,
+}: {
+  variant: "card" | "icon";
+  settingsTo: string | undefined;
+}) {
+  const { t, locale, setLocale } = useI18n();
+  const { staff, lock } = usePos();
+  const signOut = useSignOut();
+  const initial = staff?.name.slice(0, 2).toUpperCase() ?? "";
+  const avatar = (
+    <Avatar className="size-8 border">
+      <AvatarFallback className="text-xs">{initial}</AvatarFallback>
+    </Avatar>
+  );
+  return (
+    <DropdownMenu>
+      {variant === "card" ? (
+        <DropdownMenuTrigger asChild>
+          <button className="pos-card flex w-full items-center gap-2 p-1.5 text-left transition-colors hover:bg-secondary">
+            {avatar}
+            <span className="grid min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
+              <span className="truncate text-[13px] font-medium">{staff?.name}</span>
+              <span className="truncate text-[11px] text-muted-foreground">
+                {staff && t(`roles.${staff.role}`)}
+              </span>
+            </span>
+            <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+          </button>
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label={t("nav.menu")}
+            title={t("nav.menu")}
+            className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {avatar}
+          </button>
+        </DropdownMenuTrigger>
+      )}
+      <DropdownMenuContent
+        side={variant === "card" ? "top" : "bottom"}
+        align="end"
+        className="w-56"
+      >
+        {settingsTo && (
+          <DropdownMenuItem asChild>
+            <Link to={settingsTo}>
+              <HugeiconsIcon icon={Settings01Icon} className="size-4" /> {t("nav.settings")}
+            </Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onSelect={() => void lock()}>
+          <HugeiconsIcon icon={SquareLockIcon} className="size-4" /> {t("nav.lockWorkspace")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <HugeiconsIcon icon={LanguagesIcon} className="size-4" /> {t("nav.language")}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-40">
+            <DropdownMenuRadioGroup value={locale} onValueChange={(v) => setLocale(v as Locale)}>
+              <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="ny">Chichewa</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive" onSelect={() => void signOut()}>
+          <HugeiconsIcon icon={Logout02Icon} className="size-4" /> {t("nav.signOut")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function Shell() {
   const { t } = useI18n();
   const { staff, stores, store, setStoreId, lock } = usePos();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const items = staff ? workspaceNavigation(staff.role, store?.store_type) : [];
+  // Settings moves into the user-menu card, so the sidebar only lists work screens.
+  const settingsEntry = items.find((n) => n.group === "settings");
+  const navItems = items.filter((n) => n.group !== "settings");
   const current = workspacePageAt(path);
-  const groupNav = items.find((n) => n.group === current?.group);
   const lockedToStore = staff?.role === "cashier" && !!staff.store_id;
   const unavailableApproval = current?.approvalOnly && store?.store_type !== "approval";
 
@@ -405,16 +488,18 @@ function Shell() {
     <SidebarProvider className="storq-workspace bg-background">
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-2 px-1 py-1.5 text-lg font-semibold">
-            <img src="/logo.svg" alt="Storq logo" className="size-7 rounded-lg" />
-            <span className="group-data-[collapsible=icon]:hidden">Storq</span>
+          <div className="flex items-center gap-2.5 px-1 py-1.5">
+            <span className="font-display grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-secondary text-lg text-secondary-foreground">
+              S
+            </span>
+            <span className="font-display text-lg group-data-[collapsible=icon]:hidden">Storq</span>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild disabled={lockedToStore}>
                   <SidebarMenuButton>
-                    <span className="grid size-5 shrink-0 place-items-center rounded bg-primary/10 text-[10px] font-bold text-primary">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[10px] font-medium text-primary">
                       {store?.name.slice(0, 2).toUpperCase() ?? "S"}
                     </span>
                     <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
@@ -443,7 +528,7 @@ function Shell() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map((n) => {
+                {navItems.map((n) => {
                   const active = current?.group === n.group;
                   return (
                     <SidebarMenuItem key={n.to}>
@@ -466,67 +551,14 @@ function Shell() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <div className="flex items-center gap-2 px-1 group-data-[collapsible=icon]:hidden">
-            <Avatar className="size-8 border">
-              <AvatarFallback className="text-xs">
-                {staff?.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="grid min-w-0 flex-1 text-left">
-              <span className="truncate text-[13px] font-bold">{staff?.name}</span>
-              <span className="truncate text-[11px] text-muted-foreground">
-                {staff && t(`roles.${staff.role}`)}
-              </span>
-            </div>
-          </div>
-          <SidebarMenuButton onClick={lock} tooltip={t("nav.lockWorkspace")}>
-            <HugeiconsIcon icon={SquareLockIcon} />
-            <span>{t("nav.lock")}</span>
-          </SidebarMenuButton>
+          <UserMenu variant="card" settingsTo={settingsEntry?.to} />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="hidden h-12 items-center justify-between border-b px-5 text-[13px] md:flex lg:px-6">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  {groupNav ? (
-                    <BreadcrumbLink asChild>
-                      <Link to={groupNav.to}>{t(groupNav.labelKey)}</Link>
-                    </BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>{t("common.workspace")}</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{current ? t(current.labelKey) : "Storq"}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            <Avatar className="size-8">
-              <AvatarFallback className="text-xs">
-                {staff?.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm text-muted-foreground">{staff?.name}</span>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={t("nav.lockWorkspace")}
-              title={t("nav.lockWorkspace")}
-              onClick={lock}
-            >
-              <HugeiconsIcon icon={SquareLockIcon} />
-            </Button>
-          </div>
+        <header className="hidden h-12 items-center border-b px-3 md:flex lg:px-4">
+          <SidebarTrigger />
         </header>
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
           <NativeSelect
@@ -536,19 +568,16 @@ function Shell() {
             onChange={setStoreId}
             options={stores.map((s) => ({ value: s.id, label: s.name }))}
           />
-          <span className="text-sm font-semibold">{staff?.name}</span>
-          <Button size="icon" variant="outline" onClick={lock}>
-            <HugeiconsIcon icon={SquareLockIcon} />
-          </Button>
+          <UserMenu variant="icon" settingsTo={settingsEntry?.to} />
         </header>
-        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 md:p-5 md:pb-6 lg:p-6">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-9">
           {staff && <WorkspaceTabs path={path} role={staff.role} storeType={store?.store_type} />}
           <div key={store?.id}>
             <Outlet />
           </div>
         </main>
         <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-rail md:hidden">
-          {items.map((n) => {
+          {navItems.map((n) => {
             const active = current?.group === n.group;
             return (
               <Link

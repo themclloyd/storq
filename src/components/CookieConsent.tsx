@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CookieIcon } from "@hugeicons/core-free-icons";
+import { CookieIcon } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 
@@ -55,11 +55,7 @@ export function CookieConsent() {
       aria-label={t("consent.ariaLabel")}
       className="fixed inset-x-4 bottom-4 z-40 sm:inset-x-auto sm:left-6 sm:w-[380px]"
     >
-      <div
-        role="region"
-        aria-live="polite"
-        className="rounded-2xl border bg-card p-4 shadow-[var(--shadow-pop)]"
-      >
+      <div role="region" aria-live="polite" className="rounded-2xl border bg-card p-4">
         <div className="flex gap-3">
           <HugeiconsIcon icon={CookieIcon} className="mt-0.5 size-5 shrink-0 text-accent" />
           <div>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusSignIcon } from "@hugeicons/core-free-icons";
+import { PlusSignIcon, Tick02Icon } from "@/lib/icons";
 import { usePos, type Store } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { LIMITS, requireText, sanitizeText, validateAmount } from "@/lib/validate";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/pos/bits";
+import { pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/lib/billing";
 
@@ -30,8 +32,8 @@ export const Route = createFileRoute("/_authenticated/app/stores")({
 });
 
 const storeTypeStyle: Record<string, string> = {
-  approval: "bg-warning/25 text-warning-foreground",
-  direct: "bg-success/15 text-success",
+  approval: "bg-warning-soft text-warning-foreground",
+  direct: "bg-success-soft text-success",
 };
 
 function StoreTypeTag({ type }: { type: string }) {
@@ -40,7 +42,7 @@ function StoreTypeTag({ type }: { type: string }) {
     <Badge
       className={cn(
         "rounded-full border-transparent px-2 py-0.5 text-[11px] uppercase tracking-wide",
-        storeTypeStyle[type] ?? "bg-success/15 text-success",
+        storeTypeStyle[type] ?? "bg-success-soft text-success",
       )}
     >
       {type === "approval" ? t("store.typeApproval") : t("store.typeDirect")}
@@ -55,22 +57,23 @@ function Stores() {
   const [edit, setEdit] = useState<Partial<Store> | null>(null);
   if (!can("admin"))
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-        {t("store.onlyAdmins")}
-      </Card>
+      <Card className="p-6 text-center text-sm text-muted-foreground">{t("store.onlyAdmins")}</Card>
     );
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">{t("store.title")}</h1>
-        <Button
-          variant="accent"
-          disabled={!subscription.data?.canAddStore}
-          onClick={() => setEdit({ store_type: "direct" })}
-        >
-          <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
-        </Button>
-      </div>
+      <PageHeader
+        breadcrumb={`${t("nav.settings")} / ${t("nav.locations")}`}
+        title={t("store.title")}
+        sub={pluralize(stores.length, t("store.oneLocation"), t("store.manyLocations"))}
+        actions={
+          <Button
+            disabled={!subscription.data?.canAddStore}
+            onClick={() => setEdit({ store_type: "direct" })}
+          >
+            <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
+          </Button>
+        }
+      />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3 text-[13px]">
         <p className="text-muted-foreground">
           {subscription.data?.trial
@@ -88,13 +91,10 @@ function Stores() {
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {stores.map((s) => (
-          <Card
-            key={s.id}
-            className="flex min-w-0 items-center justify-between gap-3 p-3 shadow-none"
-          >
+          <Card key={s.id} className="flex min-w-0 items-center justify-between gap-3 p-4">
             <div className="min-w-0">
-              <div className="truncate font-bold">{s.name}</div>
-              <div className="mt-1">
+              <div className="truncate font-medium">{s.name}</div>
+              <div className="mt-1.5">
                 <StoreTypeTag type={s.store_type} />
               </div>
             </div>
@@ -150,7 +150,7 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-md rounded-3xl">
         <DialogHeader>
           <DialogTitle>{s.id ? t("store.editTitle") : t("store.addBtn")}</DialogTitle>
         </DialogHeader>
@@ -164,20 +164,15 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
             onChange={(e) => setName(e.target.value.slice(0, LIMITS.storeName))}
           />
         </Label>
-        <div className="space-y-2">
+        <div role="radiogroup" aria-label={t("store.locationName")} className="space-y-2">
           {types.map((opt) => (
-            <Button
+            <RadioCard
               key={opt.v}
-              type="button"
-              variant={type === opt.v ? "secondary" : "outline"}
-              onClick={() => setType(opt.v)}
-              className="block h-auto w-full rounded-lg whitespace-normal p-3 text-left shadow-none"
-            >
-              <span className="block text-sm font-semibold">{t(opt.tKey)}</span>
-              <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                {t(opt.dKey)}
-              </span>
-            </Button>
+              checked={type === opt.v}
+              onSelect={() => setType(opt.v)}
+              title={t(opt.tKey)}
+              desc={t(opt.dKey)}
+            />
           ))}
         </div>
         <Button disabled={!name} onClick={save}>
@@ -189,7 +184,7 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
 }
 
 function TaxSettings() {
-  const { business, rpc } = usePos();
+  const { business, rpc, money } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const [rate, setRate] = useState(String(business?.tax_rate ?? 0));
@@ -208,10 +203,14 @@ function TaxSettings() {
       toast.error((e as Error).message);
     }
   }
+  const sample = 1000;
+  const rateNum = Number(rate || 0);
+  const net = incl ? sample / (1 + rateNum / 100) : sample;
+  const vat = incl ? sample - net : (sample * rateNum) / 100;
   return (
-    <Card className="mt-5 max-w-xl space-y-3 p-4 shadow-none">
+    <Card className="mt-5 max-w-xl space-y-3 p-5">
       <div>
-        <h3 className="text-sm font-bold">{t("store.taxTitle")}</h3>
+        <h3 className="font-display text-base font-medium">{t("store.taxTitle")}</h3>
         <p className="text-[13px] text-muted-foreground">{t("store.taxDesc")}</p>
       </div>
       <Label className="block space-y-1">
@@ -225,26 +224,78 @@ function TaxSettings() {
           onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ""))}
         />
       </Label>
-      <div className="grid grid-cols-2 gap-2">
+      <div role="radiogroup" aria-label={t("store.taxTitle")} className="space-y-2">
         {(
           [
             [true, "store.inclTitle", "store.inclDesc"],
             [false, "store.addVatTitle", "store.addVatDesc"],
           ] as const
         ).map(([v, ti, di]) => (
-          <Button
+          <RadioCard
             key={String(v)}
-            type="button"
-            variant={incl === v ? "secondary" : "outline"}
-            onClick={() => setIncl(v as boolean)}
-            className="h-auto rounded-lg whitespace-normal p-3 text-left shadow-none"
-          >
-            <span className="block text-sm font-semibold">{t(ti)}</span>
-            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{t(di)}</span>
-          </Button>
+            checked={incl === v}
+            onSelect={() => setIncl(v)}
+            title={t(ti)}
+            desc={t(di)}
+          />
         ))}
+      </div>
+      <div className="rounded-2xl bg-secondary/50 p-3 text-[13px]">
+        <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {t("store.taxExample", { amount: money(sample) })}
+        </div>
+        <div className="flex justify-between gap-3">
+          <span className="text-muted-foreground">{t("store.exampleNet")}</span>
+          <span className="tabular font-medium">{money(net)}</span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span className="text-muted-foreground">{t("store.exampleVat")}</span>
+          <span className="tabular font-medium">{money(vat)}</span>
+        </div>
+        <div className="mt-1 flex justify-between gap-3 border-t pt-1.5">
+          <span className="font-medium">{t("store.exampleTotal")}</span>
+          <span className="tabular font-semibold">{money(net + vat)}</span>
+        </div>
       </div>
       <Button onClick={save}>{t("store.saveTaxBtn")}</Button>
     </Card>
+  );
+}
+
+function RadioCard({
+  checked,
+  onSelect,
+  title,
+  desc,
+}: {
+  checked: boolean;
+  onSelect: () => void;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
+        checked ? "border-primary bg-secondary/50" : "border-input bg-card hover:bg-muted",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border [&_svg]:size-3",
+          checked ? "border-primary bg-primary text-primary-foreground" : "border-input",
+        )}
+      >
+        {checked && <HugeiconsIcon icon={Tick02Icon} />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium">{title}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
+      </span>
+    </button>
   );
 }

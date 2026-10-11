@@ -131,7 +131,7 @@ function SaleDetail() {
     return <div className="p-4 text-sm text-muted-foreground">{t("common.loading")}</div>;
   if (!s)
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+      <Card className="p-6 text-center text-sm text-muted-foreground">
         {t("sdetail.notFound")}{" "}
         <Link to="/app/sales" className="underline">
           {t("sdetail.backToSales")}
@@ -185,7 +185,7 @@ function SaleDetail() {
           [t("status.refunded"), money(s.refunded)],
           [t("sdetail.net"), money(Number(s.total) - Number(s.refunded))],
         ].map(([k, v]) => (
-          <Card key={k} className="p-3 shadow-none">
+          <Card key={k} className="p-3">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               {k}
             </div>
@@ -196,7 +196,7 @@ function SaleDetail() {
 
       <div className="grid gap-3 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
-          <Card className="shadow-none">
+          <Card>
             <CardHeader className="border-b py-3">
               <CardTitle className="text-sm font-semibold">{t("sdetail.itemsCard")}</CardTitle>
             </CardHeader>
@@ -247,7 +247,7 @@ function SaleDetail() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-none">
+          <Card>
             <CardHeader className="border-b py-3">
               <CardTitle className="text-sm font-semibold">{t("sdetail.refundsCard")}</CardTitle>
             </CardHeader>
@@ -290,7 +290,7 @@ function SaleDetail() {
         </div>
 
         <aside className="space-y-3">
-          <Card className="p-3 text-[13px] shadow-none">
+          <Card className="p-3 text-[13px]">
             <CardTitle className="mb-2 text-sm font-semibold">{t("doc.payment")}</CardTitle>
             <Row k={t("doc.method")} v={s.payment_method ? mLabel(s.payment_method) : "—"} />
             <Row k={t("doc.paid")} v={money(s.paid)} />
@@ -301,7 +301,7 @@ function SaleDetail() {
               <Row k={t("sdetail.approvedBy")} v={names.data?.[s.approved_by] ?? "—"} />
             )}
           </Card>
-          <Card className="p-3 text-[13px] shadow-none">
+          <Card className="p-3 text-[13px]">
             <CardTitle className="mb-2 text-sm font-semibold">{t("doc.customer")}</CardTitle>
             {s.customer_name || s.customer_phone ? (
               <>
@@ -313,7 +313,7 @@ function SaleDetail() {
             )}
           </Card>
           {s.note && (
-            <Card className="p-3 text-[13px] shadow-none">
+            <Card className="p-3 text-[13px]">
               <CardTitle className="mb-2 text-sm font-semibold">{t("sdetail.noteCard")}</CardTitle>
               <p className="text-muted-foreground">{s.note}</p>
             </Card>
@@ -397,7 +397,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
         <DialogHeader>
           <DialogTitle>{t("sdetail.returnTitle", { number: sale.number })}</DialogTitle>
         </DialogHeader>
-        <Card className="shadow-none">
+        <Card>
           <CardContent className="p-0">
             <Table>
               <TableBody>

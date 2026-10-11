@@ -1,11 +1,18 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+/* Fonts are bundled from here instead of fetched from Google Fonts: the browser
+   pulls only the unicode-range subsets it needs from our own origin, which
+   removes a render-blocking cross-origin request (weights interpolate from one
+   variable file, so no weight ever falls back silently). DM Sans is the
+   interface face; Fraunces is the display face for titles and big numbers. */
+@import "@fontsource-variable/dm-sans/wght.css";
+@import "@fontsource-variable/fraunces/wght.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition (BLUE theme, matches POS app).
+ * Design system definition (SOFT theme: warm off-white + muted sage accent).
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
@@ -66,8 +73,10 @@
   --color-tile-6: var(--tile-6);
   --color-tile-foreground: var(--tile-foreground);
   --font-sans: var(--font-sans);
-  --shadow-card: var(--shadow-card);
-  --shadow-pop: var(--shadow-pop);
+  --font-display: var(--font-display);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive-soft: var(--destructive-soft);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -79,116 +88,136 @@
 }
 
 :root {
-  --radius: 0.75rem;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* Anchors: background=#f5f7fb  primary=#2563eb-ish (oklch 0.55 0.2 258). Neutrals carry hue 255. */
-  --background: oklch(0.97 0.005 255);
-  --foreground: oklch(0.2 0.03 258);
+  --radius: 0.875rem;
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+
+  /* Warm neutrals (hue ~80). One muted sage accent (hue ~160). */
+  --background: oklch(0.9765 0.0054 275);
+  --foreground: oklch(0.27 0.006 70);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.03 258);
+  --card-foreground: oklch(0.27 0.006 70);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.03 258);
-  --primary: oklch(0.55 0.2 258);
+  --popover-foreground: oklch(0.27 0.006 70);
+
+  --primary: oklch(0.52 0.06 160);
   --primary-foreground: oklch(0.99 0 0);
-  --button: oklch(0.55 0.2 258);
+  --button: oklch(0.2046 0 0);
   --button-foreground: oklch(0.99 0 0);
-  /* SaaS gradient for the default button: top-to-bottom, same blue hue (lightness shift for depth). */
-  --button-gradient-from: oklch(0.6 0.2 258);
-  --button-gradient-to: oklch(0.5 0.2 258);
-  --secondary: oklch(0.93 0.025 255);
-  --secondary-foreground: oklch(0.32 0.08 258);
-  --muted: oklch(0.95 0.012 255);
-  --muted-foreground: oklch(0.52 0.03 258);
-  --accent: oklch(0.55 0.2 258);
+  /* Flat charcoal button: both gradient stops equal so the default button is solid. */
+  --button-gradient-from: oklch(0.2046 0 0);
+  --button-gradient-to: oklch(0.2046 0 0);
+
+  --secondary: oklch(0.94 0.014 150);
+  --secondary-foreground: oklch(0.37 0.05 160);
+  --muted: oklch(0.95 0.006 80);
+  --muted-foreground: oklch(0.5 0.012 75);
+  --accent: oklch(0.52 0.06 160);
   --accent-foreground: oklch(0.99 0 0);
-  --success: oklch(0.6 0.15 152);
+
+  --success: oklch(0.56 0.1 155);
   --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.78 0.15 75);
-  --warning-foreground: oklch(0.32 0.06 60);
-  --destructive: oklch(0.58 0.22 27);
+  --warning: oklch(0.8 0.1 80);
+  --warning-foreground: oklch(0.38 0.07 65);
+  --destructive: oklch(0.55 0.13 35);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.91 0.012 255);
-  --input: oklch(0.88 0.015 255);
-  --ring: oklch(0.55 0.2 258);
+
+  /* Soft tints for badges, banners and tinted cells (low stock, loss, warnings) */
+  --success-soft: oklch(0.95 0.02 155);
+  --warning-soft: oklch(0.965 0.03 90);
+  --destructive-soft: oklch(0.955 0.025 35);
+
+  --border: oklch(0.93 0.008 80);
+  --input: oklch(0.9 0.01 80);
+  --ring: oklch(0.52 0.06 160);
   --rail: oklch(1 0 0);
-  --tile-1: oklch(0.55 0.2 258);
-  --tile-2: oklch(0.6 0.15 152);
-  --tile-3: oklch(0.7 0.16 55);
-  --tile-4: oklch(0.62 0.19 20);
-  --tile-5: oklch(0.58 0.15 290);
-  --tile-6: oklch(0.5 0.04 258);
-  --tile-foreground: oklch(0.99 0 0);
-  --chart-1: oklch(0.55 0.2 258);
-  --chart-2: oklch(0.7 0.13 215);
-  --chart-3: oklch(0.6 0.15 152);
-  --chart-4: oklch(0.78 0.15 75);
-  --chart-5: oklch(0.5 0.04 258);
+
+  /* Pastel tiles for item thumbnails: sage, blush, sky, sand, lilac, stone.
+     tile-foreground is now DARK because the tiles are light. */
+  --tile-1: oklch(0.92 0.03 150);
+  --tile-2: oklch(0.91 0.04 30);
+  --tile-3: oklch(0.92 0.025 255);
+  --tile-4: oklch(0.92 0.045 85);
+  --tile-5: oklch(0.92 0.03 300);
+  --tile-6: oklch(0.93 0.01 80);
+  --tile-foreground: oklch(0.38 0.04 120);
+
+  --chart-1: oklch(0.52 0.06 160); /* sage: sales */
+  --chart-2: oklch(0.82 0.06 40); /* blush: profit */
+  --chart-3: oklch(0.76 0.06 250); /* sky */
+  --chart-4: oklch(0.8 0.08 85); /* sand */
+  --chart-5: oklch(0.7 0.07 300); /* lilac */
+
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.2 0.03 258);
-  --sidebar-primary: oklch(0.55 0.2 258);
+  --sidebar-foreground: oklch(0.27 0.006 70);
+  --sidebar-primary: oklch(0.52 0.06 160);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.012 255);
-  --sidebar-accent-foreground: oklch(0.32 0.08 258);
-  --sidebar-border: oklch(0.91 0.012 255);
-  --sidebar-ring: oklch(0.55 0.2 258);
-  --shadow-card: 0 1px 2px oklch(0.2 0.03 258 / 7%), 0 0 0 1px oklch(0.2 0.03 258 / 7%);
-  --shadow-pop: 0 12px 40px -12px oklch(0.2 0.03 258 / 28%);
+  --sidebar-accent: oklch(0.94 0.014 150);
+  --sidebar-accent-foreground: oklch(0.37 0.05 160);
+  --sidebar-border: oklch(0.93 0.008 80);
+  --sidebar-ring: oklch(0.52 0.06 160);
 }
 
 .dark {
-  /* Dark surfaces carry the same blue hue (258) at very low chroma. */
-  --background: oklch(0.16 0.02 258);
-  --foreground: oklch(0.96 0.005 255);
-  --card: oklch(0.2 0.025 258);
-  --card-foreground: oklch(0.96 0.005 255);
-  --popover: oklch(0.22 0.028 258);
-  --popover-foreground: oklch(0.96 0.005 255);
-  /* Lighter than light mode so it stays readable on dark surfaces. */
-  --primary: oklch(0.68 0.17 258);
-  --primary-foreground: oklch(0.15 0.04 258);
-  --button: oklch(0.68 0.17 258);
-  --button-foreground: oklch(0.15 0.04 258);
-  --button-gradient-from: oklch(0.72 0.17 258);
-  --button-gradient-to: oklch(0.6 0.17 258);
-  --secondary: oklch(0.27 0.04 258);
-  --secondary-foreground: oklch(0.96 0.005 255);
-  --muted: oklch(0.25 0.03 258);
-  --muted-foreground: oklch(0.7 0.03 255);
-  /* Accent matches the brand blue exactly so tinted states never look faded. */
-  --accent: oklch(0.68 0.17 258);
-  --accent-foreground: oklch(0.15 0.04 258);
-  --success: oklch(0.68 0.16 152);
-  --success-foreground: oklch(0.16 0.03 152);
-  --warning: oklch(0.82 0.15 75);
+  --background: oklch(0.2 0.006 70);
+  --foreground: oklch(0.94 0.006 80);
+  --card: oklch(0.24 0.007 70);
+  --card-foreground: oklch(0.94 0.006 80);
+  --popover: oklch(0.26 0.008 70);
+  --popover-foreground: oklch(0.94 0.006 80);
+
+  --primary: oklch(0.72 0.08 158);
+  --primary-foreground: oklch(0.2 0.03 160);
+  --button: oklch(0.72 0.08 158);
+  --button-foreground: oklch(0.2 0.03 160);
+  --button-gradient-from: oklch(0.72 0.08 158);
+  --button-gradient-to: oklch(0.72 0.08 158);
+
+  --secondary: oklch(0.3 0.02 155);
+  --secondary-foreground: oklch(0.94 0.006 80);
+  --muted: oklch(0.28 0.008 70);
+  --muted-foreground: oklch(0.7 0.01 75);
+  --accent: oklch(0.72 0.08 158);
+  --accent-foreground: oklch(0.2 0.03 160);
+
+  --success: oklch(0.7 0.11 155);
+  --success-foreground: oklch(0.18 0.03 155);
+  --warning: oklch(0.82 0.1 80);
   --warning-foreground: oklch(0.22 0.05 70);
-  --destructive: oklch(0.66 0.21 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.03 258);
-  --input: oklch(0.33 0.035 258);
-  --ring: oklch(0.68 0.17 258);
-  --rail: oklch(0.2 0.025 258);
-  --tile-1: oklch(0.65 0.17 258);
-  --tile-2: oklch(0.62 0.15 152);
-  --tile-3: oklch(0.72 0.15 55);
-  --tile-4: oklch(0.62 0.19 20);
-  --tile-5: oklch(0.64 0.14 290);
-  --tile-6: oklch(0.5 0.04 258);
-  --tile-foreground: oklch(0.99 0 0);
-  --chart-1: oklch(0.68 0.17 258);
-  --chart-2: oklch(0.76 0.12 215);
-  --chart-3: oklch(0.68 0.16 152);
-  --chart-4: oklch(0.82 0.15 75);
-  --chart-5: oklch(0.6 0.04 258);
-  --sidebar: oklch(0.18 0.022 258);
-  --sidebar-foreground: oklch(0.96 0.005 255);
-  --sidebar-primary: oklch(0.68 0.17 258);
-  --sidebar-primary-foreground: oklch(0.15 0.04 258);
-  --sidebar-accent: oklch(0.26 0.035 258);
-  --sidebar-accent-foreground: oklch(0.96 0.005 255);
-  --sidebar-border: oklch(0.3 0.03 258);
-  --sidebar-ring: oklch(0.68 0.17 258);
-  --shadow-card: 0 1px 2px oklch(0 0 0 / 40%), 0 0 0 1px oklch(1 0 0 / 6%);
-  --shadow-pop: 0 12px 40px -12px oklch(0 0 0 / 60%);
+  --destructive: oklch(0.68 0.12 35);
+  --destructive-foreground: oklch(0.18 0.03 35);
+
+  --success-soft: oklch(0.3 0.03 155);
+  --warning-soft: oklch(0.32 0.04 85);
+  --destructive-soft: oklch(0.31 0.04 35);
+
+  --border: oklch(0.32 0.008 70);
+  --input: oklch(0.35 0.01 70);
+  --ring: oklch(0.72 0.08 158);
+  --rail: oklch(0.24 0.007 70);
+
+  --tile-1: oklch(0.34 0.04 150);
+  --tile-2: oklch(0.34 0.05 30);
+  --tile-3: oklch(0.34 0.04 255);
+  --tile-4: oklch(0.36 0.05 85);
+  --tile-5: oklch(0.34 0.04 300);
+  --tile-6: oklch(0.32 0.01 80);
+  --tile-foreground: oklch(0.9 0.02 120);
+
+  --chart-1: oklch(0.72 0.08 158);
+  --chart-2: oklch(0.76 0.07 40);
+  --chart-3: oklch(0.74 0.06 250);
+  --chart-4: oklch(0.82 0.08 85);
+  --chart-5: oklch(0.74 0.07 300);
+
+  --sidebar: oklch(0.22 0.006 70);
+  --sidebar-foreground: oklch(0.94 0.006 80);
+  --sidebar-primary: oklch(0.72 0.08 158);
+  --sidebar-primary-foreground: oklch(0.2 0.03 160);
+  --sidebar-accent: oklch(0.3 0.02 155);
+  --sidebar-accent-foreground: oklch(0.94 0.006 80);
+  --sidebar-border: oklch(0.32 0.008 70);
+  --sidebar-ring: oklch(0.72 0.08 158);
 }
 
 @layer base {
@@ -210,8 +239,21 @@
 }
 
 @layer base {
-  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-  .tabular { font-variant-numeric: tabular-nums; }
+  body {
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Display face: logo, page titles, card titles, big totals. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 /* Below-the-fold scroll reveals: fade + rise; stagger with inline transition-delay.
@@ -224,7 +266,10 @@
     opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.reveal.is-visible { opacity: 1; transform: none; }
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
 
 /*
  * Above-the-fold load reveal: same fade + rise, but driven by CSS alone so the
@@ -232,21 +277,118 @@
  * until the bundle has downloaded, hydrated and observed the element.
  */
 @keyframes storq-rise {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .rise {
   animation: storq-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: var(--rise-delay, 0ms);
 }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; transition: none; }
-  .rise { animation: none; }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .rise {
+    animation: none;
+  }
+}
+
+/*
+ * 404 screen (see src/components/NotFound.tsx): a dot-grid stage with two soft
+ * brand-colour glows, and a huge "404" whose zero is a slow searching ring.
+ * Token-derived colours only; every animation is CSS-driven and disabled under
+ * prefers-reduced-motion below, same as the landing reveals.
+ */
+.notf-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--foreground) 14%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 26px 26px;
+  /* Fade the grid out towards the edges so it frames the content instead of tiling flat. */
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, black 30%, transparent 75%);
+}
+.notf-orb {
+  position: absolute;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--primary) 16%, transparent),
+    transparent 65%
+  );
+  animation: notf-drift 14s ease-in-out infinite alternate;
+}
+.notf-orb-a {
+  top: -8rem;
+  left: -8rem;
+}
+.notf-orb-b {
+  right: -8rem;
+  bottom: -8rem;
+  animation-delay: -7s;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--primary) 10%, transparent),
+    transparent 65%
+  );
+}
+@keyframes notf-drift {
+  to {
+    transform: translate(5rem, 3rem) scale(1.15);
+  }
+}
+.notf-digits {
+  font-size: clamp(6rem, 16vw, 10rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--foreground);
+}
+/* The "0": a full-circle dashed ring that spins at loading-spinner speed —
+   the page is still looking for what you typed in. */
+.notf-ring {
+  display: inline-block;
+  width: 0.78em;
+  height: 0.78em;
+  margin: 0 0.06em;
+  vertical-align: baseline;
+  translate: 0 -0.06em;
+  border-radius: 9999px;
+  border: 0.09em dashed var(--primary);
+  animation: notf-spin 9s linear infinite;
+}
+@keyframes notf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notf-orb,
+  .notf-ring {
+    animation: none;
+  }
 }
 
 /* Landing page only: smooth anchor nav that clears the sticky header. */
-html:has(.storq-landing) { scroll-behavior: smooth; }
-.storq-landing [id] { scroll-margin-top: 5rem; }
+html:has(.storq-landing) {
+  scroll-behavior: smooth;
+}
+.storq-landing [id] {
+  scroll-margin-top: 5rem;
+}
 .storq-landing .nav-link {
   position: relative;
 }
@@ -263,43 +405,115 @@ html:has(.storq-landing) { scroll-behavior: smooth; }
   transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .storq-landing .nav-link:hover::after,
-.storq-landing .nav-link:focus-visible::after { transform: scaleX(1); }
+.storq-landing .nav-link:focus-visible::after {
+  transform: scaleX(1);
+}
 @media (prefers-reduced-motion: reduce) {
-  html:has(.storq-landing) { scroll-behavior: auto; }
-  .storq-landing .nav-link::after { transition: none; }
+  html:has(.storq-landing) {
+    scroll-behavior: auto;
+  }
+  .storq-landing .nav-link::after {
+    transition: none;
+  }
 }
 @layer components {
-  .pos-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow-card); }
-  .pos-tile { border-radius: var(--radius); transition: transform 120ms ease, box-shadow 120ms ease; }
-  .pos-tile:active { transform: scale(0.97); }
-  .pos-key { border-radius: 9999px; transition: background 120ms ease, transform 100ms ease; }
-  .pos-key:active { transform: scale(0.94); }
+  .pos-card {
+    background: var(--card);
+    border-radius: calc(var(--radius) + 6px);
+    box-shadow: 0 1px 2px oklch(0.3 0.02 70 / 0.04);
+  }
+  .pos-tile {
+    border-radius: calc(var(--radius) + 6px);
+    transition:
+      transform 150ms ease,
+      box-shadow 150ms ease;
+  }
+  .pos-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px oklch(0.3 0.02 70 / 0.07);
+  }
+  .pos-tile:active {
+    transform: scale(0.98);
+  }
+  .pos-key {
+    border-radius: 9999px;
+    transition:
+      background 120ms ease,
+      transform 100ms ease;
+  }
+  .pos-key:active {
+    transform: scale(0.94);
+  }
+  /* Cart rows ease in (opacity + a 4px lift) when a line is added (spec §5).
+   * Transforms/opacity only; the .storq-workspace reduced-motion block zeroes
+   * the duration so this no-ops when the user prefers reduced motion. */
+  .pos-row {
+    animation: pos-row-in 150ms ease-out;
+  }
+  @keyframes pos-row-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /*
  * Operations workspace: inherits brand tokens from :root / .dark,
- * only density/layout differs. It no longer forces a light color-scheme,
- * so dark mode applies here too.
+ * only density/layout differs. Softer radius, calmer tables, tinted rows
+ * on hover via color-mix so the row wash stays inside the palette.
  */
-.storq-workspace, body:has(.storq-workspace) {
-  --radius: 0.5rem;
+.storq-workspace,
+body:has(.storq-workspace) {
+  --radius: 0.75rem;
   background: var(--background);
   color: var(--foreground);
   letter-spacing: 0;
 }
-.storq-workspace h1, .storq-workspace h2,
-.storq-workspace label { letter-spacing: 0; }
-.storq-workspace table th { font-weight: 500; }
-.storq-workspace table tbody tr { transition: background 150ms ease; }
-.storq-workspace table tbody tr:hover { background: var(--muted); }
-.storq-workspace input, .storq-workspace select { box-shadow: none; }
-.storq-workspace .pos-card { box-shadow: none; border: 1px solid var(--border); }
-.storq-workspace .pos-card .pos-card { border: 0; background: transparent; }
-.storq-workspace .pos-tile:hover { border-color: var(--accent); }
-.storq-workspace .billing-plan { min-height: 156px; }
-.storq-workspace .billing-plan[aria-pressed="true"] { background: color-mix(in oklch, var(--accent) 7%, var(--card)); }
+.storq-workspace h1,
+.storq-workspace h2,
+.storq-workspace label {
+  letter-spacing: 0;
+}
+.storq-workspace table th {
+  font-weight: 500;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+.storq-workspace table tbody tr {
+  border-top: 1px solid var(--border);
+  transition: background 150ms ease;
+}
+.storq-workspace table tbody tr:hover {
+  background: color-mix(in oklch, var(--muted) 60%, transparent);
+}
+.storq-workspace .pos-card {
+  border: 0;
+}
+.storq-workspace .pos-card .pos-card {
+  border: 0;
+  background: transparent;
+}
+.storq-workspace .pos-tile:hover {
+  border-color: var(--primary);
+}
+.storq-workspace .billing-plan {
+  min-height: 156px;
+}
+.storq-workspace .billing-plan[aria-pressed="true"] {
+  background: var(--secondary);
+  border-color: var(--primary);
+}
 @media (prefers-reduced-motion: reduce) {
-  .storq-workspace *, .storq-workspace *::before, .storq-workspace *::after {
+  .storq-workspace *,
+  .storq-workspace *::before,
+  .storq-workspace *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

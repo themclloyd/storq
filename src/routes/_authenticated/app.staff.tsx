@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusSignIcon } from "@hugeicons/core-free-icons";
+import { PlusSignIcon } from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos, type Role } from "@/lib/pos";
-import { NativeSelect } from "@/components/pos/bits";
+import { NativeSelect, PageHeader } from "@/components/pos/bits";
 import { useI18n } from "@/lib/i18n";
 import { LIMITS, validatePin, requireText, sanitizeText } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
@@ -71,39 +71,38 @@ function Staff() {
   });
   if (!can("admin"))
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-        {t("staff.onlyAdmins")}
-      </Card>
+      <Card className="p-6 text-center text-sm text-muted-foreground">{t("staff.onlyAdmins")}</Card>
     );
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{t("staff.title")}</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">{t("staff.sub")}</p>
-        </div>
-        <Button variant="accent" onClick={() => setEdit({ role: "cashier", active: true })}>
-          <HugeiconsIcon icon={PlusSignIcon} /> {t("staff.addBtn")}
-        </Button>
-      </div>
+      <PageHeader
+        breadcrumb={`${t("nav.settings")} / ${t("nav.staff")}`}
+        title={t("staff.title")}
+        sub={t("staff.sub")}
+        actions={
+          <Button onClick={() => setEdit({ role: "cashier", active: true })}>
+            <HugeiconsIcon icon={PlusSignIcon} /> {t("staff.addBtn")}
+          </Button>
+        }
+      />
       <div className="mb-4 grid gap-2 text-[13px] sm:grid-cols-3">
-        <Card className="p-3 shadow-none">
-          <b>{t("staff.roleAdmin")}</b>
-          <p className="text-muted-foreground">{t("staff.roleAdminDesc")}</p>
+        <Card className="p-4">
+          <div className="font-medium">{t("staff.roleAdmin")}</div>
+          <p className="mt-0.5 text-muted-foreground">{t("staff.roleAdminDesc")}</p>
         </Card>
-        <Card className="p-3 shadow-none">
-          <b>{t("staff.roleManager")}</b>
-          <p className="text-muted-foreground">{t("staff.roleManagerDesc")}</p>
+        <Card className="p-4">
+          <div className="font-medium">{t("staff.roleManager")}</div>
+          <p className="mt-0.5 text-muted-foreground">{t("staff.roleManagerDesc")}</p>
         </Card>
-        <Card className="p-3 shadow-none">
-          <b>{t("staff.roleCashier")}</b>
-          <p className="text-muted-foreground">{t("staff.roleCashierDesc")}</p>
+        <Card className="p-4">
+          <div className="font-medium">{t("staff.roleCashier")}</div>
+          <p className="mt-0.5 text-muted-foreground">{t("staff.roleCashierDesc")}</p>
         </Card>
       </div>
-      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-3 shadow-none">
+      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="text-[13px]">
-          <b>{t("staff.autoLockTitle")}</b>
-          <p className="text-muted-foreground">{t("staff.autoLockDesc")}</p>
+          <div className="font-medium">{t("staff.autoLockTitle")}</div>
+          <p className="mt-0.5 text-muted-foreground">{t("staff.autoLockDesc")}</p>
         </div>
         <NativeSelect
           className="w-40"
@@ -118,14 +117,14 @@ function Staff() {
           ]}
         />
       </Card>
-      <Card className="divide-y p-0 shadow-none">
+      <Card className="divide-y p-0">
         {staff.data?.map((s) => (
-          <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold">
+          <div key={s.id} className="flex items-center gap-3 px-4 py-3 text-[13px]">
+            <span className="font-display grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground">
               {s.name.slice(0, 1).toUpperCase()}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate font-semibold">
+              <div className="truncate font-medium">
                 {s.name}{" "}
                 {!s.active && (
                   <span className="text-xs text-destructive">{t("staff.inactive")}</span>
@@ -189,7 +188,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-md rounded-3xl">
         <DialogHeader>
           <DialogTitle>{s.id ? t("staff.editTitle") : t("staff.addBtn")}</DialogTitle>
         </DialogHeader>

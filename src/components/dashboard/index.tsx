@@ -6,7 +6,7 @@ import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart } from "recharts";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   ChartContainer,
   ChartLegend,
@@ -46,9 +46,11 @@ export function StatCard({
     <Card className="min-w-0 p-3">
       <div className="flex items-center justify-between gap-2">
         <CardDescription className="truncate text-xs">{label}</CardDescription>
-        <HugeiconsIcon icon={icon} className="size-[15px] shrink-0 text-accent" />
+        <HugeiconsIcon icon={icon} className="size-[15px] shrink-0 text-primary" />
       </div>
-      <CardTitle className="tabular mt-1.5 truncate text-base font-semibold">{value}</CardTitle>
+      <CardTitle className="font-display tabular mt-1.5 truncate text-base font-medium">
+        {value}
+      </CardTitle>
       <p className="truncate text-[11px] text-muted-foreground">{sub}</p>
     </Card>
   );
@@ -72,9 +74,9 @@ export function DashboardSection({
 }) {
   return (
     <Card className={cn("p-0", className)}>
-      <CardHeader className="flex-row items-baseline justify-between gap-2 space-y-0 border-b p-3">
-        <CardTitle className="flex items-center gap-1.5 text-sm font-bold">
-          {icon && <HugeiconsIcon icon={icon} className="size-4 text-accent" />}
+      <CardHeader className="flex-row items-baseline justify-between gap-2 space-y-0 p-3">
+        <CardTitle className="flex items-center gap-1.5 font-display text-sm font-medium">
+          {icon && <HugeiconsIcon icon={icon} className="size-4 text-primary" />}
           {title}
         </CardTitle>
         {note && <CardDescription className="text-[11px]">{note}</CardDescription>}
@@ -84,7 +86,7 @@ export function DashboardSection({
   );
 }
 
-/** Pill segmented control (shadcn ToggleGroup) used for the date-range filter. */
+/** Segmented range control (shared `SegmentedControl`) used for date-range filters. */
 export function RangeToggle<T extends string>({
   value,
   onChange,
@@ -95,23 +97,12 @@ export function RangeToggle<T extends string>({
   options: readonly { key: T; label: string }[];
 }) {
   return (
-    <ToggleGroup
-      type="single"
+    <SegmentedControl
+      size="sm"
       value={value}
-      onValueChange={(v) => v && onChange(v as T)}
-      className="gap-0.5 rounded-full border bg-card p-0.5"
-    >
-      {options.map((o) => (
-        <ToggleGroupItem
-          key={o.key}
-          value={o.key}
-          aria-label={o.label}
-          className="rounded-full px-2.5 text-[12px] font-medium text-muted-foreground hover:bg-transparent data-[state=on]:bg-secondary data-[state=on]:text-foreground"
-        >
-          {o.label}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+      onChange={onChange}
+      options={options.map((o) => ({ value: o.key, label: o.label }))}
+    />
   );
 }
 
@@ -389,12 +380,14 @@ export function AlertRow({ item }: { item: AlertItem }) {
   return (
     <Link
       to={item.to}
-      className="flex items-center gap-2.5 rounded-md border bg-card p-2 text-[13px] transition-colors hover:bg-secondary"
+      className="flex items-center gap-2.5 rounded-md bg-card p-2 text-[13px] transition-colors hover:bg-secondary"
     >
       <span
         className={cn(
           "grid size-6 shrink-0 place-items-center rounded-full",
-          item.tone === "warn" ? "bg-warning/15 text-warning" : "bg-secondary text-foreground",
+          item.tone === "warn"
+            ? "bg-warning-soft text-warning-foreground"
+            : "bg-secondary text-secondary-foreground",
         )}
       >
         <HugeiconsIcon icon={item.icon} className="size-3.5" />
@@ -404,9 +397,29 @@ export function AlertRow({ item }: { item: AlertItem }) {
   );
 }
 
-/** Centred placeholder used when a section has nothing to show. */
-export function EmptyState({ children }: { children: ReactNode }) {
+/** Centred placeholder used when a section has nothing to show. Optionally renders
+ *  a 48px muted icon circle and a single action (spec §3). */
+export function EmptyState({
+  children,
+  icon,
+  action,
+}: {
+  children: ReactNode;
+  icon?: ReactNode;
+  action?: ReactNode;
+}) {
+  if (!icon && !action) {
+    return (
+      <div className="grid h-24 place-items-center text-sm text-muted-foreground">{children}</div>
+    );
+  }
   return (
-    <div className="grid h-24 place-items-center text-sm text-muted-foreground">{children}</div>
+    <div className="flex flex-col items-center gap-3 py-10 text-center">
+      <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+        {icon}
+      </span>
+      <p className="max-w-xs text-sm text-muted-foreground">{children}</p>
+      {action}
+    </div>
   );
 }

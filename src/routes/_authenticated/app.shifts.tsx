@@ -111,7 +111,7 @@ function Shifts() {
       {!open ? (
         <div className="pos-card mb-4 max-w-md space-y-3 p-4">
           <div>
-            <h3 className="text-sm font-bold">{t("shift.openTitle")}</h3>
+            <h3 className="font-display text-sm font-medium">{t("shift.openTitle")}</h3>
             <p className="text-[13px] text-muted-foreground">{t("shift.openHint")}</p>
           </div>
           <Field label={t("shift.startingFloat")}>
@@ -122,7 +122,7 @@ function Shifts() {
               placeholder="0.00"
             />
           </Field>
-          <Button variant="accent" className="w-full" onClick={openShift}>
+          <Button className="w-full" onClick={openShift}>
             {t("shift.openBtn")}
           </Button>
         </div>
@@ -144,7 +144,7 @@ function Shifts() {
             <div className="mt-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("shift.cashExpected")}
             </div>
-            <div className="tabular truncate text-xl font-extrabold">
+            <div className="font-display tabular truncate text-xl font-medium">
               {money(live.data?.expected_cash ?? open.opening_float)}
             </div>
             {live.data && (
@@ -154,7 +154,7 @@ function Shifts() {
             )}
           </div>
           <div className="pos-card space-y-1.5 p-4">
-            <h3 className="text-sm font-bold">{t("shift.drawerActions")}</h3>
+            <h3 className="font-display text-sm font-medium">{t("shift.drawerActions")}</h3>
             <Button variant="outline" className="w-full" onClick={() => setMove("in")}>
               {t("shift.cashInAdd")}
             </Button>
@@ -168,7 +168,7 @@ function Shifts() {
         </div>
       )}
 
-      <h3 className="mb-2.5 text-sm font-bold">{t("shift.past")}</h3>
+      <h3 className="font-display mb-2.5 text-sm font-medium">{t("shift.past")}</h3>
       {(shifts.data ?? []).filter((s) => s.status === "closed").length === 0 ? (
         <Empty>{t("shift.noneClosed")}</Empty>
       ) : (
@@ -179,7 +179,7 @@ function Shifts() {
               <button
                 key={s.id}
                 onClick={() => setReport(s)}
-                className="flex w-full items-center gap-3 px-4 py-2 text-left text-[13px] hover:bg-secondary/60"
+                className="flex w-full items-center gap-3 px-4 py-2 text-left text-[13px] hover:bg-muted"
               >
                 <span className="w-36 shrink-0 text-muted-foreground">{fmtDate(s.opened_at)}</span>
                 <span className="min-w-0 flex-1 truncate">{names.data?.[s.closed_by ?? ""]}</span>
@@ -226,7 +226,7 @@ function Variance({ v, money }: { v: number; money: (n: number) => string }) {
     <span
       className={cn(
         "w-32 text-right font-semibold",
-        Math.abs(v) < 0.01 ? "text-success" : v > 0 ? "text-accent" : "text-destructive",
+        Math.abs(v) < 0.01 ? "text-success" : v > 0 ? "text-success" : "text-destructive",
       )}
     >
       {label}
@@ -248,7 +248,10 @@ function SummaryRows({ s, money }: { s: Summary; money: (n: number) => string })
   return (
     <div className="space-y-1 text-[13px]">
       {rows.map(([k, v, b]) => (
-        <div key={k} className={cn("flex justify-between gap-3", b && "border-t pt-2 font-bold")}>
+        <div
+          key={k}
+          className={cn("flex justify-between gap-3", b && "border-t pt-2 font-semibold")}
+        >
           <span className="truncate text-muted-foreground">{k}</span>
           <span className="tabular shrink-0">{money(v)}</span>
         </div>
@@ -405,13 +408,13 @@ function ZReport({
   const sm = s.summary;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md rounded-3xl">
         <DialogHeader>
           <DialogTitle>{t("shift.reportTitle")}</DialogTitle>
         </DialogHeader>
         <div id="zreport" className="space-y-2 text-[13px]">
           <div className="text-center">
-            <div className="font-bold">{business?.name}</div>
+            <div className="font-medium">{business?.name}</div>
             <div className="text-muted-foreground">
               {stores.find((x) => x.id === s.store_id)?.name}
             </div>
@@ -429,11 +432,11 @@ function ZReport({
             </span>
           </div>
           {sm && <SummaryRows s={sm} money={money} />}
-          <div className="flex justify-between border-t pt-2 font-bold">
+          <div className="flex justify-between border-t pt-2 font-semibold">
             <span>{t("shift.cashCounted")}</span>
             <span className="tabular">{money(s.counted_cash)}</span>
           </div>
-          <div className="flex justify-between font-bold">
+          <div className="flex justify-between font-semibold">
             <span>{t("shift.difference")}</span>
             <Variance v={Number(s.variance)} money={money} />
           </div>

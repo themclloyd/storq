@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusSignIcon, Share01Icon } from "@hugeicons/core-free-icons";
+import { PlusSignIcon, Share01Icon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useCollections, shareUrl, type Collection } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ function Collections() {
         title={t("col.title")}
         sub={t("col.listSub")}
         actions={
-          <Button variant="accent" asChild>
+          <Button asChild>
             <Link to="/app/collections/$id" params={{ id: "new" }}>
               <HugeiconsIcon icon={PlusSignIcon} /> {t("col.newCollection")}
             </Link>
@@ -74,13 +74,13 @@ function Collections() {
                 className="flex items-start justify-between gap-2"
               >
                 <div className="min-w-0">
-                  <div className="truncate font-bold hover:underline">{c.name}</div>
+                  <div className="truncate font-medium hover:underline">{c.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {t("col.itemsCount", { count: count(c.id) })}
                   </div>
                 </div>
                 {c.discount_pct > 0 && (
-                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">
+                  <span className="shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
                     −{c.discount_pct}%
                   </span>
                 )}

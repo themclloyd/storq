@@ -7,6 +7,8 @@ import { rangeDays, sinceFor, useExpenses } from "@/lib/expenses";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { PageHeader } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { downloadPdf, fileStamp } from "@/lib/pdf";
 import { COUNTED, useRefunds } from "@/lib/refunds";
@@ -209,7 +211,7 @@ function Reports() {
 
   if (!can("admin", "manager"))
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+      <Card className="p-6 text-center text-sm text-muted-foreground">
         {t("reports.onlyAdmins")}
       </Card>
     );
@@ -217,167 +219,171 @@ function Reports() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{t("reports.title")}</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {all ? t("reports.allStores") : (store?.name ?? "")}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((k) => (
-            <Button
-              key={k}
+      <PageHeader
+        breadcrumb={`${t("nav.reports")} / ${t("nav.overview")}`}
+        title={t("reports.title")}
+        sub={all ? t("reports.allStores") : (store?.name ?? "")}
+        actions={
+          <>
+            <SegmentedControl
+              aria-label={t("reports.title")}
               size="sm"
-              variant={range === k ? "default" : "outline"}
-              onClick={() => setRange(k)}
+              value={range}
+              onChange={setRange}
+              options={(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((k) => ({
+                value: k,
+                label: t(RANGE_LABEL_KEY[k]),
+              }))}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={loading}
+              onClick={() =>
+                void downloadPdf({
+                  filename: `storq-business-report-${fileStamp()}`,
+                  title: t("reports.title"),
+                  business: business?.name,
+                  subtitle: t("reports.subtitle", {
+                    scope: all ? t("reports.allStores") : (store?.name ?? ""),
+                    range: t(RANGE_LABEL_KEY[range]),
+                  }),
+                  badge: t("reports.badgePl"),
+                  kpis: [
+                    [t("reports.netSales"), money(r.revenue)],
+                    [t("reports.grossProfit"), money(r.gross)],
+                    [t("reports.expenses"), money(r.expTotal)],
+                    [t("reports.netProfit"), money(r.net)],
+                  ],
+                  sections: [
+                    {
+                      type: "pairs",
+                      heading: t("reports.profitLoss"),
+                      rows: [
+                        [t("reports.netSalesAfterRefunds"), money(r.revenue)],
+                        [t("reports.refunds"), `-${money(r.refunds)}`],
+                        [t("reports.buyingCostSold"), `-${money(r.cogs)}`],
+                        [t("reports.grossProfit"), money(r.gross)],
+                        [t("reports.grossMargin"), `${r.margin.toFixed(1)}%`],
+                        [t("reports.operatingExpenses"), `-${money(r.expTotal)}`],
+                        [t("reports.netProfit"), money(r.net)],
+                      ],
+                    },
+                    {
+                      type: "pairs",
+                      heading: t("reports.taxSummary"),
+                      rows: [
+                        [t("reports.salesInclTax"), money(r.revenue)],
+                        [t("reports.vatCollected"), money(r.tax)],
+                        [t("reports.salesExclTax"), money(r.revenue - r.tax)],
+                      ],
+                    },
+                    {
+                      type: "pairs",
+                      heading: t("reports.tillCheck"),
+                      rows: [
+                        [t("reports.cashFromSales"), money(r.cashIn)],
+                        [t("reports.cashPaidOut"), `-${money(r.tillOut)}`],
+                        [t("reports.expectedCash"), money(r.cashIn - r.tillOut)],
+                      ],
+                    },
+                    {
+                      type: "table",
+                      heading: t("reports.salesByMethod"),
+                      head: [t("reports.thMethod"), t("reports.thAmount")],
+                      align: ["left", "right"],
+                      body: Object.entries(r.byMethod).map(([m, v]) => [m, money(v)]),
+                    },
+                    {
+                      type: "table",
+                      heading: t("reports.expByCategory"),
+                      head: [t("reports.thCategory"), t("reports.thAmount")],
+                      align: ["left", "right"],
+                      body: Object.entries(r.exByCat)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([c, v]) => [c, money(v)]),
+                    },
+                    {
+                      type: "table",
+                      heading: t("reports.itemPerf"),
+                      head: [
+                        t("reports.thItem"),
+                        t("reports.thQty"),
+                        t("reports.thSales"),
+                        t("reports.thProfit"),
+                        t("reports.thMargin"),
+                      ],
+                      align: ["left", "right", "right", "right", "right"],
+                      body: r.items.map((i) => [
+                        i.name,
+                        i.qty,
+                        money(i.revenue),
+                        money(i.profit),
+                        i.revenue ? `${((i.profit / i.revenue) * 100).toFixed(1)}%` : "-",
+                      ]),
+                    },
+                    {
+                      type: "table",
+                      heading: t("reports.staffPerf"),
+                      head: [t("reports.thStaff"), t("reports.thSales"), t("reports.thRevenue")],
+                      align: ["left", "right", "right"],
+                      body: Object.entries(r.byStaff).map(([id, v]) => [
+                        names.data?.[id] ?? t("reports.unknownStaff"),
+                        v.sales,
+                        money(v.revenue),
+                      ]),
+                    },
+                    ...(all
+                      ? [
+                          {
+                            type: "table" as const,
+                            heading: t("reports.stores"),
+                            head: [
+                              t("reports.thStore"),
+                              t("reports.thSales"),
+                              t("reports.thProfit"),
+                              t("reports.thExpenses"),
+                              t("reports.thNet"),
+                            ],
+                            align: ["left", "right", "right", "right", "right"] as (
+                              "left" | "right"
+                            )[],
+                            body: Object.entries(r.byStore).map(([id, v]) => [
+                              stores.find((x) => x.id === id)?.name ?? "",
+                              money(v.revenue),
+                              money(v.profit),
+                              money(v.expenses),
+                              money(v.profit - v.expenses),
+                            ]),
+                          },
+                        ]
+                      : []),
+                  ],
+                })
+              }
             >
-              {t(RANGE_LABEL_KEY[k])}
+              {t("reports.downloadPdf")}
             </Button>
-          ))}
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={loading}
-            onClick={() =>
-              void downloadPdf({
-                filename: `storq-business-report-${fileStamp()}`,
-                title: t("reports.title"),
-                business: business?.name,
-                subtitle: t("reports.subtitle", {
-                  scope: all ? t("reports.allStores") : (store?.name ?? ""),
-                  range: t(RANGE_LABEL_KEY[range]),
-                }),
-                badge: t("reports.badgePl"),
-                kpis: [
-                  [t("reports.netSales"), money(r.revenue)],
-                  [t("reports.grossProfit"), money(r.gross)],
-                  [t("reports.expenses"), money(r.expTotal)],
-                  [t("reports.netProfit"), money(r.net)],
-                ],
-                sections: [
-                  {
-                    type: "pairs",
-                    heading: t("reports.profitLoss"),
-                    rows: [
-                      [t("reports.netSalesAfterRefunds"), money(r.revenue)],
-                      [t("reports.refunds"), `-${money(r.refunds)}`],
-                      [t("reports.buyingCostSold"), `-${money(r.cogs)}`],
-                      [t("reports.grossProfit"), money(r.gross)],
-                      [t("reports.grossMargin"), `${r.margin.toFixed(1)}%`],
-                      [t("reports.operatingExpenses"), `-${money(r.expTotal)}`],
-                      [t("reports.netProfit"), money(r.net)],
-                    ],
-                  },
-                  {
-                    type: "pairs",
-                    heading: t("reports.taxSummary"),
-                    rows: [
-                      [t("reports.salesInclTax"), money(r.revenue)],
-                      [t("reports.vatCollected"), money(r.tax)],
-                      [t("reports.salesExclTax"), money(r.revenue - r.tax)],
-                    ],
-                  },
-                  {
-                    type: "pairs",
-                    heading: t("reports.tillCheck"),
-                    rows: [
-                      [t("reports.cashFromSales"), money(r.cashIn)],
-                      [t("reports.cashPaidOut"), `-${money(r.tillOut)}`],
-                      [t("reports.expectedCash"), money(r.cashIn - r.tillOut)],
-                    ],
-                  },
-                  {
-                    type: "table",
-                    heading: t("reports.salesByMethod"),
-                    head: [t("reports.thMethod"), t("reports.thAmount")],
-                    align: ["left", "right"],
-                    body: Object.entries(r.byMethod).map(([m, v]) => [m, money(v)]),
-                  },
-                  {
-                    type: "table",
-                    heading: t("reports.expByCategory"),
-                    head: [t("reports.thCategory"), t("reports.thAmount")],
-                    align: ["left", "right"],
-                    body: Object.entries(r.exByCat)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([c, v]) => [c, money(v)]),
-                  },
-                  {
-                    type: "table",
-                    heading: t("reports.itemPerf"),
-                    head: [
-                      t("reports.thItem"),
-                      t("reports.thQty"),
-                      t("reports.thSales"),
-                      t("reports.thProfit"),
-                      t("reports.thMargin"),
-                    ],
-                    align: ["left", "right", "right", "right", "right"],
-                    body: r.items.map((i) => [
-                      i.name,
-                      i.qty,
-                      money(i.revenue),
-                      money(i.profit),
-                      i.revenue ? `${((i.profit / i.revenue) * 100).toFixed(1)}%` : "-",
-                    ]),
-                  },
-                  {
-                    type: "table",
-                    heading: t("reports.staffPerf"),
-                    head: [t("reports.thStaff"), t("reports.thSales"), t("reports.thRevenue")],
-                    align: ["left", "right", "right"],
-                    body: Object.entries(r.byStaff).map(([id, v]) => [
-                      names.data?.[id] ?? t("reports.unknownStaff"),
-                      v.sales,
-                      money(v.revenue),
-                    ]),
-                  },
-                  ...(all
-                    ? [
-                        {
-                          type: "table" as const,
-                          heading: t("reports.stores"),
-                          head: [
-                            t("reports.thStore"),
-                            t("reports.thSales"),
-                            t("reports.thProfit"),
-                            t("reports.thExpenses"),
-                            t("reports.thNet"),
-                          ],
-                          align: ["left", "right", "right", "right", "right"] as (
-                            "left" | "right"
-                          )[],
-                          body: Object.entries(r.byStore).map(([id, v]) => [
-                            stores.find((x) => x.id === id)?.name ?? "",
-                            money(v.revenue),
-                            money(v.profit),
-                            money(v.expenses),
-                            money(v.profit - v.expenses),
-                          ]),
-                        },
-                      ]
-                    : []),
-                ],
-              })
-            }
-          >
-            {t("reports.downloadPdf")}
-          </Button>
-          {stores.length > 1 && (
-            <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
-              {t("reports.allStores")}
-            </Button>
-          )}
-        </div>
-      </div>
+            {stores.length > 1 && (
+              <Button
+                size="sm"
+                variant={all ? "secondary" : "outline"}
+                aria-pressed={all}
+                onClick={() => setAll(!all)}
+              >
+                {t("reports.allStores")}
+              </Button>
+            )}
+          </>
+        }
+      />
       {loading ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
+        <Card className="p-6 text-center text-sm text-muted-foreground">
           {t("reports.loading")}
         </Card>
       ) : (
         <div className="space-y-4">
-          <Card className="overflow-hidden shadow-none">
+          <Card className="overflow-hidden">
             <div className="grid divide-y sm:grid-cols-5 sm:divide-x sm:divide-y-0">
               <Stat
                 k={t("reports.netSales")}
@@ -511,28 +517,33 @@ function Stat({
   tone?: "pos" | "neg";
 }) {
   return (
-    <div className={cn("p-3", strong && "bg-secondary/60")}>
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div
+      className={cn(
+        "min-w-0 p-4",
+        strong && (tone === "neg" ? "bg-destructive-soft" : "bg-secondary/50"),
+      )}
+    >
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         {k}
       </div>
       <div
         className={cn(
-          "tabular mt-1 truncate text-base font-extrabold",
+          "font-display tabular mt-1.5 truncate text-2xl font-medium",
           tone === "neg" && "text-destructive",
-          tone === "pos" && "text-accent",
+          tone === "pos" && "text-success",
         )}
       >
         {v}
       </div>
-      <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>
+      <div className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</div>
     </div>
   );
 }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className="shadow-none">
+    <Card className="min-w-0">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-bold">{title}</CardTitle>
+        <CardTitle className="font-display text-sm font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1.5 pt-0 text-[13px]">{children}</CardContent>
     </Card>
@@ -541,10 +552,13 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 function Row({ k, v, bold }: { k: React.ReactNode; v: string; bold?: boolean }) {
   return (
     <div
-      className={cn("flex justify-between gap-3 text-[13px]", bold && "border-t pt-2 font-bold")}
+      className={cn(
+        "flex justify-between gap-3 text-[13px]",
+        bold && "border-t pt-2 font-semibold",
+      )}
     >
       <span className="min-w-0 truncate text-muted-foreground">{k}</span>
-      <span className="tabular shrink-0">{v}</span>
+      <span className="tabular shrink-0 whitespace-nowrap">{v}</span>
     </div>
   );
 }
@@ -560,10 +574,10 @@ function Bar({
   text: string;
 }) {
   return (
-    <div className="text-[13px]">
+    <div className="min-w-0 text-[13px]">
       <div className="flex justify-between gap-3">
         <span className="min-w-0 truncate">{label}</span>
-        <span className="tabular shrink-0">{text}</span>
+        <span className="tabular shrink-0 whitespace-nowrap">{text}</span>
       </div>
       <Progress value={max ? (value / max) * 100 : 0} className="mt-1 h-1.5" />
     </div>

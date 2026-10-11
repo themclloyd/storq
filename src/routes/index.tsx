@@ -30,7 +30,7 @@ import {
   BoxesIcon,
   UserMultipleIcon,
   BarChartIcon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { PRICES } from "@/lib/billing";
 import { useI18n } from "@/lib/i18n";
@@ -278,7 +278,7 @@ function Cta({ label, invert = false }: { label?: string; invert?: boolean }) {
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <Badge className="rounded-full border-0 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-accent shadow-none hover:bg-accent/10">
+    <Badge className="rounded-full border-0 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-accent hover:bg-accent/10">
       {children}
     </Badge>
   );
@@ -371,7 +371,7 @@ function Landing() {
             decoding="async"
             className="h-[460px] w-full object-cover md:h-[620px] transition-transform duration-700 ease-out hover:scale-[1.02]"
           />
-          <Card className="absolute bottom-5 left-5 gap-0 rounded-2xl border-0 bg-card/95 p-5 text-left shadow-xl backdrop-blur transition-transform duration-300 hover:-translate-y-1 md:bottom-8 md:left-8">
+          <Card className="absolute bottom-5 left-5 gap-0 rounded-2xl border-0 bg-card/95 p-5 text-left backdrop-blur transition-transform duration-300 hover:-translate-y-1 md:bottom-8 md:left-8">
             <CardDescription className="text-xs font-medium">
               {t("marketing.heroTakings")}
             </CardDescription>
@@ -494,7 +494,7 @@ function Landing() {
           </Reveal>
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             <Reveal>
-              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
+              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
                 <CardHeader className="gap-0 p-0">
                   <HugeiconsIcon
                     icon={UserMultipleIcon}
@@ -510,7 +510,7 @@ function Landing() {
               </Card>
             </Reveal>
             <Reveal delay={100}>
-              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
+              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
                 <CardHeader className="gap-0 p-0">
                   <HugeiconsIcon
                     icon={ShieldCheckIcon}
@@ -526,7 +526,7 @@ function Landing() {
               </Card>
             </Reveal>
             <Reveal delay={200}>
-              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 shadow-none ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
+              <Card className="group gap-0 rounded-3xl border-0 bg-primary-foreground/5 p-10 ring-1 ring-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25">
                 <CardHeader className="gap-0 p-0">
                   <HugeiconsIcon
                     icon={BoxesIcon}
@@ -564,13 +564,13 @@ function Landing() {
           </h2>
           <p className="mt-5 text-lg text-muted-foreground">{t("marketing.stockLead")}</p>
           <div className="mt-8 grid grid-cols-2 gap-4">
-            <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 shadow-none transition-colors duration-300 hover:bg-accent/10">
+            <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 transition-colors duration-300 hover:bg-accent/10">
               <CardHeader className="gap-1 p-0">
                 <CardTitle className="text-3xl font-light">{t("marketing.stockSells")}</CardTitle>
                 <CardDescription>{t("marketing.stockSellsDesc")}</CardDescription>
               </CardHeader>
             </Card>
-            <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 shadow-none transition-colors duration-300 hover:bg-accent/10">
+            <Card className="gap-0 rounded-2xl border-0 bg-muted p-6 transition-colors duration-300 hover:bg-accent/10">
               <CardHeader className="gap-1 p-0">
                 <CardTitle className="text-3xl font-light">{t("marketing.stockLow")}</CardTitle>
                 <CardDescription>{t("marketing.stockLowDesc")}</CardDescription>
@@ -594,7 +594,7 @@ function Landing() {
             </div>
           </Reveal>
           <Reveal delay={120}>
-            <Card className="gap-0 rounded-3xl border-0 p-8 shadow-xl transition-transform duration-500 ease-out hover:-translate-y-1.5">
+            <Card className="gap-0 rounded-3xl border-0 p-8 transition-transform duration-500 ease-out hover:-translate-y-1.5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <CardDescription>{t("marketing.laybyRef")}</CardDescription>
@@ -602,7 +602,7 @@ function Landing() {
                     {t("marketing.laybyItem")}
                   </CardTitle>
                 </div>
-                <Badge className="shrink-0 rounded-full border-0 bg-success/15 px-3 py-1 text-xs font-semibold text-success shadow-none hover:bg-success/15">
+                <Badge className="shrink-0 rounded-full border-0 bg-success/15 px-3 py-1 text-xs font-semibold text-success hover:bg-success/15">
                   {t("marketing.laybyOnTrack")}
                 </Badge>
               </div>
@@ -752,13 +752,13 @@ function Landing() {
             </p>
           </Reveal>
           <Reveal delay={160}>
-            <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary p-10 text-primary-foreground shadow transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+            <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary p-10 text-primary-foreground transition-all duration-300 hover:-translate-y-1.5">
               <CardHeader className="p-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <CardTitle className="text-lg font-semibold">
                     {t("marketing.pricingCardTitle")}
                   </CardTitle>
-                  <Badge className="rounded-full border-0 bg-primary-foreground/15 px-3 py-1 text-xs font-semibold text-primary-foreground shadow-none hover:bg-primary-foreground/15">
+                  <Badge className="rounded-full border-0 bg-primary-foreground/15 px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary-foreground/15">
                     {t("marketing.pricingTrialBadge")}
                   </Badge>
                 </div>

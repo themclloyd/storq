@@ -21,6 +21,7 @@ import {
   saveQueue,
   type QueuedSale,
 } from "@/lib/offline";
+import { formatCompactMoney, formatMoney } from "@/lib/format";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
 import { t, useI18n } from "@/lib/i18n";
 
@@ -62,6 +63,10 @@ type PosCtx = {
   lock: () => Promise<void>;
   rpc: <T = unknown>(fn: string, args?: Record<string, unknown>) => Promise<T>;
   money: (n: number | string | null | undefined) => string;
+  /** Compact chart-axis label (`40k`, `−20k`); currency symbol omitted. */
+  compactMoney: (n: number | string | null | undefined) => string;
+  /** Configured currency symbol (e.g. "MWK", "R"), or null before the business loads. */
+  currency: string | null;
   can: (...roles: Role[]) => boolean;
   refresh: () => void;
   /** Sale checkout that queues direct-store cash/card/mobile sales on this device when offline. */
@@ -223,10 +228,15 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   };
 
   const currency = businessQ.data?.currency ?? "R";
+  // Single shared money format (spec §1): NBSP thousands, decimals only when
+  // fractional, real minus before the symbol for negatives (e.g. "−MWK 41 400").
   const money = useMemo(
-    () => (n: number | string | null | undefined) =>
-      `${currency} ${Number(n ?? 0).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    () => (n: number | string | null | undefined) => formatMoney(currency, n),
     [currency],
+  );
+  const compactMoney = useMemo(
+    () => (n: number | string | null | undefined) => formatCompactMoney(n),
+    [],
   );
 
   // ---- instant start: show last known catalog/stock immediately, refresh behind ----
@@ -371,6 +381,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     lock,
     rpc,
     money,
+    compactMoney,
+    currency,
     can: (...roles) => !!staff && roles.includes(staff.role),
     refresh: () => qc.invalidateQueries(),
   };
@@ -379,7 +391,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     !online || queue.length ? (
       <div
         role="status"
-        className="fixed bottom-3 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-full border bg-card px-4 py-2 text-xs font-medium shadow-lg"
+        className="fixed bottom-3 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-full border bg-card px-4 py-2 text-xs font-medium"
       >
         <span className={online ? "text-foreground" : "text-destructive"}>
           {online ? t("offline.online") : t("offline.offlineSaved")}

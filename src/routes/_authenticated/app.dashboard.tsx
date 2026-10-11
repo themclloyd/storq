@@ -8,7 +8,7 @@ import {
   MoneyBag02Icon,
   Notification01Icon,
   Wallet01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
@@ -64,10 +64,12 @@ function Dashboard() {
   const since = dashboardSince();
   const storeId = store?.id;
 
-  const sales = useSales("dash", { storeId, since });
-  const expenses = useExpenses({ storeId, since });
+  // Buying costs (and therefore the nested sale_items join) are gated to
+  // managers/admins. A cashier's chart only needs parent totals, so we skip the
+  // item join entirely instead of pulling sale_items for up to 1000 sales.
   const seesProfit = can("admin", "manager");
-  // Buying costs are gated to managers/admins; cashiers never fetch them.
+  const sales = useSales("dash", { storeId, since, items: seesProfit });
+  const expenses = useExpenses({ storeId, since });
   const costs = useSaleItemCosts(seesProfit ? sales.data : undefined);
   const loading = sales.isPending || expenses.isPending;
 
@@ -75,6 +77,9 @@ function Dashboard() {
   const alerts = useQuery({
     queryKey: ["dash-alerts", storeId, store?.store_type, can("admin", "manager"), locale],
     enabled: !!storeId,
+    // The feed is in SALE_TOUCHED and invalidated by every stock write, so it
+    // can stay cached across remounts rather than re-running its count queries.
+    staleTime: 60_000,
     queryFn: async () => {
       const out: AlertItem[] = [];
       if (!storeId) return out;
@@ -141,7 +146,7 @@ function Dashboard() {
     const byMethod: Record<string, number> = {};
     for (const s of rows) {
       revenue += Number(s.total);
-      for (const i of s.sale_items) cogs += Number(i.qty) * Number(costs.data?.[i.id] ?? 0);
+      for (const i of s.sale_items ?? []) cogs += Number(i.qty) * Number(costs.data?.[i.id] ?? 0);
       byMethod[s.payment_method ?? "cash"] =
         (byMethod[s.payment_method ?? "cash"] ?? 0) + Number(s.total);
     }

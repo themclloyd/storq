@@ -13,28 +13,31 @@ import {
 } from "@/components/ui/select";
 
 export function PageHeader({
+  breadcrumb,
   title,
   sub,
   actions,
 }: {
-  title: string;
-  sub?: string;
+  breadcrumb?: ReactNode;
+  title: ReactNode;
+  sub?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 className="text-xl font-semibold">{title}</h1>
-        {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        {breadcrumb && <div className="mb-1 text-xs text-muted-foreground">{breadcrumb}</div>}
+        <h1 className="font-display text-3xl leading-tight">{title}</h1>
+        {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-1.5">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Label className="block space-y-1">
+    <Label className="block space-y-2">
       <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
       {children}
     </Label>
@@ -73,16 +76,16 @@ export function NativeSelect({
 }
 
 const statusStyle: Record<string, string> = {
-  completed: "bg-success/15 text-success",
-  layby_completed: "bg-success/15 text-success",
-  pending_approval: "bg-warning/25 text-warning-foreground",
-  layby_open: "bg-accent/15 text-accent",
-  rejected: "bg-destructive/15 text-destructive",
-  layby_cancelled: "bg-destructive/15 text-destructive",
-  open: "bg-accent/15 text-accent",
+  completed: "bg-success-soft text-success",
+  layby_completed: "bg-success-soft text-success",
+  pending_approval: "bg-warning-soft text-warning-foreground",
+  layby_open: "bg-warning-soft text-warning-foreground",
+  rejected: "bg-destructive-soft text-destructive",
+  layby_cancelled: "bg-destructive-soft text-destructive",
+  open: "bg-warning-soft text-warning-foreground",
   closed: "bg-secondary text-muted-foreground",
-  refunded: "bg-destructive/15 text-destructive",
-  partially_refunded: "bg-warning/25 text-warning-foreground",
+  refunded: "bg-destructive-soft text-destructive",
+  partially_refunded: "bg-warning-soft text-warning-foreground",
 };
 const statusText: Record<string, string> = {
   completed: "Paid",
@@ -106,9 +109,7 @@ export function Status({ s }: { s: string }) {
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return (
-    <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">{children}</Card>
-  );
+  return <Card className="p-6 text-center text-sm text-muted-foreground">{children}</Card>;
 }
 
 export function StoreTypeTag({ type }: { type: string }) {
@@ -118,8 +119,8 @@ export function StoreTypeTag({ type }: { type: string }) {
       className={cn(
         "rounded-full border-transparent px-2 py-0.5 text-[11px] uppercase tracking-wide",
         type === "approval"
-          ? "bg-warning/25 text-warning-foreground"
-          : "bg-success/15 text-success",
+          ? "bg-warning-soft text-warning-foreground"
+          : "bg-secondary text-secondary-foreground",
       )}
     >
       {type === "approval" ? t("status.approval") : t("status.directSale")}

@@ -109,7 +109,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen flex-col px-6 py-8 sm:px-12">
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-2xl font-semibold">
+        <div className="font-display flex items-center gap-3 text-2xl font-medium">
           <img src="/logo.svg" alt="Storq logo" className="size-10 rounded-lg" />
           Storq
         </div>
@@ -160,7 +160,7 @@ function AuthPage() {
         ) : (
           <div className="space-y-8">
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold">
+              <h1 className="font-display text-3xl font-medium">
                 {mode === "in"
                   ? t("auth.welcomeBack")
                   : mode === "up"

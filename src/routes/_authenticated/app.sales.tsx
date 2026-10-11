@@ -1,12 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { COUNTED, useRefunds } from "@/lib/refunds";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { toast } from "sonner";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ReceiptIcon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
-import { useSales, useStaffNames } from "@/lib/sales";
+import { fetchSalesForExport, useSalesPage, useSalesSummary, useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { PageHeader } from "@/components/pos/bits";
+import { ExportMenu } from "@/components/pos/ExportMenu";
 import {
   Table,
   TableBody,
@@ -38,6 +44,10 @@ const rangeKey: Record<keyof typeof ranges, string> = {
   "30 days": "sales.range30d",
 };
 
+// Rows are read one page at a time straight from the server; the table never
+// holds the whole period in memory the way the old client-side slice did.
+const PAGE_SIZE = 50;
+
 const fmtDate = (d: string) =>
   new Date(d).toLocaleString("en-ZA", {
     day: "2-digit",
@@ -47,16 +57,16 @@ const fmtDate = (d: string) =>
   });
 
 const statusStyle: Record<string, string> = {
-  completed: "bg-success/15 text-success",
-  layby_completed: "bg-success/15 text-success",
-  pending_approval: "bg-warning/25 text-warning-foreground",
-  layby_open: "bg-accent/15 text-accent",
-  rejected: "bg-destructive/15 text-destructive",
-  layby_cancelled: "bg-destructive/15 text-destructive",
-  open: "bg-accent/15 text-accent",
+  completed: "bg-success-soft text-success",
+  layby_completed: "bg-success-soft text-success",
+  pending_approval: "bg-warning-soft text-warning-foreground",
+  layby_open: "bg-warning-soft text-warning-foreground",
+  rejected: "bg-destructive-soft text-destructive",
+  layby_cancelled: "bg-destructive-soft text-destructive",
+  open: "bg-warning-soft text-warning-foreground",
   closed: "bg-secondary text-muted-foreground",
-  refunded: "bg-destructive/15 text-destructive",
-  partially_refunded: "bg-warning/25 text-warning-foreground",
+  refunded: "bg-destructive-soft text-destructive",
+  partially_refunded: "bg-warning-soft text-warning-foreground",
 };
 const statusText: Record<string, string> = {
   completed: "Paid",
@@ -86,181 +96,201 @@ function Sales() {
   const navigate = useNavigate();
   const [range, setRange] = useState<keyof typeof ranges>("today");
   const [all, setAll] = useState(false);
+  const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const since = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - ranges[range]);
     return d.toISOString();
   }, [range]);
-  const sales = useSales("history", { storeId: all ? undefined : store?.id, since });
+  const storeId = all ? undefined : store?.id;
+
+  // Headline numbers come from a single SQL aggregate over the whole period, so
+  // they stay exact past 1000 sales; the table itself pages on the server.
+  const summary = useSalesSummary({ storeId, since });
+  const kpi = summary.data ?? {
+    revenue: 0,
+    collected: 0,
+    refunds: 0,
+    transactions: 0,
+    pending: 0,
+  };
+  const list = useSalesPage({ storeId, since, page, pageSize: PAGE_SIZE });
   const names = useStaffNames();
-  const rows = sales.data ?? [];
-  const [shown, setShown] = useState(50);
-  const done = rows.filter((s) => COUNTED.includes(s.status));
-  const revenue = done.reduce((a, s) => a + Number(s.total) - Number(s.refunded ?? 0), 0);
-  const refunds = useRefunds({ storeId: all ? undefined : store?.id, since });
-  const collected = rows
-    .filter((s) => s.status !== "pending_approval" && s.status !== "rejected")
-    .reduce((a, s) => a + Number(s.paid), 0);
-  const pending = rows.filter((s) => s.status === "pending_approval").length;
+  const rows = list.data?.rows ?? [];
+  const total = list.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const storeName = (id: string) => stores.find((s) => s.id === id)?.name;
+
+  // Export is on-demand: fetch the full period only when a button is clicked so
+  // ordinary browsing stays light while the download still covers every sale.
+  async function runExport(kind: "csv" | "pdf") {
+    setExporting(true);
+    try {
+      const data = await fetchSalesForExport({ storeId, since });
+      const staffName = (id: string | null) => names.data?.[id ?? ""] ?? "";
+      if (kind === "csv") {
+        downloadCsv(`storq-sales-${fileStamp()}.csv`, [
+          [
+            "number",
+            "date",
+            "store",
+            "status",
+            "staff",
+            "customer",
+            "method",
+            "total",
+            "tax",
+            "paid",
+            "refunded",
+          ],
+          ...data.map((s) => [
+            s.number,
+            s.created_at,
+            storeName(s.store_id) ?? "",
+            s.status,
+            staffName(s.created_by),
+            s.customer_name ?? "",
+            s.payment_method ?? "",
+            s.total,
+            s.tax,
+            s.paid,
+            s.refunded,
+          ]),
+        ]);
+      } else {
+        void downloadPdf({
+          filename: `storq-sales-${fileStamp()}`,
+          title: t("sales.reportTitle"),
+          business: business?.name,
+          orientation: "landscape",
+          subtitle: `${all ? t("sales.allStores") : (store?.name ?? "")} · ${t(rangeKey[range])}`,
+          kpis: [
+            [t("sales.netSales"), money(kpi.revenue)],
+            [t("sales.collected"), money(kpi.collected)],
+            [t("sales.refunds"), money(kpi.refunds)],
+            [t("sales.transactions"), String(kpi.transactions)],
+          ],
+          sections: [
+            {
+              type: "table",
+              head: [
+                "#",
+                t("doc.date"),
+                t("sales.colStore"),
+                t("sales.colStatus"),
+                t("sales.colStaff"),
+                t("doc.customer"),
+                t("doc.method"),
+                t("common.total"),
+                t("sales.colRefunded"),
+              ],
+              align: ["left", "left", "left", "left", "left", "left", "left", "right", "right"],
+              body: data.map((s) => [
+                s.number,
+                new Date(s.created_at).toLocaleString("en-ZA", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }),
+                storeName(s.store_id) ?? "",
+                s.status in statusText ? t(`status.${s.status}`) : s.status,
+                staffName(s.created_by),
+                s.customer_name ?? "",
+                s.payment_method ?? "",
+                money(s.total),
+                Number(s.refunded) ? money(s.refunded) : "",
+              ]),
+            },
+          ],
+        });
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const showPending = all
+    ? stores.some((s) => s.store_type === "approval")
+    : store?.store_type === "approval";
+
+  const cards: [string, string][] = [
+    [t("sales.netSales"), money(kpi.revenue)],
+    [t("sales.collected"), money(kpi.collected)],
+    [t("sales.refunds"), money(kpi.refunds)],
+    [t("sales.transactions"), String(kpi.transactions)],
+  ];
+  if (showPending) cards.push([t("status.pending_approval"), String(kpi.pending)]);
+
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">{t("sales.title")}</h1>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(ranges) as (keyof typeof ranges)[]).map((r) => (
-            <Button
-              key={r}
+      <PageHeader
+        breadcrumb={`${t("nav.sales")} / ${t("nav.salesHistory")}`}
+        title={t("sales.title")}
+        actions={
+          <>
+            <SegmentedControl
+              aria-label={t("sales.title")}
               size="sm"
-              variant={range === r ? "default" : "outline"}
-              onClick={() => {
+              value={range}
+              onChange={(r) => {
                 setRange(r);
-                setShown(50);
+                setPage(1);
               }}
-              className="capitalize"
-            >
-              {t(rangeKey[r])}
-            </Button>
-          ))}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              downloadCsv(`storq-sales-${fileStamp()}.csv`, [
-                [
-                  "number",
-                  "date",
-                  "store",
-                  "status",
-                  "staff",
-                  "customer",
-                  "method",
-                  "total",
-                  "tax",
-                  "paid",
-                  "refunded",
-                ],
-                ...rows.map((s) => [
-                  s.number,
-                  s.created_at,
-                  storeName(s.store_id) ?? "",
-                  s.status,
-                  names.data?.[s.created_by ?? ""] ?? "",
-                  s.customer_name ?? "",
-                  s.payment_method ?? "",
-                  s.total,
-                  s.tax,
-                  s.paid,
-                  s.refunded,
-                ]),
-              ])
-            }
-          >
-            CSV
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              void downloadPdf({
-                filename: `storq-sales-${fileStamp()}`,
-                title: t("sales.reportTitle"),
-                business: business?.name,
-                orientation: "landscape",
-                subtitle: `${all ? t("sales.allStores") : (store?.name ?? "")} · ${t(rangeKey[range])}`,
-                kpis: [
-                  [t("sales.netSales"), money(revenue)],
-                  [t("sales.collected"), money(collected)],
-                  [
-                    t("sales.refunds"),
-                    money((refunds.data ?? []).reduce((a, r) => a + Number(r.amount), 0)),
-                  ],
-                  [t("sales.transactions"), String(done.length)],
-                ],
-                sections: [
-                  {
-                    type: "table",
-                    head: [
-                      "#",
-                      t("doc.date"),
-                      t("sales.colStore"),
-                      t("sales.colStatus"),
-                      t("sales.colStaff"),
-                      t("doc.customer"),
-                      t("doc.method"),
-                      t("common.total"),
-                      t("sales.colRefunded"),
-                    ],
-                    align: [
-                      "left",
-                      "left",
-                      "left",
-                      "left",
-                      "left",
-                      "left",
-                      "left",
-                      "right",
-                      "right",
-                    ],
-                    body: rows.map((s) => [
-                      s.number,
-                      new Date(s.created_at).toLocaleString("en-ZA", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      }),
-                      storeName(s.store_id) ?? "",
-                      s.status in statusText ? t(`status.${s.status}`) : s.status,
-                      names.data?.[s.created_by ?? ""] ?? "",
-                      s.customer_name ?? "",
-                      s.payment_method ?? "",
-                      money(s.total),
-                      Number(s.refunded) ? money(s.refunded) : "",
-                    ]),
-                  },
-                ],
-              })
-            }
-          >
-            PDF
-          </Button>
-          {stores.length > 1 && can("admin", "manager") && (
-            <Button size="sm" variant={all ? "accent" : "outline"} onClick={() => setAll(!all)}>
-              {t("sales.allStores")}
-            </Button>
-          )}
-        </div>
-      </div>
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [t("sales.netSales"), money(revenue)],
-          [t("sales.collected"), money(collected)],
-          [
-            t("sales.refunds"),
-            money((refunds.data ?? []).reduce((a, r) => a + Number(r.amount), 0)),
-          ],
-          [t("sales.transactions"), String(done.length)],
-          ...((
-            all ? stores.some((s) => s.store_type === "approval") : store?.store_type === "approval"
-          )
-            ? [[t("status.pending_approval"), String(pending)]]
-            : []),
-        ].map(([k, v]) => (
-          <Card key={k} className="p-3 shadow-none">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              options={(Object.keys(ranges) as (keyof typeof ranges)[]).map((r) => ({
+                value: r,
+                label: t(rangeKey[r]),
+              }))}
+            />
+            {stores.length > 1 && can("admin", "manager") && (
+              <Button
+                size="sm"
+                variant={all ? "secondary" : "outline"}
+                aria-pressed={all}
+                onClick={() => {
+                  setAll(!all);
+                  setPage(1);
+                }}
+              >
+                {t("sales.allStores")}
+              </Button>
+            )}
+            <ExportMenu disabled={exporting} onExport={(kind) => void runExport(kind)} />
+          </>
+        }
+      />
+      <div className="mb-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+        {cards.map(([k, v]) => (
+          <Card key={k} className="p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {k}
             </div>
-            <div className="tabular mt-1 truncate text-base font-extrabold">{v}</div>
+            <div className="font-display tabular mt-1 truncate text-2xl font-medium">{v}</div>
           </Card>
         ))}
       </div>
-      {rows.length === 0 ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground shadow-none">
-          {t("sales.noSales")}
+      {list.isPending ? (
+        <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</Card>
+      ) : rows.length === 0 ? (
+        <Card>
+          <div className="flex flex-col items-center gap-3 py-14 text-center">
+            <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+              <HugeiconsIcon icon={ReceiptIcon} />
+            </span>
+            <p className="font-display text-lg">{t("sales.emptyTitle")}</p>
+            <p className="max-w-xs text-sm text-muted-foreground">{t("sales.emptyBody")}</p>
+            <Button variant="outline" onClick={() => navigate({ to: "/app" })}>
+              {t("sales.openPos")}
+            </Button>
+          </div>
         </Card>
       ) : (
-        <Card className="shadow-none">
+        <Card>
           <Table>
             <TableHeader>
               <TableRow>
@@ -272,13 +302,13 @@ function Sales() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.slice(0, shown).map((s) => (
+              {rows.map((s) => (
                 <TableRow
                   key={s.id}
                   className="cursor-pointer text-[13px]"
                   onClick={() => navigate({ to: "/app/sales/$id", params: { id: s.id } })}
                 >
-                  <TableCell className="font-bold">#{s.number}</TableCell>
+                  <TableCell className="font-medium">#{s.number}</TableCell>
                   <TableCell className="text-muted-foreground">{fmtDate(s.created_at)}</TableCell>
                   <TableCell>
                     <StatusBadge s={s.status} />
@@ -295,13 +325,34 @@ function Sales() {
               ))}
             </TableBody>
           </Table>
-          {rows.length > shown && (
-            <div className="border-t p-3 text-center">
-              <Button size="sm" variant="outline" onClick={() => setShown(shown + 50)}>
-                {t("sales.showMore")} ({rows.length - shown} {t("sales.leftWord")})
+          <div className="flex items-center justify-between gap-2 border-t p-3">
+            <span className="text-xs text-muted-foreground">
+              {t("sales.showing", { from, to, total })}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1 || list.isFetching}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                aria-label={t("sales.prev")}
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <span className="tabular text-xs text-muted-foreground">
+                {page} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages || list.isFetching}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                aria-label={t("sales.next")}
+              >
+                <ChevronRightIcon className="size-4" />
               </Button>
             </div>
-          )}
+          </div>
         </Card>
       )}
     </>

@@ -2,10 +2,9 @@
  * Chichewa (ny) message catalog. Keys mirror `en.ts` (the structural source of
  * truth); anything omitted here falls back to English automatically.
  *
- * TRANSLATION NOTES for a native reviewer (marked `// REVIEW:` inline):
+ * TRANSLATION NOTES for a native reviewer:
  * - Confirmed glossary (owner-approved): POS/till = "Kugulitsa", layby =
- *   "Ngongole", expenses = "Zotulutsa", reports = "Malipoti". Use these terms
- *   consistently across every screen.
+ *   "Ngongole", expenses = "Zotulutsa", reports = "Malipoti".
  * - Modern retail terms with no established Chichewa word use a common loanword
  *   (Dashibodi, PIN, imelo, cookie) so a Malawian shopkeeper recognises them.
  */
@@ -16,7 +15,7 @@ export const ny = {
     close: "Tsekani",
     back: "Bwererani",
     tryAgain: "Yesaninso",
-    loading: "Tikudikirani…", // REVIEW: "loading" has no exact term; confirm intent
+    loading: "Tikutsegula…",
     confirming: "Chonde dikirani…",
     confirm: "Tsimikizani",
     yes: "Inde",
@@ -34,7 +33,7 @@ export const ny = {
     online: "Pa intaneti",
     workspace: "Malo ogwirira ntchito",
     total: "Yense",
-    apply: "Gwiritsani", // REVIEW: apply (a % / discount)
+    apply: "Gwiritsani ntchito",
     saved: "Zasungidwa",
   },
   nav: {
@@ -46,7 +45,7 @@ export const ny = {
     laybys: "Ngongole",
     items: "Zinthu",
     transfers: "Kusamutsa",
-    collections: "Magulu", // REVIEW: product groups — "Magulu" vs "Gulu"
+    collections: "Magulu",
     stocktakes: "Kuwerengera katundu",
     overview: "Chidule",
     reports: "Malipoti",
@@ -62,6 +61,9 @@ export const ny = {
     selectStore: "Sankhani sitolo",
     lockWorkspace: "Tsekani malo ogwirira ntchito",
     lock: "Tsekani",
+    menu: "Menyu ya akaunti",
+    signOut: "Tulukani",
+    language: "Chinenero",
   },
   roles: {
     admin: "Woyang'anira",
@@ -77,28 +79,30 @@ export const ny = {
     online: "Pa intaneti",
     offlineSaved: "Palibe intaneti — malonda asungidwa pa chipangizochi",
     waitingToSync: "Malonda {count} akudikira kugwirizanitsidwa",
-    unlockToSync: " (isani ndi PIN kuti mugwirizanitse)",
+    unlockToSync: " (lowetsani PIN kuti mugwirizanitse)",
     syncNow: "Gwirizanitsani tsopano",
-    notRecorded: "Malonda opanda intaneti {amount} siolelezidwa:",
+    notRecorded: "Malonda opanda intaneti {amount} sinalembedwe:",
     retry: "Yesani kachiwiri",
     discard: "Tayani",
-    discardConfirm: "Mufuna kutaya malonda awa opanda intaneti? Siwolelezidwa.",
+    discardConfirm: "Mufuna kutaya malonda awa opanda intaneti? Sinalembedwe.",
   },
   errors: {
     noAccess: "Mulibe ufulu wowona data iyi",
     generic: "Pachitika vuto. Chonde yesaninso.",
-    pageNotFoundTitle: "Tsamba silipezeka",
-    pageNotFoundBody: "Tsamba lomwe mukupenda silipo kapena lasunjidwa.",
-    pageDidntLoad: "Tsamba lino silinatsegukere",
+    pageNotFoundTitle: "Tsamba silikupezeka",
+    pageNotFoundBody: "Tsamba lomwe mukupenda silipo kapena lachotsedwa.",
+    pageDidntLoad: "Tsamba lino silinatseguke",
     pageDidntLoadBody:
       "Pachitika vuto kumbali yathu. Mungayese kubwezeretsa kapena kubwerera kunyumba.",
     goHome: "Bwererani kunyumba",
-    tooManyAttempts: "Mayeso ambiri kwambiri — yesaninso pang'ono.",
+    goBack: "Bwererani kumbuyo",
+    openSignIn: "Tsegulani ku kulowa",
+    tooManyAttempts: "Mwayesa kambiri — yesaninso pakapita nthawi.",
   },
   validate: {
     required: "{label} iyenera kuzazidwa",
     tooLong: "{label} siyenera kupitilira zolembera {max}",
-    unsafe: "{label} siyenera kukhala ndi <, >, backticks kapena zolembera zowongolera",
+    unsafe: "{label} siyenera kukhala ndi <, >, backticks kapena zizindikiro zowongolera",
     emailRequired: "Imelo iyenera kuzazidwa",
     emailTooLong: "Imelo ndi yayitali kwambiri",
     emailChars: "Imelo ili ndi zolembera zosaloledwa",
@@ -117,7 +121,7 @@ export const ny = {
     amountWhole: "{label} iyenera kukhala nambala yathunthu",
     amountMin: "{label} iyenera kukhala {min} kapena kuposerapo",
     amountMax: "{label} iyenera kukhala {max} kapena pang'ono",
-    skuInvalid: "Barcode/SKU igwiritse ntchito makale, manambala, mpata ndi . _ - zokha (max 64)",
+    skuInvalid: "Barcode/SKU igwiritse ntchito malembo, manambala, mpata ndi . _ - zokha (max 64)",
     currencyLength: "Chizindikiro cha ndalama siyenera kupitilira zolembera {max}",
     currencyChars: "Chizindikiro cha ndalama chili ndi zolembera zosaloledwa",
   },
@@ -197,11 +201,11 @@ export const ny = {
     allClear: "Zonse ndi bwino — palibe chikufuna chisamaliro pano.",
     profitVisibilityNote:
       "Phindu limasonyezera eni ake ndi oyang'anira kokha pa tsamba la Malipoti.",
-    needsReorder: "Zofunika kuyitanzanso", // REVIEW: "reorder" wording
-    reorderNote: "{count} zinthu zili pansi pa mzere woyitanzira", // REVIEW: "reorder point"
+    needsReorder: "Zofunika kuyitanitsidwa",
+    reorderNote: "{count} zinthu zili pansi pa mzere woyitanitsira",
     checkingStock: "Tikuona mlingo wa katundu…",
-    nothingBelowReorder: "Palibe chinthu chili pansi pa mzere woyitanzira.",
-    reorderLine: "{name} — {qty} yasala, yitanizani pa {point}",
+    nothingBelowReorder: "Palibe chinthu chili pansi pa mzere woyitanitsira.",
+    reorderLine: "{name} — {qty} yasala, yitanitsani pa {point}",
     alertInvoices: "Ma invusi {count} akudikira kuvomerezedwa",
     alertLaybys: "Ngongole {count} zotseguka zili ndi zotsalira zolipira",
     alertLowStock: "Katundu wochepa: {name} ({qty} yasala)",
@@ -217,7 +221,7 @@ export const ny = {
     completed: "Chamalipiridwa",
     layby_completed: "Ngongole zalipiridwa",
     pending_approval: "Ikudikira kuvomerezedwa",
-    layby_open: "Ngongole yapatseguka", // REVIEW: layby still being paid
+    layby_open: "Ngongole yotseguka",
     rejected: "Zokana",
     layby_cancelled: "Ngongole yathletsedwa",
     open: "Ikuko",
@@ -236,8 +240,9 @@ export const ny = {
     noItemsYet:
       "Palibe zinthu pakadali pano. Woyang'anira kapena mtsogoleri atha kuzowonjezera mu Katundu.",
     noMatchingItems: "Palibe zinthu zofanana.",
+    searchToStart: "Sakani kapena werengani barcode kuti muwonjezere chinthu.",
     inStock: "{count} zilipo",
-    currentSale: "Kugulitsa kwa pano", // REVIEW
+    currentSale: "Malonda apano",
     currentInvoice: "Invoice ya pano",
     tapItems: "Dinani zinthu kuti muziwonjezera.",
     eachWord: "pa chimodzi",
@@ -245,7 +250,7 @@ export const ny = {
     vat: "VAT",
     included: "zaphatikizidwa",
     added: "zowonjezedwa",
-    charge: "Lipitsani {amount}", // REVIEW
+    charge: "Lipirani {amount}",
     sendForApproval: "Tumizani kuti avomereze",
     startLayby: "Yambani ngongole",
     laybyInvoice: "Invoice ya ngongole",
@@ -267,7 +272,7 @@ export const ny = {
     subApprovalInvoice: "Invoice ya kuvomereza",
     subLayby: "Ngongole",
     subDirectSale: "Kugulitsa kotseguka",
-    invoiceTotal: "Mulingo wa invoice", // REVIEW
+    invoiceTotal: "Mulingo wa invoice",
     amountDue: "Ndalama zolipira",
     approvalNote:
       "Wovomereza ayenera kuvomereza izi katundu asachoke mu sitolo ndalama zisanalembedwe.",
@@ -276,7 +281,7 @@ export const ny = {
     labelAmount: "Mulingo",
     labelDepositPaidNow: "Ndalama zolipiridwa pano",
     labelCashReceived: "Ndalama zolandiridwa",
-    tenderExact: "Zolondola", // REVIEW
+    tenderExact: "Ndalama zenizeni",
     tenderFullAmount: "Mulingo wathunthu",
     ariaPaymentAmount: "Mulingo wolipira {no}",
     ariaRemovePayment: "Chotsani kulipira",
@@ -288,12 +293,12 @@ export const ny = {
     customerNameRequired: "Dzina la kasitomala *",
     customerName: "Dzina la kasitomala",
     phoneLabel: "Foni",
-    noteForApprover: "Zolemba kwa wovomereza", // REVIEW
+    noteForApprover: "Zolemba kwa wovomereza",
     completeSale: "Malizani kugulitsa · {amount}",
     openLayby: "Tsegulani ngongole",
     discountsTitle: "Zochotsera",
     cashierCapNote:
-      "Kuchotsera mpaka {pct}% pa mzere ndi pa dengu lonse. Zopitilira zifuna PIN ya mtsogoleri pa kulipira.", // REVIEW: "dengu" for basket
+      "Kuchotsera mpaka {pct}% pa mzere ndi pa dengu lonse. Zopitilira zifuna PIN ya mtsogoleri pa kulipira.",
     lineLimitNote: "Zochotsera zimalingizidwa kukwana kwa mzere uliwonse.",
     applyPctToAll: "Gwiritsani % pa mizere yonse",
     ariaDiscountFor: "Kuchotsera kwa {name}",
@@ -308,13 +313,14 @@ export const ny = {
     scanCameraTitle: "Sani ndi kamera",
     holdCode: "Ikani code pamaso pa kamera.",
     lastSeen: " Zomwe zinaoneka: {code}",
-    noBarcodeSupport: "Kasakatuli uyu sunathe kusani mabarcodes.", // REVIEW: "kasakatuli" = browser
-    cameraBlocked: "Kuwona kwa kamera kzatseka — lolani, kapena gwiritsani chosanja cha barcode.",
+    noBarcodeSupport: "Kasakatuli uyu sakutha kuwerenga mabarcodes.",
+    cameraBlocked:
+      "Kuwona kwa kamera kwatsekedwa — lolani, kapena gwiritsani chosanja cha barcode.",
     noItemMatches: "Palibe chinthu chofanana ndi {code}",
     cameraPreviewAria: "Chionetsero cha kamera",
     closeCamera: "Tsekani kamera",
-    saleComplete: "Kugulitsa Kwathera", // REVIEW
-    laybyOpened: "Ngongole Yapatseguka", // REVIEW
+    saleComplete: "Kugulitsa Kwatha",
+    laybyOpened: "Ngongole Yatsegulidwa",
     laybyFullyPaid: "Ngongole Zalipiridwa Yense",
     receiptDownloaded: "PDF ya risitali yatsitsidwa.",
     printPopupBlock: "Lolani ma-popup kuti musindikize risitali.",
@@ -329,33 +335,33 @@ export const ny = {
     unitPrice: "Mtengo pa chimodzi",
     amount: "Mulingo",
     date: "Tsiku",
-    servedBy: "Wogulitsa", // REVIEW: served by / cashier
+    servedBy: "Wogulitsa",
     payment: "Kulipira",
     customer: "Kasitomala",
-    walkIn: "Mlendo", // REVIEW: walk-in customer
-    subtotal: "Mulingo wa zinthu", // REVIEW
-    paid: "Zolipiridwa", // REVIEW
+    walkIn: "Kasitomala wamba",
+    subtotal: "Mtengo wa zinthu",
+    paid: "Zolipidwa",
     change: "Zosinthira",
     total: "Yense",
-    noteLabel: "Zolemba:", // REVIEW
+    noteLabel: "Zolemba:",
     thankYou: "Zikomo chifukwa chogula na ife.",
     invoice: "Invoice",
     method: "Njira",
-    deposit: "Ndalama zoyamba", // REVIEW
+    deposit: "Ndalama zoyamba",
     discount: "Kuchotsera",
-    split: "Kulipira kogawidwa", // REVIEW: split payment
+    split: "Kulipira kogawidwa",
     titleSaleReceipt: "RISITALI YA KUGULITSA",
     titleLaybyReceipt: "RISITALI YA NGONGOLE",
-    titleLaybyPaid: "NGONGOLE ZALIPIRIDWA YENSE",
+    titleLaybyPaid: "NGONGOLE ZALIPIDWA YENSE",
     badgePaid: "ZALIPIDWA",
     badgeLaybyOpen: "NGONGOLE IKUKO",
     badgeLaybyPaid: "NGONGOLE ZALIPIDWA",
     thankYouKeep: "Zikomo — sungani risitali ineyi.",
-    poweredBy: "Zoyendetsedwa ndi Storq", // REVIEW
-    storeCredit: "Ngongole ya sitolo", // REVIEW: store credit
-    taxInvoice: "Invoyisi ya msonkho", // REVIEW: tax invoice
-    laybyStatement: "Chikalata cha Ngongole", // REVIEW: layby statement
-    walkInCustomer: "Kasitomala wolowera", // REVIEW: walk-in customer
+    poweredBy: "Zoyendetsedwa ndi Storq",
+    storeCredit: "Ngongole ya sitolo",
+    taxInvoice: "Invoyisi ya msonkho",
+    laybyStatement: "Chikalata cha Ngongole",
+    walkInCustomer: "Kasitomala wolowera",
     thankYouBusiness: "Zikomo chifukwa pogula nafe.",
     badgeRefunded: "ZABWEZEDWA",
     badgePartRefunded: "ZABWEZA PANG'ONO",
@@ -367,7 +373,7 @@ export const ny = {
     noAccess: "Oyang'anira ndi mtsogoleri okha angathe kasamalira katundu.",
     title: "Katundu",
     stockValueCost: "kuchuluka kwa katundu m'mtengo wogula",
-    importCsv: "Leterani CSV", // REVIEW: import
+    importCsv: "Lowetsani CSV",
     exportCsv: "Tumizani CSV",
     exportPdf: "Tumizani PDF",
     newItem: "Chinthu chatsopano",
@@ -381,24 +387,24 @@ export const ny = {
     reportSubtitle: "katundu opezeka",
     reportBadge: "KATUNDU",
     kpiItems: "Zinthu",
-    kpiUnits: "Zinthu zilipo", // REVIEW: units on hand
+    kpiUnits: "Zinthu zilipo",
     kpiValueCost: "Kuchuluka m'mtengo wogula",
     kpiValueRetail: "Kuchuluka m'mtengo wogulitsira",
     thCollections: "Magulu",
     thStockValue: "Kuchuluka kwa katundu",
     hiddenSuffix: " (yobisika)",
-    editItem: "Konzani chinthu", // REVIEW: edit
+    editItem: "Konzani chinthu",
     skuBarcode: "SKU / barcode",
     costPrice: "Mtengo wogula",
     sellingPrice: "Mtengo wogulitsira",
     buyingCost: "Mtengo wogula",
     collectionsLabel: "Magulu",
     noCollections: "Palibe magulu pakadali pano — opangani mu Magulu.",
-    reorderPoint: "Mulingo woyitanizira (kosakakamiza)", // REVIEW: reorder
-    reorderPointField: "Mulingo woyitanizira", // REVIEW
-    reorderPlaceholder: "Ledzani katundu akatsika ku mulingo umu",
+    reorderPoint: "Mlingo woyitanitsira (ngati mukufuna)",
+    reorderPointField: "Mlingo woyitanitsira",
+    reorderPlaceholder: "Lamulani katundu akatsika mlingo uwu",
     quantity: "Kuchuluka",
-    currentlyInStock: "pakadali pano {qty} zilipo — musasinthe kuti zikhalire", // REVIEW
+    currentlyInStock: "pakali pano {qty} zilipo — musasinthe popanda chifukwa",
     startingStock: "katundu woyamba wa sitolo ineyi",
     availableForSale: "Zopezeka kugulitsa",
     saveItem: "Sungani chinthu",
@@ -409,24 +415,24 @@ export const ny = {
     reasonLabel: "Chifukwa",
     noteOptional: "Zolemba (kosakakamiza)",
     noteField: "Zolemba",
-    notePlaceholder: "Nom. ya invoice, amene anayleterera…", // REVIEW
+    notePlaceholder: "Nom. ya invoice, amene anabweretsa…",
     noMovements: "Palibe zosuntha pakadali pano.",
     stockUpdated: "Katundu wasinthidwa",
     errNoRows: "Fayiloli ilibe mizere ya zinthu.",
-    errNeedName: 'Fayilo lifunika kholumu ya "name". Tumizani kaye kuti mupeze timangililo.', // REVIEW
+    errNeedName: 'Fayilo lifunika kholumu ya "name". Tumizani kaye kuti mupeze chitsanzo.',
     errName: "Dzina losowa kapena la ngozi",
     errSku: "SKU yolakwika",
     errNumber: "Nambala yolakwika",
     importItemsTitle: "Leterani zinthu",
     newWord: "zatsopano",
     updatesWord: "zosintha",
-    skippedWord: "zophunyidwa", // REVIEW: skipped
-    qtySetNote: 'Kuchuluka kwa ikidwa pa {store} ndipo kulembedwa ngati "CSV import".', // REVIEW
+    skippedWord: "zodumphidwa",
+    qtySetNote: 'Kuchuluka kwayikidwa pa {store} ndipo kulembedwa ngati "CSV import".',
     updateTag: "Zosintha",
     newTag: "Zatsopano",
     columnsHint:
       "Makholumu: name, sku, cost, price, quantity, active. Zinthu zifananso ndi SKU, kenaka dzina.",
-    importing: "Muleteretsa {done}/{total}…",
+    importing: "Mukuleteretsa {done}/{total}…",
     importItems: "Leterani zinthu {count}",
     itemsImported: "Zinthu {count} zaleteredwa",
     importedFailed: "{ok} zaleteredwa, {fails} zalephera",
@@ -443,13 +449,13 @@ export const ny = {
     transfer_out: "Kusamutsa kotumiza",
     correction: "Kulondoleza",
     damage: "Zoonongeka",
-    shrinkage: "Zinatayika / Zinabaika", // REVIEW: lost / stolen
+    shrinkage: "Zinatayika / Zobedwa",
     return_to_supplier: "Zinabwerera kwa wogulitsa",
     p_supplier_intake: "Kubweretsa kuchokera kwa wogulitsa",
     p_transfer_in: "Kusamutsa kuchokera ku sitolo ina",
     p_correction: "Kulondoleza kuwerengera",
     p_damage: "Zoonongeka",
-    p_shrinkage: "Zinatayika / Zinabaika", // REVIEW
+    p_shrinkage: "Zinatayika / Zobedwa",
     p_return_to_supplier: "Zinabwerera kwa wogulitsa",
     p_transfer_out: "Kusamutsa kupita ku sitolo ina",
   },
@@ -460,18 +466,21 @@ export const ny = {
     range30d: "Masiku 30",
     allStores: "Masitolo onse",
     reportTitle: "Lipoti la malonda",
-    netSales: "Malonda oyera", // REVIEW: net sales (after refunds)
+    netSales: "Malonda oyera",
     collected: "Zolandiridwa",
     refunds: "Zobwezedwa",
     transactions: "Zochitika",
     colStore: "Sitolo",
-    colStatus: "Mkhalidwe", // REVIEW: status
+    colStatus: "Mkhalidwe",
     colStaff: "Ogwira ntchito",
     colRefunded: "Zobweza",
     colDetails: "Zambiri",
     noSales: "Palibe malonda m'nthawi inoyi.",
     showMore: "Onetsani zina",
     leftWord: "zotsala",
+    prev: "M'mbuyo",
+    next: "Lotsatira",
+    showing: "Zikuwonetsa {from}–{to} mwa {total}",
   },
   sdetail: {
     saleTitle: "Kugulitsa #{number}",
@@ -479,11 +488,11 @@ export const ny = {
     backToSales: "Bwerera ku Malonda",
     by: "ndi {name}",
     staffWord: "ogwira ntchito",
-    returnRefund: "Bweza / Zolipira", // REVIEW: return / refund
-    net: "Yoyera", // REVIEW: net
+    returnRefund: "Bweza / Ndalama zobweza",
+    net: "Yoyera",
     balanceDue: "Zolipira zotsala",
     approvedBy: "Zololezedwa ndi",
-    billedTo: "Yainidontholedwa kwa", // REVIEW: billed to
+    billedTo: "Yalembedwa kwa",
     itemsCard: "Zinthu",
     refundsCard: "Zobweza",
     refundWord: "Kubweza",
@@ -494,7 +503,7 @@ export const ny = {
     each: "iliyonse",
     returned: "zabwezedwa",
     returnedCount: "{count} zabwezedwa",
-    scrapped: "(zonongoka)", // REVIEW: scrapped
+    scrapped: "(zowonongeka)",
     refundHint:
       'Ndalama zobweza zikuphatikiza msonkho amene kasitomala analipira. Siyani "Bwezera ku shelfu" pa zinthu zoonongeka.',
     refundBy: "Bweza kudzera mwa",
@@ -516,18 +525,18 @@ export const ny = {
     owing: "Zolipira",
     takePayment: "Landira ndalama",
     cancelConfirm:
-      "Udzime ngongole #{number}? Zinthu zibwerera ku katundu. Bweza {amount} pawokha.", // REVIEW
+      "Kuthetsa ngongole #{number}? Zinthu zibwerera ku katundu. Bwezani {amount} pamanja.",
     fullyPaid: "Ngongole yalipidwa yonse — perekani zinthu",
     paymentRecorded: "Kulipira kolembedwa",
     payTitle: "Kulipira ngongole — {customer}",
     recordPayment: "Lembani kulipira",
   },
   invoices: {
-    title: "Ma-invoice", // REVIEW: invoices
-    subApprover: "Vomerezani ma-invoice kuti mutulule katundu ndipo mulembetu kulipira.",
+    title: "Ma-invoice",
+    subApprover: "Vomerezani ma-invoice kuti mutulutse katundu ndi kulemba kulipira.",
     subStaff: "Ma-invoice amene inu ndi ena mutumiza kuti avomerezedwe.",
     directSaleNotice:
-      "{store} ndi sitolo yogulitsa mwachindunji — kugulitsa kumaliza pa till. Sinthani ku sitolo ya chilolezo kuti muwone ma-invoice.", // REVIEW
+      "{store} ndi sitolo yogulitsa mwachindunji — kugulitsa kumatha pa nthawi yogulitsa. Sinthani ku sitolo yofuna chilolezo kuti muwone ma-invoice.",
     nothingWaiting: "Palibe zikudikira.",
     laybyTag: "Ngongole",
     recentlyReviewed: "Zomwe zayang'aniridwa posachedwa",
@@ -539,22 +548,22 @@ export const ny = {
     approveTitle: "Vomereza invoice #{number}",
     paymentMethod: "Mtundu wolipira",
     onAccount: "Pa akaunti / EFT",
-    depositReceived: "Deposit yolandiridwa", // REVIEW: deposit received
+    depositReceived: "Ndalama zoyamba zolandiridwa",
     approveRelease: "Vomereza & tululani katundu",
   },
   exp: {
     title: "Zotulutsa",
     recordExpense: "Lembani chotulutsa",
-    recorded: "Chotulutsa chalembetsa", // REVIEW: expense recorded
+    recorded: "Chotulutsa chalembedwa",
     deleteConfirm: "Muchotsa chotulutsa chimenechi?",
     reportTitle: "Lipoti la Zotulutsa",
     totalSpent: "Zonse zotulutsidwa",
-    paidFromTill: "Zolipidwa ndi kachachi", // REVIEW: paid from till
-    entries: "Zolembedwa", // REVIEW: entries
-    byCategory: "Mwa gulu", // REVIEW: by category
+    paidFromTill: "Zolipidwa kuchokera mu bokosi la ndalama",
+    entries: "Zolembedwa",
+    byCategory: "Mwa gulu",
     allExpenses: "Zotulutsa zonse",
-    category: "Gulu", // REVIEW: category
-    paidFrom: "Zolipira kuchokera", // REVIEW: paid from
+    category: "Gulu",
+    paidFrom: "Zolipira kuchokera",
     byCol: "Ndi",
     note: "Zolemba",
     noteOptional: "Zolemba (kosakakamiza)",
@@ -563,507 +572,510 @@ export const ny = {
     totalExpenses: "Zonse zotulutsa",
     none: "Palibe zotulutsa m'nthawi inoyi.",
     deleteAria: "Chotsani chotulutsa",
-    srcTill: "Ndalama za pa kachachi", // REVIEW: cash from till
+    srcTill: "Ndalama zochokera mu bokosi",
     srcBank: "Banki / Kadi",
     srcMobile: "Ndalama pa foni",
     range90d: "Masiku 90",
   },
   col: {
     title: "Magulu",
-    onlyAdmins: "Admin ndi manejala kokha angasinthitse magulu.", // REVIEW
-    linkCopied: "Cholumikizira chakopedwa", // REVIEW: link copied
+    onlyAdmins: "Admin ndi manejala okha omwe angasinthe magulu.",
+    linkCopied: "Cholumikizira chakopedwa",
     listSub:
-      "Konzani zinthu m'magulu, ziwonetsereni makasitomala ndi kuchotsera mtengo pa gulu lonse.", // REVIEW
+      "Konzani zinthu m'magulu, ziwonetsereni makasitomala ndi kuchotsera mtengo pa gulu lonse.",
     newCollection: "Gulu latsopano",
     noneYet: "Palibe magulu pakadali pano.",
     itemsCount: "{count} zinthu",
-    open: "Tsegulani", // REVIEW: open
+    open: "Tsegulani",
     share: "Perekani",
-    notShared: "Zosaperekedwa", // REVIEW: not shared
+    notShared: "Zosagawidwa",
     collectionWord: "Gulu",
     notFound: "Gulu silipezeka.",
-    loadError: "Sistinathe kupeza gulu ili.", // REVIEW: Could not load this collection
-    notSharedOrGone: "Gulu ili silaperekedwa kapena silisalipo.", // REVIEW
+    loadError: "Sitinathe kupeza gulu ili.",
+    notSharedOrGone: "Gulu ili silinagawidwe kapena silikupezeka.",
     offEverything: "{pct}% kuchotsera pa zonse",
     noItemsWord: "Palibe zinthu pakadali pano.",
-    visitInStore: "Bwerani ku sitolo kuti mugule · Mopangidwa ndi Storq", // REVIEW: Powered by
+    visitInStore: "Bwerani ku sitolo kuti mugule · Mopangidwa ndi Storq",
     saved: "Gulu lasungidwa",
-    deleteConfirm: "Muchotse gulu ili? Zinthu zidzakhalabe mu katundu.", // REVIEW
+    deleteConfirm: "Muchotse gulu ili? Zinthu zidzakhalabe mu katundu.",
     offPct: "−{pct}% kuchotsera",
     saving: "Kusunga…",
-    details: "Tsatanetsatane", // REVIEW: details
+    details: "Tsatanetsatane",
     discountPct: "Kuchotsera %",
     discountHint:
-      "Zimagwira ntchito pa chinthu chilichonse mu gulu ili pa nthawi ya kugulitsa. Ngati chinthu chili m'magulu angapo, kuchotsera kwakukulu kumagwiritsidwa ntchito.", // REVIEW
-    shareHint: "Aliyense ali ndi cholumikizira angathe kuona", // REVIEW
+      "Zimagwira ntchito pa chinthu chilichonse mu gulu ili pa nthawi ya kugulitsa. Ngati chinthu chili m'magulu angapo, kuchotsera kwakukulu kumagwiritsidwa ntchito.",
+    shareHint: "Aliyense wokhala ndi cholumikizira (link) atha kuwona",
     itemsHeading: "Zinthu mu gulu ili ({count})",
     remove: "Chotsani",
     noItemsAdd: "Palibe zinthu pakadali pano. Onjezani pansipa.",
     addItems: "Onjezani zinthu",
     searchItems: "Sakani zinthu",
     add: "Onjezani",
-    noMore: "Palibe zinthu zina zongezeka.", // REVIEW
-    changesKept: "Zosintha zisungidwa mukadina 'Kusunga'.", // REVIEW
+    noMore: "Palibe zinthu zina zongezeka.",
+    changesKept: "Zosintha zisungidwa mukadina 'Kusunga'.",
   },
   stk: {
-    title: "Kuwera katundu", // REVIEW: stock take
-    started: "Kuwera katundu kwayamba", // REVIEW: stock take started
-    subCounting: "Kuwera {store} kuyambira {date}. Aliyense angathe kuwera pa chipangizo chake.", // REVIEW
-    subIdle: "Werani zinthu zili zoona mu {store}.", // REVIEW
-    start: "Yambani kuwera katundu",
-    noneOpen: "Palibe kuwera katundu koatsegulika. Funani manejala kuti atsegule.", // REVIEW
-    startedWord: "Zayambira", // REVIEW: started
-    closedWord: "Zotseka", // REVIEW: closed
-    noPast: "Palibe zowera zapita.", // REVIEW: no past stock takes
+    title: "Kuwerengera katundu",
+    started: "Kuwerengera katundu kwayamba",
+    subCounting:
+      "Kuwerengera {store} kuyambira {date}. Aliyense angathe kuwerengera pa chipangizo chake.",
+    subIdle: "Werengerani zinthu zenizeni mu {store}.",
+    start: "Yambani kuwerengera katundu",
+    noneOpen: "Palibe kuwerengera katundu kotseguka. Pemphani manejala kuti atsegule.",
+    startedWord: "Kwayamba",
+    closedWord: "Kwatsekedwa",
+    noPast: "Palibe kuwerengera kwapita.",
     closeConfirm:
-      "Mukatseke kuwera katundu? Zinthu zowerera zidzasandutsa makhalidwe a katundu waposapa.", // REVIEW
-    levelsUpdated: "Makhalidwe a katundu asinthidwa", // REVIEW: stock levels updated
+      "Kutseka kuwerengera katundu? Zinthu zomwe zawerengedwa zisintha kuchuluka kwa katundu.",
+    levelsUpdated: "Kuchuluka kwa katundu kwasinthidwa",
     findItem: "Sakani chinthu",
-    notCounted: "Zisawerabe", // REVIEW: not counted yet
-    countedStat: "{counted} / {total} zawerwa", // REVIEW: counted
-    finish: "Malerani & sinthani katundu", // REVIEW: finish & update stock
-    systemWord: "Sistem", // REVIEW: system
+    notCounted: "Zisanawerengedwe",
+    countedStat: "{counted} / {total} zawerengedwa",
+    finish: "Malizani & sinthani katundu",
+    systemWord: "Makina",
     countPh: "Werani",
     nothing: "Palibe zowonetsedwa.",
   },
   trf: {
-    title: "Kusamutsa katundu", // REVIEW: stock transfers
-    onlyAdmins: "Admin ndi manejala kokha angasamutse katundu pakati pa masitolo.", // REVIEW
+    title: "Kusamutsa katundu",
+    onlyAdmins: "Admin ndi manejala okha angathe kusamutsa katundu pakati pa masitolo.",
     storeWord: "Sitolo",
-    cancelConfirm: "Muchotse kusamutsa uku? Katundu udzabwerera ku sitolo yotumayo.", // REVIEW
-    receivedToast: "Katundu walandidwa", // REVIEW: stock received
-    cancelledToast: "Kusamutsa kwachotsedwa", // REVIEW: transfer cancelled
-    sub: "Tumizani katundu kuchokera ku {store} ndi kulandira ku sitolo yolowera.", // REVIEW
+    cancelConfirm: "Muchotse kusamutsa uku? Katundu udzabwerera ku sitolo yotumayo.",
+    receivedToast: "Katundu walandiridwa",
+    cancelledToast: "Kusamutsa kwathetsedwa",
+    sub: "Tumizani katundu kuchokera ku {store} ndi kulandira ku sitolo yolowera.",
     yourStore: "sitolo yanu",
     newTransfer: "Kusamutsa kwatsopano",
-    needSecond: "Onjezani malo lobiri asanathe kusamutsa katundu pakati pa masitolo.", // REVIEW
-    loading: "Kulatsoledwa zosamutsa…", // REVIEW
+    needSecond: "Onjezani malo achiwiri musanasamutse katundu pakati pa masitolo.",
+    loading: "Kutsegula zosamutsa…",
     none: "Palibe zosamutsa pakadali pano.",
     transferNumber: "Kusamutsa #{number}",
-    statusInTransit: "M'njira", // REVIEW: in transit
+    statusInTransit: "M'njira",
     statusReceived: "Zalandidwa",
     statusCancelled: "Zachotsedwa",
-    unitWord: "yuniti", // REVIEW: unit
-    unitsWord: "mayuniti", // REVIEW: units
-    acrossWord: "mu", // REVIEW: across
+    unitWord: "chinthu",
+    unitsWord: "zinthu",
+    acrossWord: "mu",
     itemWord: "chinthu",
     itemsWord: "zinthu",
     receiveAt: "Landirani ku {store}",
-    receivedWord: "Zalandirwa", // REVIEW: received
+    receivedWord: "Zalandirwa",
     pickTwo: "Sankhani masitolo awiri osiyanasiyana",
-    dispatched: "Katundu watumizidwa — ali m'njira", // REVIEW
-    newTitle: "Kusamutsa katundu watsopano", // REVIEW
-    fromStore: "Kuchokera ku sitolo", // REVIEW: from store
-    toStore: "Kupita ku sitolo", // REVIEW: to store
+    dispatched: "Katundu watumizidwa — ali m'njira",
+    newTitle: "Kusamutsa Kwatsopano",
+    fromStore: "Kuchokera ku sitolo",
+    toStore: "Kupita ku sitolo",
     chooseTwo: "Sankhani masitolo awiri osiyanasiyana.",
     addItems: "Onjezani zinthu",
-    searchPh: "Sakani ndi dzina kapena SKU", // REVIEW: search by name or SKU
-    noMatch: "Palibe zinthu zofanana.", // REVIEW: no matching items
-    transferring: "Zosamutsidwa", // REVIEW: transferring
-    qtyFor: "Mulingo wa {name}", // REVIEW: quantity for
+    searchPh: "Sakani ndi dzina kapena SKU",
+    noMatch: "Palibe zinthu zofanana.",
+    transferring: "Kusamutsa",
+    qtyFor: "Kuchuluka kwa {name}",
     removeFor: "Chotsani {name}",
     noteOptional: "Zolemba (kosakakamiza)",
-    dispatch: "Tumizani katundu", // REVIEW: dispatch stock
+    dispatch: "Tumizani katundu",
   },
   shift: {
-    title: "Sanduku la ndalama", // REVIEW: cash drawer
-    openedToast: "Nthawi yotsegulidwa", // REVIEW: shift opened
-    openTitle: "Tsegulani nthawi", // REVIEW: open a shift
+    title: "Bokosi la ndalama",
+    openedToast: "Shift yatsegulidwa",
+    openTitle: "Tsegulani shift",
     openHint: "Werani ndalama zilizonse za m'sanduku musanayambe kugulitsa.",
-    startingFloat: "Ndalama zokamba (float)", // REVIEW: starting cash (float)
-    openBtn: "Tsegulani nthawi",
-    openLabel: "Nthawi yatsegulidwa", // REVIEW: shift open
+    startingFloat: "Ndalama zoyambira (float)",
+    openBtn: "Tsegulani shift",
+    openLabel: "Shift yatsegulidwa",
     sinceWord: "Kuyambira",
     cashExpected: "Ndalama zoyembekezeredwa m'sanduku",
-    drawerActions: "Zochita za sanduku", // REVIEW: drawer actions
-    cashInAdd: "Ndalama zolowetsa (onjezerani masinthu)", // REVIEW: cash in (add change)
-    cashOutDrop: "Ndalama zotulutsa (kupereka / malipiro)", // REVIEW: cash out (drop / payout)
-    closeCount: "Tsekani nthawi & werani", // REVIEW: close shift & count
-    past: "Nthawi zapitazo", // REVIEW: past shifts
-    noneClosed: "Palibe nthawi zotsekedwa pakadali pano.",
+    drawerActions: "Zochita za bokosi",
+    cashInAdd: "Ndalama zolowetsa (onjezerani chenji)",
+    cashOutDrop: "Ndalama zotulutsa (kupereka / malipiro)",
+    closeCount: "Tsekani shift ndi kuwerengera",
+    past: "Ma shift apita",
+    noneClosed: "Palibe ma shift otsekedwa pakadali pano.",
     expectedWord: "Zoyembekezeredwa",
     countedWord: "Zowera",
-    managerNote: "Manejala amawona mbiri ya nthawi zonse ndi kusiyana.", // REVIEW
-    balanced: "Zolingana", // REVIEW: balanced
-    over: "Zowonjezera {amount}", // REVIEW: over
-    short: "Zochepa {amount}", // REVIEW: short
-    overWord: "Zowonjezera", // REVIEW: over
-    shortWord: "Zochepa", // REVIEW: short
+    managerNote: "Manejala amawona mbiri ya ma shift onse ndi kusiyana.",
+    balanced: "Zolingana",
+    over: "Zopitilira ndi {amount}",
+    short: "Zikuchepa ndi {amount}",
+    overWord: "Zowonjezera",
+    shortWord: "Zochepa",
     rowStartingFloat: "Ndalama zokamba",
-    rowCashSales: "Malonda a ndalama & ngongole", // REVIEW: cash sales & layby payments
+    rowCashSales: "Malonda a keshi & kulipira ngongole",
     rowCashRefunds: "Ndalama zobwezedwa",
     cashIn: "Ndalama zolowetsa",
     cashOut: "Ndalama zotulutsa",
-    rowExpenses: "Zotulutsa zolipidwa ndi kachachi", // REVIEW: expenses paid from till
+    rowExpenses: "Zotulutsa zolipidwa kuchokera mu bokosi",
     rowExpectedCash: "Ndalama zoyembekezeredwa",
-    allTakings: "Zolandira zonse mwa njira · malonda {count}", // REVIEW
-    recorded: "Zalembedwa", // REVIEW: recorded
+    allTakings: "Zolandira zonse mwa njira · malonda {count}",
+    recorded: "Zalembedwa",
     reason: "Chifukwa",
-    reasonIn: "Masinthu owonjezera", // REVIEW: added change
-    reasonOut: "Ndalama zobisika ku sala", // REVIEW: cash drop to safe
-    closeShift: "Tsekani nthawi", // REVIEW: close shift
+    reasonIn: "Chenji yowonjezeredwa",
+    reasonOut: "Ndalama zosungidwa ku sefu",
+    closeShift: "Tsekani shift",
     closeHint:
-      "Werani ndalama zake zonse za m'sanduku ndipo lembani mlingo wonse. Muzawona kusiyana pambuyo potsatsa.", // REVIEW
-    cashCounted: "Ndalama zowera", // REVIEW: cash counted
+      "Werengerani ndalama zonse mu bokosi ndipo lembani kuchuluka kwake konse. Mudzawona kusiyana mukamaliza.",
+    cashCounted: "Ndalama zowerengedwa",
     notesOptional: "Zolemba (kosakakamiza)",
-    reportTitle: "Lipoti la mapeto a nthawi", // REVIEW: end of shift report
-    openedWord: "Zinatsegulidwa", // REVIEW: opened
-    closedWord: "Zinatseka", // REVIEW: closed
-    openWord: "Yotseguka", // REVIEW: open
-    difference: "Kusiyana", // REVIEW: difference
+    reportTitle: "Lipoti la mapeto a shift",
+    openedWord: "Zinatsegulidwa",
+    closedWord: "Zotsekedwa",
+    openWord: "Yotseguka",
+    difference: "Kusiyana",
     notesWord: "Zolemba:",
-    takingsByMethod: "Zolandira mwa njira · malonda {count}", // REVIEW
+    takingsByMethod: "Zolandira mwa njira · malonda {count}",
     notes: "Zolemba",
     footerCounted:
-      "Zowerengedwa ndi: ____________________      Zoyenderedwa ndi: ____________________", // REVIEW
+      "Zowerengedwa ndi: ____________________      Zoyenderedwa ndi: ____________________",
   },
   staff: {
     title: "Ogwira Ntchito",
-    onlyAdmins: "Admin kokha angakonze ogwira ntchito.", // REVIEW
-    sub: "Aliyense atsegula chipangizo ichi ndi PIN ya manambala 4 yaokha. PIN yawo imenetsa zomwe angathe kuchita.", // REVIEW
+    onlyAdmins: "Oyang'anira (Admin) okha ndiwo angathe kusintha ogwira ntchito.",
+    sub: "Aliyense atsegula chipangizo ichi ndi PIN ya manambala 4 yawoyawo. PIN yawo imagamula zomwe angathe kuchita.",
     addBtn: "Onjezani wogwira ntchito",
     roleAdmin: "Admin",
-    roleAdminDesc: "Zonse: ogwira ntchito, masitolo, katundu, zovomereza.", // REVIEW
-    roleManager: "Manejala / Wovomereza", // REVIEW: manager / approver
-    roleManagerDesc: "Gulitsani, vomerezani ma-invoice, konzani katundu ndi kuwera katundu.", // REVIEW
-    roleCashier: "Kashiya", // REVIEW: cashier
+    roleAdminDesc: "Zonse: ogwira ntchito, masitolo, katundu, zovomereza.",
+    roleManager: "Manejala / Wovomereza",
+    roleManagerDesc: "Gulitsani, vomerezani ma-invoice, konzani katundu ndi kuwerengera katundu.",
+    roleCashier: "Kashiya",
     roleCashierDesc:
-      "Gulitsani, pangani ma-invoice, landirani zolipira za ngongole, werani katundu.", // REVIEW
-    autoLockTitle: "Kutseka kwaokha kwa kugulitsa", // REVIEW: till auto-lock
+      "Gulitsani, pangani ma-invoice, landirani zolipira za ngongole, werengerani katundu.",
+    autoLockTitle: "Kutseka kokha kwa malo ogulitsira",
     autoLockDesc:
-      "Tsekani chipangizo ichi kubwerera ku PIN pad pambuyo pa nthawi yokhala popanda kugwiritsa ntchito. Kutseka mwachangu nthawi iliyonse ndi Ctrl/Cmd + Shift + L.", // REVIEW
+      "Tsekani chipangizo ichi kubwerera ku PIN pad pambuyo pa nthawi yosagwiritsidwa ntchito. Kutseka mwachangu nthawi iliyonse ndi Ctrl/Cmd + Shift + L.",
     afterMin: "Pambuyo pa mphindi {n}",
-    never: "Osatseka", // REVIEW: never
-    inactive: "(sagwira ntchito)", // REVIEW: inactive
-    roleLabel: "Ntchito", // REVIEW: role
+    never: "Osatseka",
+    inactive: "(osagwira ntchito)",
+    roleLabel: "Udindo",
     storeLabel: "Sitolo",
-    editTitle: "Sinthani wogwira ntchito", // REVIEW: edit staff
-    newPin: "PIN yatsopano (isiyeni yopanda kanthu kuti mukhale nayo)", // REVIEW: new PIN (leave blank to keep)
-    pinLabel: "PIN ya manambala 4", // REVIEW: 4-digit PIN
-    active: "Wagwira ntchito", // REVIEW: active
+    editTitle: "Sinthani wogwira ntchito",
+    newPin: "PIN yatsopano (isiyeni yopanda kanthu kuti musasinthe)",
+    pinLabel: "PIN ya manambala 4",
+    active: "Wagwira ntchito",
   },
   store: {
-    title: "Malo", // REVIEW: locations
-    onlyAdmins: "Admin kokha angakonze malo.", // REVIEW
+    title: "Malo",
+    onlyAdmins: "Oyang'anira (Admin) okha omwe angasinthe malo.",
     addBtn: "Onjezani malo",
-    freeTrial: "Mayeso aulere", // REVIEW: free trial
-    capacityLine: "{used} malo · malo {capacity} olipidwa", // REVIEW: paid location slots
-    payMore: "Lipirani malo ena", // REVIEW: pay for more locations
-    typeApproval: "Kuvomereza", // REVIEW: approval
-    typeDirect: "Kugulitsa kwachindunji", // REVIEW: direct sale
+    freeTrial: "Mayeso aulere",
+    capacityLine: "{used} malo · malo {capacity} olipidwa",
+    payMore: "Lipirani malo owonjezera",
+    typeApproval: "Kuvomereza",
+    typeDirect: "Kugulitsa kwachindunji",
     locationName: "Dzina la malo",
     editTitle: "Sinthani malo",
-    directDesc: "Kashiya akugulitsa ndi kulandira malipiro. Katundu amachoka popanda kuchedwa.", // REVIEW
-    approvalTitle: "Kufunika kuvomereza", // REVIEW: approval based
+    directDesc: "Kashiya akugulitsa ndi kulandira malipiro. Katundu amachoka popanda kuchedwa.",
+    approvalTitle: "Kufunika kuvomereza",
     approvalDesc:
-      "Kashiya akupanga invoice. Manejala kapena admin avomereza asatchule katundu ndi kulemba malipiro.", // REVIEW
+      "Kashiya akupanga invoice. Manejala kapena admin avomereza asanatulutse katundu ndi kulandira malipiro.",
     saveBtn: "Sungani malo",
-    taxTitle: "VAT / msonkho wa kugulitsa", // REVIEW: VAT / sales tax
+    taxTitle: "VAT / msonkho wa kugulitsa",
     taxDesc:
-      "Zimagwira ntchito pa malo onse. Ikani 0 ngati simulembetsa ku VAT. Malonda akale amasunga msonkho umene anagulitsa nawo.", // REVIEW
-    taxRate: "Mlingo wa msonkho", // REVIEW: tax rate
+      "Zimagwira ntchito pa malo onse. Ikani 0 ngati simulembetsa ku VAT. Malonda akale amasunga msonkho umene anagulitsa nawo.",
+    taxRate: "Mlingo wa msonkho",
     taxRatePct: "Mlingo wa msonkho (%)",
-    taxSaved: "Zoikamo za msonkho zasungidwa", // REVIEW: tax settings saved
-    inclTitle: "Mitengo zikuphatikizapo VAT", // REVIEW: prices include VAT
-    inclDesc: "Mtengo wa pa shelufu ndi womwe kasitomala alipira.", // REVIEW
-    addVatTitle: "Onjezerani VAT pa kugulitsa", // REVIEW: add VAT at till
-    addVatDesc: "VAT imawonjezeredwa pamwamba pa mtengo wa pa shelufu.", // REVIEW
-    saveTaxBtn: "Sungani zoikamo za msonkho", // REVIEW: save tax settings
+    taxSaved: "Zokonda za msonkho zasungidwa",
+    inclTitle: "Mitengo ikuphatikiza VAT",
+    inclDesc: "Mtengo wa pa shelufu ndi womwe kasitomala alipira.",
+    addVatTitle: "Onjezerani VAT pa kugulitsa",
+    addVatDesc: "VAT imawonjezeredwa pamwamba pa mtengo wa pa shelufu.",
+    saveTaxBtn: "Sungani zokonda za msonkho",
   },
   reports: {
-    title: "Lipoti la bizinesi", // REVIEW: business report
-    onlyAdmins: "Admin ndi manejala kokha angathe kuona malipoti.", // REVIEW
-    loading: "Kulatsoledwa lipoti…", // REVIEW
-    downloadPdf: "Tsilani PDF", // REVIEW: download PDF
+    title: "Lipoti la bizinesi",
+    onlyAdmins: "Admin ndi manejala okha angathe kuona malipoti.",
+    loading: "Kutsegula lipoti…",
+    downloadPdf: "Tsitsani PDF",
     allStores: "Masitolo onse",
-    subtitle: "{scope} · masiku {range} apitawa", // REVIEW: last {range}
-    badgePl: "P&L", // REVIEW: profit & loss
+    subtitle: "{scope} · masiku {range} apitawa",
+    badgePl: "P&L",
     rangeToday: "Lero",
     range7d: "Masiku 7",
     range30d: "Masiku 30",
     range90d: "Masiku 90",
-    netSales: "Malonda oyera", // REVIEW: net sales
-    netSalesAfterRefunds: "Malonda oyera (pambuyo pa zobwezedwa)", // REVIEW
-    statSalesSub: "malonda {count} · {refunds} zobwezedwa", // REVIEW
-    buyingCost: "Mtengo wogula", // REVIEW: buying cost
-    costOfItemsSold: "Mtengo wa zinthu zogulitsidwa", // REVIEW
-    buyingCostSold: "Mtengo wogula wa zinthu zogulitsidwa", // REVIEW
-    grossProfit: "Phindu lalikulu", // REVIEW: gross profit
-    marginSub: "margin {margin}%", // REVIEW
-    grossMargin: "Margin lalikulu", // REVIEW: gross margin
+    netSales: "Malonda oyera",
+    netSalesAfterRefunds: "Malonda oyera (pambuyo pa zobwezedwa)",
+    statSalesSub: "malonda {count} · {refunds} zobwezedwa",
+    buyingCost: "Mtengo wogula",
+    costOfItemsSold: "Mtengo wa zinthu zogulitsidwa",
+    buyingCostSold: "Mtengo wogula wa zinthu zogulitsidwa",
+    grossProfit: "Phindu lalikulu",
+    marginSub: "margin {margin}%",
+    grossMargin: "Margin lalikulu",
     expenses: "Zotulutsa",
-    categoriesSub: "magulu {count}", // REVIEW: categories
-    operatingExpenses: "Zotulutsa zoyendetsa bizinesi", // REVIEW: operating expenses
-    netProfit: "Phindu loyera", // REVIEW: net profit
-    whatYouKeep: "Zomwe mumasunga", // REVIEW: what you keep
+    categoriesSub: "magulu {count}",
+    operatingExpenses: "Zotulutsa zoyendetsa bizinesi",
+    netProfit: "Phindu loyera",
+    whatYouKeep: "Zomwe mumasunga",
     refunds: "Zobwezedwa",
-    profitLoss: "Phindu ndi kuchepa", // REVIEW: profit & loss
-    byHour: "Malonda vs phindu pa ola", // REVIEW
-    byDay: "Malonda vs phindu pa tsiku", // REVIEW
-    tillCheck: "Kuyeza ndalama za kachachi", // REVIEW: till cash check
-    taxSummary: "Chidule cha msonkho (VAT)", // REVIEW: tax summary
-    salesByMethod: "Malonda mwa njira yolipirira", // REVIEW
-    expByCategory: "Zotulutsa mwa gulu", // REVIEW
-    topItems: "Zinthu zapamwamba mwa phindu", // REVIEW
-    staffRevenue: "Kuchita kwa ogwira ntchito — zolandira", // REVIEW
-    staffPerf: "Kuchita kwa ogwira ntchito", // REVIEW
-    lowMargin: "Zikumbutso za margin yaing'ono (pansi pa 10%)", // REVIEW
-    netByStore: "Phindu loyera pa sitolo", // REVIEW
-    itemPerf: "Kuchita kwa chinthu", // REVIEW
+    profitLoss: "Phindu ndi Kutayika",
+    byHour: "Malonda vs phindu pa ola",
+    byDay: "Malonda vs phindu pa tsiku",
+    tillCheck: "Kuyeza ndalama za mu bokosi",
+    taxSummary: "Chidule cha msonkho (VAT)",
+    salesByMethod: "Malonda mwa njira yolipirira",
+    expByCategory: "Zotulutsa mwa gulu",
+    topItems: "Zinthu zapamwamba mwa phindu",
+    staffRevenue: "Kagwiridwe ka ntchito — zolandira",
+    staffPerf: "Kagwiridwe ntchito ka ogwira ntchito",
+    lowMargin: "Zikumbutso za margin yaing'ono (pansi pa 10%)",
+    netByStore: "Phindu loyera pa sitolo",
+    itemPerf: "Mayendedwe a chinthu",
     stores: "Masitolo",
-    cashFromSales: "Ndalama zolandiridwa pa malonda", // REVIEW
-    cashPaidOut: "Ndalama zotulutsidwa (zotulutsa)", // REVIEW
+    cashFromSales: "Ndalama zolandiridwa pa malonda",
+    cashPaidOut: "Ndalama zotulutsidwa (zotulutsa)",
     expectedCash: "Ndalama zoyembekezeredwa m'sanduku",
-    salesInclTax: "Malonda okhala ndi msonkho", // REVIEW
-    vatCollected: "VAT yolandidwa", // REVIEW
-    salesExclTax: "Malonda kupanda msonkho", // REVIEW
+    salesInclTax: "Malonda okhala ndi msonkho",
+    vatCollected: "VAT yolandiridwa",
+    salesExclTax: "Malonda opanda msonkho",
     thMethod: "Njira",
     thAmount: "Mlingo",
-    thCategory: "Gulu", // REVIEW: category
+    thCategory: "Gulu",
     thItem: "Chinthu",
-    thQty: "Mulingo", // REVIEW: qty
+    thQty: "Mulingo",
     thSales: "Malonda",
     thProfit: "Phindu",
-    thMargin: "Margin", // REVIEW
+    thMargin: "Margin",
     thStaff: "Ogwira ntchito",
-    thRevenue: "Zolandira", // REVIEW: revenue
+    thRevenue: "Zolandira",
     thStore: "Sitolo",
     thExpenses: "Zotulutsa",
-    thNet: "Zoyera", // REVIEW: net
+    thNet: "Zoyera",
     noExpenses: "Palibe zotulutsa.",
-    noItemsSold: "Palibe zinthu zogulitsidwa.", // REVIEW
+    noItemsSold: "Palibe zinthu zogulitsidwa.",
     noSales: "Palibe malonda.",
-    unknownStaff: "Zisadziwika", // REVIEW: unknown
-    lowMarginNote: "Yang'anani mitengo yogulitsira ndi yogulira zinthu izi mu Katundu.", // REVIEW
+    unknownStaff: "Wosadziwika",
+    lowMarginNote: "Yang'anani mitengo yogulitsira ndi yogulira zinthu izi mu Katundu.",
     footerNote:
-      "Phindu limagwiritsa ntchito mtengo wogula umene unayikidwa pa chinthu chilichene chimagulitsidwa. Zobwezedwa zimachotsedwa pa malonda ndi phindu; zinthu zobwezeredwa ku shelufu zimabweza mtengo wazo wogula. Malonda akudikira kuvomereza ndi ngongole zotseguka sizibaloledwa mpaka zikamalizidwa. Kuti mupeze zovomerezeka za sanduku, gwiritsani ntchito nthawi za sanduku la ndalama.", // REVIEW
+      "Phindu limagwiritsa ntchito mtengo wogula umene unayikidwa pa chinthu chilichonse chimagulitsidwa. Zobwezedwa zimachotsedwa pa malonda ndi phindu; zinthu zobwezeredwa ku shelufu zimabweza mtengo wazo wogula. Malonda akudikira kuvomereza ndi ngongole zotseguka sizikuwerengedwa mpaka zikamalizidwa. Kuti mupeze zovomerezeka za bokosi, gwiritsani ntchito ma shift a bokosi la ndalama.",
   },
   billing: {
-    title: "Malipiro", // REVIEW: billing
-    overLimitTitle: "Masitolo anu aposa malo olipidwa", // REVIEW
-    needsAttentionTitle: "Kulembetsa kwanu kufunika chifundo", // REVIEW
-    sub: "Mapulani, malipiro ndi ma-invoice anu.", // REVIEW
-    planOf: "Mapulani a {plan}", // REVIEW
-    noActivePlan: "Palibe mapulani ogwira ntchito", // REVIEW
-    statusOverLimit: "Mulingo wa sitolo wathetsedwa", // REVIEW
-    statusActive: "Yagwira ntchito", // REVIEW
-    statusExpired: "Yatha", // REVIEW: expired
-    renewsExpires: "Ikonzanso / imatha {date}", // REVIEW
-    trialEnds: "Mayeso atha {date}", // REVIEW
-    subscribeToKeep: "Lembetsani kuti mupitirize kugulitsa.", // REVIEW
-    perStoreMonth: "pa sitolo / mwezi", // REVIEW
-    storesUsed: "masitolo {used} a pa {capacity} agwiritsidwa", // REVIEW
-    perMo: "/mwezi", // REVIEW: per month
-    switchStaff: "Sinthani wogwira ntchito", // REVIEW
-    renewOrExtend: "Ikonzanso kapena kulitsa", // REVIEW
-    upgradePlan: "Kwezani mapulani", // REVIEW
+    title: "Malipiro",
+    overLimitTitle: "Masitolo anu aposa malo olipidwa",
+    needsAttentionTitle: "Kulembetsa kwanu kufunika chidwi",
+    sub: "Mapulani, malipiro ndi ma-invoice anu.",
+    planOf: "Pulani ya {plan}",
+    noActivePlan: "Palibe pulani yogwira ntchito",
+    statusOverLimit: "Mulingo wa sitolo waposeredwa",
+    statusActive: "Yagwira ntchito",
+    statusExpired: "Yatha",
+    renewsExpires: "Idzangoyambiranso / idzatha {date}",
+    trialEnds: "Kuyesa kudzatha {date}",
+    subscribeToKeep: "Lembetsani kuti mupitirize kugulitsa.",
+    perStoreMonth: "pa sitolo / mwezi",
+    storesUsed: "masitolo {used} a pa {capacity} agwiritsidwa",
+    perMo: "/mwezi",
+    switchStaff: "Sinthani wogwira ntchito",
+    renewOrExtend: "Yambitsaninso kapena onjezerani nthawi",
+    upgradePlan: "Kwezani pulani",
     payMethodTitle: "Njira yolipirira",
-    payMethodSub: "Sinthani mmene mukulipirira mapulani.", // REVIEW
-    lastCard: "Malipiro otsala · Kadi / USD", // REVIEW
-    lastMobile: "Malipiro otsala · Mobile money kapena kadi", // REVIEW
-    noPaymentYet: "Palibe malipiro pakadali pano", // REVIEW
-    payProviders: "Airtel Money, TNM Mpamba kapena kadi kudzera pa PayChangu.", // REVIEW
-    update: "Sinthani", // REVIEW
-    processedBy: "Malipiro amakonzedwa ndi PayChangu; tsatanetsatane wa kadi susungidwa pa Storq.", // REVIEW
-    sectionTitle: "Malipiro ndi ma-invoice", // REVIEW
-    sectionSub: "Ma-invoice a malipiro onse a kulembetsa.", // REVIEW
-    downloadAll: "Tsilani zonse", // REVIEW
-    downloadAllTitle: "Tsilani ma-invoice onse", // REVIEW
+    payMethodSub: "Sinthani mmene mukulipirira pulani.",
+    lastCard: "Malipiro aposachedwa · Kadi / USD",
+    lastMobile: "Malipiro aposachedwa · Mobile money kapena kadi",
+    noPaymentYet: "Palibe malipiro pakadali pano",
+    payProviders: "Airtel Money, TNM Mpamba kapena kadi kudzera pa PayChangu.",
+    update: "Sinthani",
+    processedBy: "Malipiro amakonzedwa ndi PayChangu; tsatanetsatane wa kadi susungidwa pa Storq.",
+    sectionTitle: "Malipiro ndi ma-invoice",
+    sectionSub: "Ma-invoice a malipiro onse a kulembetsa.",
+    downloadAll: "Tsitsani zonse",
+    downloadAllTitle: "Tsitsani ma-invoice onse",
     downloadAllDesc:
-      "Ma-invoice {count} olipidwa adzatsegulika chimodzimodzi kuti musindikize kapena musunge ngati PDF. Lolani pop-ups pa site iyi.", // REVIEW
-    invoiceWord: "Invoice", // REVIEW: loanword
-    noPaidInvoices: "Palibe ma-invoice olipidwa pakadali pano.", // REVIEW
-    downloadInvoicesBtn: "Tsilani ma-invoice {count}", // REVIEW
-    loadingInvoices: "Kulatsoledwa ma-invoice…", // REVIEW
-    invoicesError: "Ma-invoice sanathe kulatsidwa.", // REVIEW
+      "Ma-invoice {count} olipidwa adzatsegulika chimodzimodzi kuti musindikize kapena musunge ngati PDF. Lolani pop-ups pa site iyi.",
+    invoiceWord: "Invoice",
+    noPaidInvoices: "Palibe ma-invoice olipidwa pakadali pano.",
+    downloadInvoicesBtn: "Tsitsani ma-invoice {count}",
+    loadingInvoices: "Kutsegula ma-invoice…",
+    invoicesError: "Ma-invoice sanathe kutsegulidwa.",
     noInvoicesYet:
-      "Palibe ma-invoice pakadali pano — zolandira zanu za kulembetsa zidzawoneka kuno.", // REVIEW
-    storesCount: "masitolo {count}", // REVIEW
-    planWord: "pulani", // REVIEW
-    downloadInvoiceAria: "Tsilani invoice {ref}", // REVIEW
-    renewExtendTitle: "Ikonzanso kapena kulitsa mapulani anu", // REVIEW
-    choosePlanTitle: "Sankhani mapulani", // REVIEW
-    choosePlanDesc: "masitolo {count} pa {name}. Sitolo iliyonse ifunika malo olipidwa.", // REVIEW
-    yourAccount: "akaunti yanu", // REVIEW: your account
-    askAdminRenew: "Funaninso admin kapena manejala kuti akonzerenso kulembetsa.", // REVIEW
-    storeSlotsLabel: "Malo a masitolo olembedwa", // REVIEW
-    buyExtraSlots: "Gulani malo owonjezera musanawonjezere masitolo.", // REVIEW
+      "Palibe ma-invoice pakadali pano — zolandira zanu za kulembetsa zidzawoneka kuno.",
+    storesCount: "masitolo {count}",
+    planWord: "pulani",
+    downloadInvoiceAria: "Tsitsani invoice {ref}",
+    renewExtendTitle: "Yambitsaninso kapena onjezerani nthawi ya pulani yanu",
+    choosePlanTitle: "Sankhani pulani",
+    choosePlanDesc: "masitolo {count} pa {name}. Sitolo iliyonse ifunika malo olipidwa.",
+    yourAccount: "akaunti yanu",
+    askAdminRenew: "Pemphani admin kapena manejala kuti akonzerenso kulembetsa.",
+    storeSlotsLabel: "Malo a masitolo olembedwa",
+    buyExtraSlots: "Gulani malo owonjezera musanawonjezere masitolo.",
     prepaidCreditNote:
-      " Nthawi yolipidwa yotsala imawerengedwa pa kuchuluka kwambiri kwa masitolo; tsiku lanu lothera likuwerengedwanso pambuyo pa malipiro.", // REVIEW
-    periodMonthly: "Pa mwezi", // REVIEW
-    periodYearly: "Pa chaka", // REVIEW
-    save15: "Pulumutsani 15%", // REVIEW
-    billedYearly: "Kulipidwa chaka chilichonse", // REVIEW
-    billedMonthly: "Kulipidwa mwezi uliwonse", // REVIEW
-    multiplyPerMonth: "{price} × masitolo {count} / mwezi", // REVIEW
-    yearDiscountLine: "Miyezi 12, 15% kuchotsera", // REVIEW
-    opening: "Ikutsegula…", // REVIEW
-    payAmount: "Lipirani {amount}", // REVIEW
+      " Nthawi yolipidwa yotsala imawerengedwa pa kuchuluka kwa masitolo; tsiku lanu lothera likuwerengedwanso pambuyo pa malipiro.",
+    periodMonthly: "Pa mwezi",
+    periodYearly: "Pa chaka",
+    save15: "Pulumutsani 15%",
+    billedYearly: "Kulipidwa chaka chilichonse",
+    billedMonthly: "Kulipidwa mwezi uliwonse",
+    multiplyPerMonth: "{price} × masitolo {count} / mwezi",
+    yearDiscountLine: "Miyezi 12, 15% kuchotsera",
+    opening: "Ikutsegula…",
+    payAmount: "Lipirani {amount}",
     noCardStored:
-      "Storq sikusungira tsatanetsatane wa kadi. Malipiro aliwonse apitilira kudzera pa PayChangu.", // REVIEW
+      "Storq sikusunga tsatanetsatane wa kadi. Malipiro aliwonse apitilira kudzera pa PayChangu.",
     mobileMoneyTitle: "Airtel Money / TNM Mpamba",
-    mobileMoneyDesc: "Lipirani kuchokera ku wallet ya mobile money panthawi yolipira.", // REVIEW
-    cardTitle: "Kadi ya debit / credit", // REVIEW
-    cardDesc: "Visa ndi Mastercard kudzera pa popup yotetezeka ya PayChangu.", // REVIEW
-    lastPaidLine: "Zinalipidwa {date} ndi {amount}.", // REVIEW
-    paySetupPlan: "Lipirani & konzani mapulani", // REVIEW
-    invTitle: "Invoice ya kulembetsa", // REVIEW
+    mobileMoneyDesc: "Lipirani kuchokera ku wallet ya mobile money panthawi yolipira.",
+    cardTitle: "Kadi ya debit / credit",
+    cardDesc: "Visa ndi Mastercard kudzera pa popup yotetezeka ya PayChangu.",
+    lastPaidLine: "Zinalipidwa {date} ndi {amount}.",
+    paySetupPlan: "Lipirani & konzani pulani",
+    invTitle: "Invoice ya kulembetsa",
     invSubtitle: "Invoice {ref}",
-    invPlan: "Mapulani", // REVIEW: plan
-    totalPaid: "Zonse zolipidwa", // REVIEW: total paid
-    invoicePdfError: "Sanathe kupanga PDF ya invoice.", // REVIEW
-    badgePaid: "ZALIPIDWA", // REVIEW
-    billedTo: "Yalipidira", // REVIEW: billed to
-    invoiceDate: "Tsiku la invoice", // REVIEW
-    currencyWord: "Ndalama", // REVIEW: currency
-    thDescription: "Fotokozero", // REVIEW
+    invPlan: "Pulani",
+    totalPaid: "Zonse zolipidwa",
+    invoicePdfError: "Sanathe kupanga PDF ya invoice.",
+    badgePaid: "ZALIPIDWA",
+    billedTo: "Yalembedwa kwa",
+    invoiceDate: "Tsiku la invoice",
+    currencyWord: "Ndalama",
+    thDescription: "Kufotokozera",
     thStores: "Masitolo",
     thAmount: "Mlingo",
-    invPlanLine: "{period} · masitolo {count}", // REVIEW
-    invLineDesc: "Kulembetsa kwa Storq POS {period}", // REVIEW
-    yearlyDiscountSuffix: " (15% kuchotsera kwa chaka kwagwiritsidwa)", // REVIEW
-    invFooter: "Zalipidwa kudzera pa PayChangu. Zikomo kugwiritsa ntchito Storq.", // REVIEW
-    paymentReceived: "Malipiro alandirwa — zikomo!", // REVIEW
-    payNotConfigured: "Malipiro sakonzedwebekabe.", // REVIEW
-    paychanguFailed: "PayChangu sanathe kutsegulika. Chonde yesaninso.", // REVIEW
+    invPlanLine: "{period} · masitolo {count}",
+    invLineDesc: "Kulembetsa kwa Storq POS {period}",
+    yearlyDiscountSuffix: " (15% kuchotsera kwa chaka kwagwiritsidwa)",
+    invFooter: "Zalipidwa kudzera pa PayChangu. Zikomo kugwiritsa ntchito Storq.",
+    paymentReceived: "Malipiro alandirwa — zikomo!",
+    payNotConfigured: "Malipiro sanakonzedwebe.",
+    paychanguFailed: "PayChangu sanathe kutsegulika. Chonde yesaninso.",
   },
   marketing: {
-    navShops: "Zili Za Ndani", // REVIEW: who it's for
+    navShops: "Yoyenera Ndani",
     navFeatures: "Zomwe Mumapeza",
     navLayby: "Ngongole",
     navPricing: "Mitengo",
     logIn: "Lowani",
-    trial: "Yambani Kuyesa Kwaulere", // REVIEW: start free trial
+    trial: "Yambani Kuyesa Kwaulere",
     seeHow: "Onani Momwe Imagwirira Ntchito",
-    heroEyebrow: "Yomangidwira Ma Duka a ku Africa", // REVIEW
-    heroH1: "Dziwani Zomwe Duka Lanu Lipanga. Tsiku Lililonse.", // REVIEW
+    heroEyebrow: "Yopangidwira Masitolo aku Africa",
+    heroH1: "Dziwani Zomwe Sitolo Yanu Ipanga. Tsiku Lililonse.",
     heroLead:
-      "Storq imayang'anira Kugulitsa, katundu ndi ogwira ntchito pa foni yomwe ili nanu m'thumba — kotero mumaleka kuganizira kumene ndalama zipita.", // REVIEW
-    heroNote: "Palibe kadi. Palibe zida zatsopano. Kugulitsa m'mphindi 5.", // REVIEW
-    heroTakings: "Zolowa Lero · Duka la Limbe", // REVIEW
-    heroTrend: "▲ 24% poyerekeza Lachitatu Lapitalo", // REVIEW
-    shopsH2: "Yopangidwira Ma Duka Monga Lane", // REVIEW
+      "Storq imayang'anira Kugulitsa, katundu ndi ogwira ntchito pa foni yomwe ili nanu m'thumba — kotero mumaleka kuganizira kumene ndalama zipita.",
+    heroNote: "Palibe kadi. Palibe zida zatsopano. Kugulitsa m'mphindi 5.",
+    heroTakings: "Zolowa Lero · Sitolo ya Limbe",
+    heroTrend: "▲ 24% poyerekeza Lachitatu Lapitalo",
+    shopsH2: "Yopangidwira Masitolo Ngati Lanu",
     shopsLead:
-      "Kugulitsa kumodzi lero, ma nthambi atatu chaka chamawa. Zovala, zakudya, zida zomangira kapena pang'ono pa zonse — Storq imakwanirana ndi momwe mumakadalirani.", // REVIEW
+      "Kugulitsa kumodzi lero, ma nthambi atatu chaka chamawa. Zovala, zakudya, zida zomangira kapena pang'ono pa zonse — Storq imakwanirana ndi momwe mumagulitsira.",
     shopClothing: "Zovala & Mafashoni",
-    shopClothingNote: "Kukula ndi mtundu lililonse liwerengedwa — palibe chogulitsidwa chosapezeka", // REVIEW
+    shopClothingNote: "Kukula ndi mtundu lililonse liwerengedwa — palibe chogulitsidwa chosasoweka",
     shopGrocery: "Zakudya & Spaza",
-    shopGroceryNote: "Malonda ang'onoang'ono ambiri, ogulitsidwa popandina mizere", // REVIEW
-    shopHardware: "Zida Zomangira & Mango",
-    shopHardwareNote: "Malonda akuluakulu amene adikira chilolezo chanu", // REVIEW
-    shopBetween: "Duka Lililonse Lina", // REVIEW
-    shopBetweenNote: "Ngati chimagulitsa, chidzakhala pa foni yanu lero usiku", // REVIEW
+    shopGroceryNote: "Malonda ang'onoang'ono ambiri, ogulitsidwa popanda mizere",
+    shopHardware: "Zida Zomangira",
+    shopHardwareNote: "Malonda akuluakulu amene amadikira chilolezo chanu",
+    shopBetween: "Sitolo Ina Iliyonse",
+    shopBetweenNote: "Ngati chikugulitsa, chidzakhala pa foni yanu lero usiku",
     counterEyebrow: "Pa Kugulitsa",
-    counterH2: "Gulitsani mu kugwira katatu.", // REVIEW
+    counterH2: "Gulitsani mwa makhwakhwa atatu.",
     counterLead:
-      "Makasitomala alipira momwe akufunira, zinthu zimachoka pa guwa zokhazi, ndipo risidi ili m'dzanze musanatembenuke.", // REVIEW
-    counter1: "Ndalama, kadi, Airtel Money kapena TNM Mpamba — batani limodzi pa iliyonse", // REVIEW
-    counter2: "Katundu umachepera pompopompo pakagulitsidwa, pa chipangizo chilichonse", // REVIEW
-    counter3: "Malonda onse ali ndi dzina la wolandila yemene anawagulitsa", // REVIEW
-    controlH2: "Yang'anirani Duka popanda kugona pa Kugulitsa.", // REVIEW
+      "Makasitomala alipira momwe akufunira, zinthu zimachoka pa guwa zokhazi, ndipo risidi ili m'manja musanatembenuke.",
+    counter1: "Ndalama, kadi, Airtel Money kapena TNM Mpamba — batani limodzi pa iliyonse",
+    counter2: "Katundu umachepera pompopompo pakagulitsidwa, pa chipangizo chilichonse",
+    counter3: "Malonda onse ali ndi dzina la wothandiza yemwe anawagulitsa",
+    controlH2: "Yang'anirani Sitolo popanda kugona pa Malo Ogulitsira.",
     controlLead:
-      "Munthu aliyense, kwacha iliyonse ndi gawo lililonse la katundu zisiya njira. Njira imeneyi ndi imene imakulolani kuti mutseke 6 ndipo mukhale ndi chikhulupiriro pa ziwerengero m'mawa.", // REVIEW
+      "Munthu aliyense, kwacha iliyonse ndi gawo lililonse la katundu zisiya umboni. Njira imeneyi ndi imene imakulolani kuti mutseke 6 ndipo mukhale ndi chikhulupiriro pa ziwerengero m'mawa.",
     controlPin: "PIN ya Munthu Aliyense",
     controlPinDesc:
-      "Lowani kamodzi pa chipangizo, kenako wolandila aliyense amatsegula Kugulitsa ndi nambala yawo. Malonda, zotsegula ndi zobwezeredwa zili ndi dzina — lawo.", // REVIEW
-    controlOk: "Malonda Akulu adikira OK Yanu",
+      "Lowani kamodzi pa chipangizo, kenako wothandiza aliyense amatsegula Kugulitsa ndi nambala yawo. Malonda, zotsegula ndi zobwezeredwa zili ndi dzina — lawo.",
+    controlOk: "Malonda Akulu amadikira Chilolezo Chanu",
     controlOkDesc:
-      "Pa masitolo amene mwasankha, wolandila alembedwa invoice ndipo palibe chochoka pa guwa mpaka mtsogoleri wanena inde. Yopangidwira zakuchitenge ndi zinthu zamtengo wapatali.", // REVIEW
-    controlStock: "Katundu sawathawa popanda kuonanso", // REVIEW
+      "Pa masitolo amene mwasankha, wolandila alembedwa invoice ndipo palibe chochoka pa guwa mpaka mtsogoleri wanena inde. Yopangidwira zida zomangira ndi zinthu zamtengo wapatali.",
+    controlStock: "Katundu sasoweka popanda kufotokozedwa",
     controlStockDesc:
-      "Kugulitsa, kusamutsa, kubweza kapena kuwerengera: kayendedwe lilikonse lembetsa ndi chifukwa ndi munthu amene linachita. Zosowa zisiyake kukhala mwambe.", // REVIEW
+      "Kugulitsa, kusamutsa, kubweza kapena kuwerengera: kayendedwe lilikonse zolembedwa ndi chifukwa ndi munthu amene linachita. Zosoweka sizikhalanso chinsinsi.",
     stockEyebrow: "Katundu Wanu",
-    stockH2: "Musataye gulitsa chifukwa 'satha'.", // REVIEW
+    stockH2: "Musataye malonda chifukwa choti 'zatha'.",
     stockLead:
-      "Onani zili pa guwa m'duka lililonse, zikhala kwanthawi yayitali ndi zatha masikono — makasitomala sanafunse.", // REVIEW
+      "Onani zili pa guwa m'sitolo iliyonse, zikhala kwanthawi yayitali ndi zatha masikono — zisanafike poti makasitomala afunse.",
     stockSells: "Zogulitsa",
-    stockSellsDesc: "ndi zokhala — zosunthidwa ndi malonda onse", // REVIEW
-    stockLow: "Zikuchepetsa",
-    stockLowDesc: "zilembedwa chogulitsa kwambiri chisanathe", // REVIEW
+    stockSellsDesc: "ndi zomwe zilipo — zikusinthidwa ndi malonda onse",
+    stockLow: "Zikuchepa",
+    stockLowDesc: "zikuwonetsedwa chinthu chisanathe",
     laybyEyebrow: "Ngongole",
-    laybyH2: "Sinthani 'Ndalipira mwezi wamawa' kukhala ndalama lero.", // REVIEW
+    laybyH2: "Sinthani 'Ndalipira mwezi wamawa' kukhala ndalama lero.",
     laybyLead:
-      "Landirani ndalama zoyamba, sungani zinthu ndipo leverengani malipiro onse akafika. Makasitomala apita chimwemwe, malonda ndi anu, ndipo sipadzakhala mkangano pa zolipidwa.", // REVIEW
+      "Landirani ndalama zoyamba, sungani zinthu ndipo leverengani malipiro onse akafika. Makasitomala apita chimwemwe, malonda ndi anu, ndipo sipadzakhala mkangano pa zolipidwa.",
     laybyRef: "Ngongole #1042 · Thandi M.",
-    laybyItem: "Seti ya Sofeti — MK 9 600", // REVIEW
-    laybyOnTrack: "Pa njira yabwino", // REVIEW
+    laybyItem: "Seti ya Sofeti — MK 9 600",
+    laybyOnTrack: "Pa njira yabwino",
     laybyPaid: "MK 5 950 zalipidwa",
     laybyLeft: "MK 3 650 zatsala",
-    laybyDeposit: "Ndalama Zoyamba · Ndalama", // REVIEW
+    laybyDeposit: "Ndalama Zoyamba · Ndalama",
     laybyMobile: "Ndalama pa foni",
     laybyCard: "Kadi",
-    storyEyebrow: "Eni Maduka",
+    storyEyebrow: "Eni Masitolo",
     storyQuote:
-      '"Ndimatseka duka ndisanadziwe ngati tapeza ndalama. Tsopano ndimaona pa foni yanga, osati pa bokosi la ndalama — ndipo zonse zili pa iyo zili ndi dzina kumbuyo kwazo."', // REVIEW
-    storyRole: "Bwenzi la duka la zovala, Limbe", // REVIEW
-    storyStat1: "malonda anu oyamba asanachitike", // REVIEW
-    storyStat2: "zida zowonjezera zogula", // REVIEW
-    storyStat3: "andalama, kadi ndi ndalama pa foni", // REVIEW
-    insideEyebrow: "Zina Zomwe Zili Mkati", // REVIEW
-    insideH2: "Zonse zina zomwe mumangosunga m'buku.", // REVIEW
+      '"Ndimatseka sitolo ndisanadziwe ngati tapeza ndalama. Tsopano ndimaona pa foni yanga, osati pa bokosi la ndalama — ndipo zonse zili pa iyo zili ndi dzina kumbuyo kwazo."',
+    storyRole: "Mwini sitolo ya zovala, Limbe",
+    storyStat1: "malonda anu oyamba asanachitike",
+    storyStat2: "zida zowonjezera zogula",
+    storyStat3: "ndalama, kadi ndi ndalama pa foni",
+    insideEyebrow: "Zina Zomwe Zili Mkati",
+    insideH2: "Zonse zina zomwe mumangosunga m'buku.",
     inside1: "Dziwani Masiku Anu Abwino",
     inside1Desc:
-      "Onani zomwe zimagulitsa, zokhala ndi zomwe mwatsala pambuyo pa zotulutsa — tsiku, kugulitsa ndi duka.", // REVIEW
-    inside2: "Tsegulani Kugulitsa Kachiwiri", // REVIEW
+      "Onani zomwe zimagulitsa, zokhala ndi zomwe mwatsala pambuyo pa zotulutsa — tsiku, malonda ndi sitolo.",
+    inside2: "Tsegulani Kugulitsa Kachiwiri",
     inside2Desc:
-      "Onjezani counter kapena nthambi lonse ndipo katundu, ogwira ntchito ndi zolowa zikubwera kumalo kumodzi.", // REVIEW
-    inside3: "Sunthani Katundu Pakati pa Maduka",
+      "Onjezani counter kapena nthambi lonse ndipo katundu, ogwira ntchito ndi zolowa zikubwera kumalo kumodzi.",
+    inside3: "Sunthani Katundu Pakati pa Masitolo",
     inside3Desc:
-      "Tengani zinthu kuchokera ku nthambi yosewera kupita ku yopanda phokoso popanda kutaya kuona aliyense.", // REVIEW
-    inside4: "Duka Lanu m'Thumba Lanu",
-    inside4Desc: "Onani zolowa lero kuchokera kunyumba, pa basi, kapena imani mu duka lina.", // REVIEW
-    inside5: "Imagulitsa ngakhale data yatha", // REVIEW
+      "Tengani zinthu kuchokera ku nthambi yotanganidwa kwambiri kupita ku ina popanda kutaya chidziwitso chilichonse.",
+    inside4: "Sitolo Yanu m'Thumba Lanu",
+    inside4Desc: "Onani zolowa lero kuchokera kunyumba, pa basi, kapena imani mu sitolo ina.",
+    inside5: "Imagulitsa ngakhale data yatha",
     inside5Desc:
-      "Kugulitsa kumanga malonda pa chipangizo ndikuulembetsa nthawi yomwe network yabweerera.", // REVIEW
-    inside6: "Risidi Zomwe Zinafana Nanu",
+      "Kugulitsa kumasunga malonda pa chipangizo ndikuulembetsa nthawi yomwe network yabweerera.",
+    inside6: "Marisidi Ofanana Nanu",
     inside6Desc:
-      "Risidi yosindikizidwa kapena yotumizidwa ndi dzina la duka lanu — chimene makasitomala amabweerera nacho.", // REVIEW
-    startH2: "Kuchokera kulembetsa kufika malonda oyamba, lero.", // REVIEW
+      "Risidi yosindikizidwa kapena yotumizidwa ndi dzina la sitolo yanu — chimene makasitomala amabweerera nacho.",
+    startH2: "Kuchokera kulembetsa kufika malonda oyamba, lero.",
     start1: "Tsegulani Akaunti Yanu",
     start1Desc:
-      "Tcheni bizinesi ndi duka lanu. Palibe kadi, palibe kudikira — kuyesa kumayamba mukalembetsa.", // REVIEW
+      "Tchulani bizinesi ndi sitolo yanu. Palibe kadi, palibe kudikira — kuyesa kumayamba mukalembetsa.",
     start2: "Ikani Zinthu Zanu",
-    start2Desc: "Lembani zomwe mukulitsa, mtengo wazo ndi zili pa guwa. Zinthu 5 kapena 5,000.", // REVIEW
+    start2Desc:
+      "Lembani zomwe mukugulitsa, mtengo wake ndi zomwe zilipo pamashelefu. Zinthu 5 kapena 5,000.",
     start3: "Yambani Kugulitsa",
     start3Desc:
-      "Tsegulani Kugulitsa pa foni kapena laptop iliyonse ndipo gulitsani malonda oyamba tsiku lisanathe.", // REVIEW
-    pricingH2: "Ndondomeko Imodzi. Lipira pa Duka.", // REVIEW
+      "Tsegulani Kugulitsa pa foni kapena laptop iliyonse ndipo gulitsani malonda oyamba tsiku lisanathe.",
+    pricingH2: "Ndondomeko Imodzi. Lipirani pa Sitolo.",
     pricingLead:
-      "Palibe chobisika kwa ndondomeko imene sunagulidwe, ndipo palibe gawo lina logulitsidwa mtsogomo. Mumulipira duka lililonse limene mumayang'anira — ndipo kuyesa kwa ulere kumabwera nako.", // REVIEW
-    pricingCardTitle: "Ndondomeko Imodzi — zonse zili mkati", // REVIEW
-    pricingTrialBadge: "Kuyesa kwa Ulaya Kuli Mkati", // REVIEW
-    pricingPerStore: "/duka /mwezi",
+      "Palibe chobisika kwa ndondomeko imene sunagulidwe, ndipo palibe gawo lina logulitsidwa mtsogomo. Mumulipira sitolo iliyonse limene mumayang'anira — ndipo kuyesa kwa ulere kumabwera nako.",
+    pricingCardTitle: "Ndondomeko Imodzi — zonse zili mkati",
+    pricingTrialBadge: "Kuyesa kwa Ulele Kuli Mkati",
+    pricingPerStore: "/sitolo /mwezi",
     pricingNote:
-      "Kugulitsa kumodzi kapena 6 — mulipira pa duka lililonse lomwe mutsegula, mwezi uliwonse. Lipirani chaka ndipo songosani 15%, ndi Airtel Money, TNM Mpamba kapena kadi.", // REVIEW
+      "Kugulitsa kumodzi kapena 6 — mulipira pa sitolo iliyonse lomwe mutsegula, mwezi uliwonse. Lipirani chaka ndipo sungani 15%, ndi Airtel Money, TNM Mpamba kapena kadi.",
     pricingFoot:
-      "Kuyesa kumakuphimbira duka limodzi ndi ma PIN a ogwira ntchito mpaka 3. Palibe kadi yofunikira kuyamba.", // REVIEW
-    feat1: "Malonda onse, risidi ndi malipoti a Kugulitsa", // REVIEW
-    feat2: "Ngongole, malonda a ngongole ndi zobweza", // REVIEW
-    feat3: "Katundu wamoyo m'duka lililonse limene mumayang'anira", // REVIEW
+      "Kuyesa kumakuphimbira sitolo imodzi ndi ma PIN a ogwira ntchito mpaka 3. Palibe kadi yofunikira kuyamba.",
+    feat1: "Malonda onse, risidi ndi malipoti a Kugulitsa",
+    feat2: "Ngongole, malonda a ngongole ndi zobweza",
+    feat3: "Katundu wamoyo m'sitolo iliyonse limene mumayang'anira",
     feat4: "PIN ndi udindo pa Munthu Aliyense",
-    feat5: "Zogulitsa, zochepa, ndi zotsala pambuyo pa zotulutsa", // REVIEW
-    feat6: "Kuwerengera katundu kodza gulu lonse pa mafoni awo", // REVIEW
-    closeH2: "Dziwani zomwe lero lapanga, musatseke chitseko.", // REVIEW
-    closeFoot: "Kuyesa kwa ulere pa duka lanu loyamba · Palibe kadi · Litsani mukangolitsa", // REVIEW
-    footerTag: "Kugulitsa Lanu · Katundu Wanu · Ogwira Ntchito Anu", // REVIEW
-    faqH2: "Mafunso Omene Eni Maduka Amafunsa", // REVIEW
-    faq1Q: "Zimawononga Ndalama Zingati?", // REVIEW
+    feat5: "Zogulitsa, zochepa, ndi zotsala pambuyo pa zotulutsa",
+    feat6: "Kuwerengera katundu ngati gulu lonse pa mafoni awo",
+    closeH2: "Dziwani zomwe lero lapanga, musatseke chitseko.",
+    closeFoot:
+      "Kuyesa kwa ulere pa sitolo yanu yoyamba · Palibe kadi · Lekerani nthawi ina iliyonse",
+    footerTag: "Kugulitsa Lanu · Katundu Wanu · Ogwira Ntchito Anu",
+    faqH2: "Mafunso Omene Eni Masitolo Amafunsa",
+    faq1Q: "Zimawononga Ndalama Zingati?",
     faq1A:
-      "MK{price} pa mwezi ku duka lililonse limene mumayang'anira — ndiyo ndondomeko yonse, ndi mfundo zonse zili mkati. Duka lanu loyamba limayang'anira kwaulere pa kuyesa, ndipo mulipira ndi Airtel Money, TNM Mpamba kapena kadi.", // REVIEW
-    faq2Q: "Kodi ndifunika kugula zida?", // REVIEW
+      "MK{price} pa mwezi ku sitolo iliyonse limene mumayang'anira — ndiyo ndondomeko yonse, ndi mfundo zonse zili mkati. Sitolo yanu yoyamba ikhala yaulere pa kuyesa, ndipo mulipira ndi Airtel Money, TNM Mpamba kapena kadi.",
+    faq2Q: "Kodi ndifunika kugula zida?",
     faq2A:
-      "Ayi. Storq imagwira ntchito mu browser pa foni ya Android, tablet kapena laptop imene muli nayo kale — palibe makina a Kugulitsa, palibe chida cha barcode, ndipo imawala zokwanira kugwira ntchito pa data yodziwika.", // REVIEW
-    faq3Q: "Kodi Ogwira Ntchito Anga Angaone Ndalama Zanga?", // REVIEW
+      "Ayi. Storq imagwira ntchito mu browser pa foni ya Android, tablet kapena laptop imene muli nayo kale — palibe makina a Kugulitsa, palibe chida cha barcode, ndipo imangofuna data yochepa.",
+    faq3Q: "Kodi Ogwira Ntchito Anga Angaone Ndalama Zanga?",
     faq3A:
-      "Zokha zomwe muloletsa. Munthu aliyense amatsegula Kugulitsa ndi PIN yawo ya manambala 4, ndipo PIN imeneyi imasankha zomwe angachite: olandila amagulitsa, atsogoleri amavomereza, ndipo zotulutsa ndi malipoti zikhalira nanu.", // REVIEW
-    faq4Q: "Kodi chichitika chiyani interineti ikangozima?", // REVIEW
+      "Zomwe mwaloleza zokha. Munthu aliyense amatsegula Kugulitsa ndi PIN yawo ya manambala 4, ndipo PIN imeneyi imasankha zomwe angachite: olandila amagulitsa, atsogoleri amavomereza, ndipo zotulutsa ndi malipoti zikhalira nanu.",
+    faq4Q: "Kodi chichitika chiyani interineti ikangozima?",
     faq4A:
-      "Pa Kugulitsa kogulitsa mwachindunji counter imapitiriza kugwira ntchito — malonda amangokhalira pa chipangizo ndipo adziulembetsa nthawi yomwe intaneti yabweerera, kotero kuti kuzima kosakanika kasitomala.", // REVIEW
-    faq5Q: "Kodi Ndingayang'anire Maduka Anosiyana?", // REVIEW
+      "Pa Kugulitsa kogulitsa mwachindunji counter imapitiriza kugwira ntchito — malonda amangokhalira pa chipangizo ndipo adziulembetsa nthawi yomwe intaneti yabweerera, kotero kuti sizikusokoneza kasitomala.",
+    faq5Q: "Kodi Ndingayang'anire Masitolo Osiyana?",
     faq5A:
-      "Inde. Onjezani duka tsiku lomwe mutsegule. Lililonse limasunga katundu ndi ogwira ntchito lace, ndipo muona zonse kuchokera pa foni imodzi.", // REVIEW
-    faq6Q: "Kodi Makasitomala Anga Angalipire Momwe Akufunira?", // REVIEW
+      "Inde. Onjezani sitolo nthawi ina iliyonse. Iliyonse imasunga katundu ndi ogwira ntchito lake, ndipo muona zonse kuchokera pa foni imodzi.",
+    faq6Q: "Kodi Makasitomala Anga Angalipire Momwe Akufunira?",
     faq6A:
-      "Ndalama, kadi, Airtel Money kapena TNM Mpamba — zolandirwa pa counter ndiponso pa lipiro lililonse la ngongole, kotero kuti bokosi la ndalama limagwilizana nthawi zonse ndi zomwe tsiku lagulitsa.", // REVIEW
+      "Ndalama, kadi, Airtel Money kapena TNM Mpamba — zolandirwa pa counter ndiponso pa lipiro lililonse la ngongole, kotero kuti bokosi la ndalama limagwilizana nthawi zonse ndi zomwe tsiku lagulitsa.",
   },
 };

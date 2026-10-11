@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePos } from "@/lib/pos";
 
 export type SaleRow = {
   id: string;
@@ -19,6 +20,10 @@ export type SaleRow = {
   created_by: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  // Populated by the item join whenever `items` is on (the default). List-only
+  // and cashier-aggregate callers pass `items: false`, which returns rows
+  // without this field; every reader that touches it either always fetches the
+  // join or guards against its absence.
   sale_items: {
     id: string;
     refunded_qty: number;
@@ -31,14 +36,30 @@ export type SaleRow = {
 
 export function useSales(
   key: string,
-  filter: { storeId?: string | undefined; statuses?: string[]; since?: string },
+  filter: {
+    storeId?: string | undefined;
+    statuses?: string[];
+    since?: string;
+    // Fetch the nested sale_items join. Defaults on (detail/invoice/layby/report
+    // screens show line items); list-only and cashier aggregate views pass false.
+    items?: boolean;
+  },
 ) {
+  const withItems = filter.items !== false;
   return useQuery({
     queryKey: ["sales", key, filter],
+    // Writes go through checkout/refund which invalidate the ["sales"] prefix
+    // (SALE_TOUCHED); a short floor stops a nav-away-and-back from re-pulling
+    // the whole window while other-device rows stay within one minute stale.
+    staleTime: 60_000,
     queryFn: async () => {
       let q = supabase
         .from("sales")
-        .select("*, sale_items(id,refunded_qty,name,qty,price,product_id)")
+        .select(
+          withItems
+            ? "*, sale_items(id,refunded_qty,name,qty,price,product_id)"
+            : "id,number,kind,status,total,paid,payment_method,customer_name,customer_phone,note,store_id,created_at,tax,refunded,created_by,approved_by,approved_at",
+        )
         .order("created_at", { ascending: false })
         .limit(1000);
       if (filter.storeId) q = q.eq("store_id", filter.storeId);
@@ -60,7 +81,7 @@ export function useSaleItemCosts(rows?: SaleRow[]) {
     // any sale-touching write, so load once and hold rather than re-pull.
     staleTime: 300_000,
     queryFn: async () => {
-      const ids = (rows ?? []).flatMap((s) => s.sale_items.map((i) => i.id));
+      const ids = (rows ?? []).flatMap((s) => (s.sale_items ?? []).map((i) => i.id));
       if (!ids.length) return {} as Record<string, number>;
       const map: Record<string, number> = {};
       for (let i = 0; i < ids.length; i += 500) {
@@ -89,4 +110,107 @@ export function useStaffNames() {
       return Object.fromEntries((data ?? []).map((s) => [s.id, s.name])) as Record<string, string>;
     },
   });
+}
+
+// The Sales list headline numbers (net revenue, collected, refunds, counts) are
+// computed by a single SQL aggregate over the full period, so they stay exact
+// even past 1000 sales and never pull rows to total them up in the browser.
+export type SalesSummary = {
+  revenue: number;
+  collected: number;
+  transactions: number;
+  pending: number;
+  refunds: number;
+};
+
+export function useSalesSummary(filter: { storeId?: string | undefined; since: string }) {
+  const { rpc } = usePos();
+  return useQuery({
+    queryKey: ["sales-summary", filter],
+    // Recomputed server-side on checkout/refund via SALE_TOUCHED; a short floor
+    // keeps the cards resident across remounts instead of re-aggregating.
+    staleTime: 60_000,
+    queryFn: async () => {
+      const r = await rpc<Record<string, unknown>>("sales_summary", {
+        p_store: filter.storeId ?? null,
+        p_from: filter.since,
+        p_to: new Date().toISOString(),
+      });
+      return {
+        revenue: Number(r?.["revenue"] ?? 0),
+        collected: Number(r?.["collected"] ?? 0),
+        transactions: Number(r?.["transactions"] ?? 0),
+        pending: Number(r?.["pending"] ?? 0),
+        refunds: Number(r?.["refunds"] ?? 0),
+      } as SalesSummary;
+    },
+  });
+}
+
+// One page of the sales ledger, read straight from the server with an exact
+// total, so the list never loads the whole period just to show 50 rows. Parent
+// columns only — the table and pager don't render line items.
+const SALE_PAGE_COLUMNS =
+  "id,number,kind,status,total,paid,payment_method,customer_name,customer_phone,store_id,created_at,tax,refunded,created_by";
+
+export function useSalesPage(filter: {
+  storeId?: string | undefined;
+  since: string;
+  page: number;
+  pageSize: number;
+}) {
+  return useQuery({
+    queryKey: ["sales-page", filter],
+    staleTime: 60_000,
+    // Keep the previous page on screen while the next one loads to avoid a blank flash.
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const from = (filter.page - 1) * filter.pageSize;
+      let q = supabase
+        .from("sales")
+        .select(SALE_PAGE_COLUMNS, { count: "exact" })
+        .gte("created_at", filter.since)
+        .order("created_at", { ascending: false })
+        .range(from, from + filter.pageSize - 1);
+      if (filter.storeId) q = q.eq("store_id", filter.storeId);
+      const { data, error, count } = await q;
+      if (error) throw error;
+      return { rows: (data ?? []) as unknown as SaleRow[], total: count ?? 0 };
+    },
+  });
+}
+
+// CSV/PDF export is deliberately lazy: it fetches the whole period only when the
+// button is clicked (bounded for safety), so ordinary browsing stays light while
+// the download still contains every matching sale, not just the loaded page.
+export type SaleExportRow = {
+  number: number;
+  created_at: string;
+  store_id: string;
+  status: string;
+  payment_method: string | null;
+  customer_name: string | null;
+  total: number;
+  tax: number;
+  paid: number;
+  refunded: number;
+  created_by: string | null;
+};
+
+export async function fetchSalesForExport(filter: {
+  storeId?: string | undefined;
+  since: string;
+}): Promise<SaleExportRow[]> {
+  let q = supabase
+    .from("sales")
+    .select(
+      "number,created_at,store_id,status,payment_method,customer_name,total,tax,paid,refunded,created_by",
+    )
+    .gte("created_at", filter.since)
+    .order("created_at", { ascending: false })
+    .limit(50_000);
+  if (filter.storeId) q = q.eq("store_id", filter.storeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as unknown as SaleExportRow[];
 }

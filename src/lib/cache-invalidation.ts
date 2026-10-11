@@ -10,6 +10,8 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
  */
 export const SALE_TOUCHED: readonly QueryKey[] = [
   ["sales"],
+  ["sales-page"],
+  ["sales-summary"],
   ["sale"],
   ["sale-item-costs"],
   ["stock"],

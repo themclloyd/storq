@@ -30,6 +30,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Temporary logs / dev output
+tmp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

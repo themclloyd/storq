@@ -10,8 +10,9 @@ import {
   MinusSignIcon,
   PlusSignIcon,
   Search01Icon,
+  ShoppingBag01Icon,
   Simcard01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 import {
   useProducts,
   useStock,
@@ -22,6 +23,7 @@ import {
   type Product,
 } from "@/lib/products";
 import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
+import { normalizeCode } from "@/lib/item-codes";
 import { usePos } from "@/lib/pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -43,18 +45,28 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Empty, Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Empty, Field, NativeSelect, PageHeader, StoreTypeTag } from "@/components/pos/bits";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
+import { QuickAddItem } from "@/components/pos/QuickAddItem";
 import { useScannerWedge } from "@/components/pos/use-scanner";
 import { DiscountDialog, type DiscountLine } from "@/components/pos/DiscountDialog";
 import { Receipt, type ReceiptTender } from "@/lib/receipts";
 import { validatePin } from "@/lib/validate";
 import { cn } from "@/lib/utils";
 import { useCollections, salePrice } from "@/lib/collections";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslateParams } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
@@ -112,6 +124,12 @@ function Register() {
   const [scanning, setScanning] = useState(false);
   // Codes seen while the catalog query refreshed: applied once a match exists.
   const [pendingScan, setPendingScan] = useState<string | null>(null);
+  // An unknown code lets a manager register the item right here (one code, no
+  // trip to Inventory); cashiers just see the "no item matches" error.
+  const [quickAdd, setQuickAdd] = useState<string | null>(null);
+  // Below the two-column breakpoint the sale panel lives in a bottom sheet
+  // (spec §5); this drives that sheet while a floating bar summarises the cart.
+  const [mobileCart, setMobileCart] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const cols = useCollections();
@@ -133,7 +151,9 @@ function Register() {
     return list.filter(
       (p) =>
         (!cat || (cols.data?.byProduct[p.id] ?? []).includes(cat)) &&
-        (!needle || p.name.toLowerCase().includes(needle) || p.sku?.toLowerCase().includes(needle)),
+        (!needle ||
+          p.name.toLowerCase().includes(needle) ||
+          normalizeCode(p.sku).toLowerCase().includes(needle)),
     );
   }, [list, cat, cols.data, dq]);
   // Discount-adjusted money: net sub = gross - per-line discounts, tax on net.
@@ -167,6 +187,35 @@ function Register() {
     setCart((c) =>
       qty <= 0 ? c.filter((l) => l.p.id !== id) : c.map((l) => (l.p.id === id ? { ...l, qty } : l)),
     );
+  // Removing a line or clearing the basket is reversible: offer Undo in the
+  // toast so an accidental tap never loses the sale (spec §5, §10).
+  const removeLine = (id: string) => {
+    const line = cart.find((l) => l.p.id === id);
+    if (!line) return;
+    setCart((c) => c.filter((l) => l.p.id !== id));
+    toast(t("till.removedItem", { name: line.p.name }), {
+      action: {
+        label: t("till.undo"),
+        onClick: () => setCart((c) => (c.some((l) => l.p.id === id) ? c : [...c, line])),
+      },
+    });
+  };
+  const clearCart = () => {
+    if (!cart.length) return;
+    const snapshot = cart;
+    const snapDisc = discounts;
+    setCart([]);
+    setDiscounts({});
+    toast(t("till.clearedCart"), {
+      action: {
+        label: t("till.undo"),
+        onClick: () => {
+          setCart(snapshot);
+          setDiscounts(snapDisc);
+        },
+      },
+    });
+  };
 
   // ---- barcode: hardware wedge + camera scan ----
   const applyCode = (code: string) => {
@@ -178,7 +227,7 @@ function Register() {
     setPendingScan(code);
     return false;
   };
-  useScannerWedge(applyCode, { enabled: !!store && !dlg && !scanning });
+  useScannerWedge(applyCode, { enabled: !!store && !dlg && !scanning && !quickAdd });
   useEffect(() => {
     if (!pendingScan) return;
     const p = findByBarcode(list, pendingScan);
@@ -187,6 +236,10 @@ function Register() {
       setPendingScan(null);
     } else if (products.isFetched) {
       toast.error(t("till.noBarcodeMatch", { code: pendingScan }));
+      if (can("admin", "manager")) {
+        setScanning(false);
+        setQuickAdd(pendingScan.trim());
+      }
       setPendingScan(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,6 +262,11 @@ function Register() {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
+  // Auto-focus the search on mount (spec §5) so a cashier can start typing or
+  // let a scanner wedge land in the box without a click first.
+  useEffect(() => {
+    if (store) searchRef.current?.focus();
+  }, [store]);
 
   async function finish(kind: "sale" | "layby", f: SaleForm) {
     if (!store) return;
@@ -296,258 +354,415 @@ function Register() {
 
   if (!store) return <Empty>{t("till.addStoreFirst")}</Empty>;
 
+  const rows: SaleRow[] = cart.map((l) => {
+    const d = lineDisc(l);
+    return {
+      id: l.p.id,
+      name: l.p.name,
+      unit: price(l.p),
+      disc: d,
+      gross: lineGross(l),
+      net: round2(lineGross(l) - d),
+      qty: l.qty,
+    };
+  });
+  // One element reused by the desktop column and the mobile bottom sheet, so the
+  // two surfaces can never drift apart (spec §5, §11).
+  const salePanel = (
+    <SalePanel
+      title={approval ? t("till.currentInvoice") : t("till.currentSale")}
+      storeName={store.name}
+      rows={rows}
+      emptyText={t("till.tapItems")}
+      discountTotal={discountTotal}
+      grossSub={grossSub}
+      rate={rate}
+      incl={incl}
+      tax={tax}
+      total={total}
+      approval={approval}
+      money={money}
+      t={t}
+      onStep={setQty}
+      onRemove={removeLine}
+      onClear={clearCart}
+      onDiscount={() => setShowDisc(true)}
+      onCharge={() => setDlg("sale")}
+      onLayby={() => setDlg("layby")}
+    />
+  );
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <section className="min-w-0">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative flex-1">
-            <Label htmlFor="pos-search" className="sr-only">
-              {t("till.searchLabel")}
-            </Label>
-            <HugeiconsIcon
-              icon={Search01Icon}
-              className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              ref={searchRef}
-              id="pos-search"
-              className="h-11 bg-card pl-9"
-              placeholder={t("till.searchPlaceholder")}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-          <ScanCameraButton onOpen={() => setScanning(true)} />
-          <StoreTypeTag type={store.store_type} />
-        </div>
-        {cats.length > 0 && (
-          <ToggleGroup
-            type="single"
-            value={cat ?? "all"}
-            onValueChange={(v) => setCat(v && v !== "all" ? v : null)}
-            className="mb-4 justify-start gap-2 overflow-x-auto"
-          >
-            <ToggleGroupItem
-              value="all"
-              className="shrink-0 rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-            >
-              {t("till.all")}
-            </ToggleGroupItem>
-            {cats.map((id) => (
-              <ToggleGroupItem
-                key={id}
-                value={id}
-                className="shrink-0 rounded-full px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
-                {catName(id)}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-        {products.isError ? (
-          <Empty>
-            <div className="flex flex-col items-center gap-3">
-              <span>{t("errors.generic")}</span>
-              <Button size="sm" variant="outline" onClick={() => void products.refetch()}>
-                {t("common.tryAgain")}
-              </Button>
+    <>
+      <PageHeader breadcrumb={t("till.pointOfSale")} title={t("till.newSale")} sub={store.name} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <section className="min-w-0">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="relative flex-1">
+              <Label htmlFor="pos-search" className="sr-only">
+                {t("till.searchLabel")}
+              </Label>
+              <HugeiconsIcon
+                icon={Search01Icon}
+                className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                ref={searchRef}
+                id="pos-search"
+                className="h-11 bg-card pl-9 text-[15px]"
+                placeholder={t("till.searchPlaceholder")}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
             </div>
-          </Empty>
-        ) : list.length === 0 ? (
-          <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
-        ) : !browsing ? (
-          <Empty>{t("till.searchToStart")}</Empty>
-        ) : shown.length === 0 ? (
-          <Empty>{t("till.noMatchingItems")}</Empty>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {shown.map((p) => {
-              const s = stock.data?.[p.id] ?? 0;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => add(p)}
-                  className="pos-tile pos-card overflow-hidden text-left hover:shadow-[var(--shadow-pop)]"
+            <ScanCameraButton onOpen={() => setScanning(true)} />
+            <StoreTypeTag type={store.store_type} />
+          </div>
+          {cats.length > 0 && (
+            <div className="mb-4 flex justify-start gap-2 overflow-x-auto pb-1">
+              <CatChip active={!cat} onClick={() => setCat(null)}>
+                {t("till.all")}
+              </CatChip>
+              {cats.map((id) => (
+                <CatChip
+                  key={id}
+                  active={cat === id}
+                  onClick={() => setCat(cat === id ? null : id)}
                 >
-                  <div
+                  {catName(id)}
+                </CatChip>
+              ))}
+            </div>
+          )}
+          {products.isError ? (
+            <Empty>
+              <div className="flex flex-col items-center gap-3">
+                <span>{t("errors.generic")}</span>
+                <Button size="sm" variant="outline" onClick={() => void products.refetch()}>
+                  {t("common.tryAgain")}
+                </Button>
+              </div>
+            </Empty>
+          ) : list.length === 0 ? (
+            <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
+          ) : !browsing ? (
+            <Empty>{t("till.searchToStart")}</Empty>
+          ) : shown.length === 0 ? (
+            <Empty>{t("till.noMatchingItems")}</Empty>
+          ) : (
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
+              {shown.map((p) => {
+                const s = stock.data?.[p.id] ?? 0;
+                const threshold = p.reorder_point ?? 5;
+                const soldOut = s <= 0;
+                const low = s > 0 && s <= threshold;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => add(p)}
+                    disabled={soldOut}
+                    aria-disabled={soldOut}
                     className={cn(
-                      "grid h-20 place-items-center text-2xl font-extrabold text-tile-foreground",
-                      tileFor(p.name),
+                      "pos-tile pos-card overflow-hidden text-left hover:border-primary",
+                      soldOut && "pointer-events-none opacity-45",
                     )}
                   >
-                    {p.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="p-3">
-                    <div className="truncate text-sm font-semibold">{p.name}</div>
-                    <div className="mt-1 flex justify-between text-xs">
-                      <span className="tabular font-semibold">
-                        {price(p) < Number(p.price) && (
-                          <span className="mr-1 font-normal text-muted-foreground line-through">
-                            {money(p.price)}
+                    <div
+                      className={cn(
+                        "font-display relative grid h-[120px] place-items-center rounded-t-2xl text-3xl text-tile-foreground",
+                        tileFor(p.name),
+                      )}
+                    >
+                      {p.name.slice(0, 2).toUpperCase()}
+                      {low && (
+                        <span className="absolute left-2 top-2">
+                          <Badge variant="destructive">{t("till.low")}</Badge>
+                        </span>
+                      )}
+                      {soldOut && (
+                        <span className="absolute inset-x-0 bottom-2 text-center text-xs font-medium text-destructive">
+                          {t("till.outOfStock")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <div className="truncate text-sm font-medium">{p.name}</div>
+                      <div className="mt-1 flex items-baseline justify-between text-xs">
+                        <span className="tabular font-semibold text-secondary-foreground">
+                          {price(p) < Number(p.price) && (
+                            <span className="mr-1 font-normal text-muted-foreground line-through">
+                              {money(p.price)}
+                            </span>
+                          )}
+                          {money(price(p))}
+                        </span>
+                        {!soldOut && (
+                          <span className="tabular text-muted-foreground">
+                            {t("till.inStock", { count: s })}
                           </span>
                         )}
-                        {money(price(p))}
-                      </span>
-                      <span
-                        className={cn(
-                          "tabular",
-                          s <= 0 ? "text-destructive" : "text-muted-foreground",
-                        )}
-                      >
-                        {t("till.inStock", { count: s })}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <Card className="flex h-fit flex-col shadow-none lg:sticky lg:top-8">
-        <CardHeader className="space-y-0 border-b px-5 py-4">
-          <CardTitle className="font-bold">
-            {approval ? t("till.currentInvoice") : t("till.currentSale")}
-          </CardTitle>
-          <CardDescription className="text-xs">{store.name}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 p-0">
-          <ScrollArea className="max-h-[45vh]">
-            <div className="divide-y">
-              {cart.length === 0 && (
-                <p className="p-8 text-center text-sm text-muted-foreground">
-                  {t("till.tapItems")}
-                </p>
-              )}
-              {cart.map((l) => {
-                const d = lineDisc(l);
-                const net = round2(lineGross(l) - d);
-                return (
-                  <div key={l.p.id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold">{l.p.name}</div>
-                      <div className="tabular text-xs text-muted-foreground">
-                        {money(price(l.p))} {t("till.eachWord")}
-                        {d > 0 && <span className="ml-1 text-warning">· -{money(d)}</span>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="size-7"
-                        onClick={() => setQty(l.p.id, l.qty - 1)}
-                      >
-                        {l.qty === 1 ? (
-                          <HugeiconsIcon icon={Delete02Icon} />
-                        ) : (
-                          <HugeiconsIcon icon={MinusSignIcon} />
-                        )}
-                      </Button>
-                      <span className="tabular w-7 text-center text-sm font-bold">{l.qty}</span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="size-7"
-                        onClick={() => setQty(l.p.id, l.qty + 1)}
-                      >
-                        <HugeiconsIcon icon={PlusSignIcon} />
-                      </Button>
-                    </div>
-                    <div className="tabular w-20 text-right text-sm font-semibold">
-                      {d > 0 && (
-                        <div className="text-xs font-normal text-muted-foreground line-through">
-                          {money(lineGross(l))}
-                        </div>
-                      )}
-                      {money(net)}
-                    </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          </ScrollArea>
-        </CardContent>
-        <CardFooter className="flex-col items-stretch gap-3 border-t bg-secondary/25 p-5 pt-5">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full"
-            disabled={!cart.length}
-            onClick={() => setShowDisc(true)}
-          >
-            {discountTotal > 0
-              ? t("till.discountApplied", { amount: money(discountTotal) })
-              : t("till.addDiscount")}
-          </Button>
-          {discountTotal > 0 && (
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{t("till.lineItems")}</span>
-              <span className="tabular">{money(grossSub)}</span>
-            </div>
           )}
-          {rate > 0 && (
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>
-                {t("till.vat")} {rate}% ({incl ? t("till.included") : t("till.added")})
-              </span>
-              <span className="tabular">{money(tax)}</span>
-            </div>
-          )}
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground">{t("common.total")}</span>
-            <span className="tabular text-3xl font-extrabold">{money(total)}</span>
-          </div>
-          <Button
-            size="xl"
-            variant="default"
-            className="w-full"
-            disabled={!cart.length}
-            onClick={() => setDlg("sale")}
-          >
-            {approval ? t("till.sendForApproval") : t("till.charge", { amount: money(total) })}
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full"
-            disabled={!cart.length}
-            onClick={() => setDlg("layby")}
-          >
-            {approval ? t("till.laybyInvoice") : t("till.startLayby")}
-          </Button>
-        </CardFooter>
-      </Card>
+        </section>
 
-      {dlg && (
-        <CheckoutDialog
-          kind={dlg}
-          total={total}
-          approval={approval}
-          needsPin={overCap}
-          onClose={() => setDlg(null)}
-          onDone={(f) => finish(dlg, f)}
-        />
-      )}
-      {showDisc && (
-        <DiscountDialog
-          lines={cart.map((l): DiscountLine => ({
-            id: l.p.id,
-            name: l.p.name,
-            unit: price(l.p),
-            qty: l.qty,
-          }))}
-          discounts={discounts}
-          onApply={setDiscounts}
-          onClose={() => setShowDisc(false)}
-        />
-      )}
-      {receipt && <ReceiptModal receipt={receipt} money={money} onClose={() => setReceipt(null)} />}
-      {scanning && (
-        <ScanCamera onDetected={(code) => applyCode(code)} onClose={() => setScanning(false)} />
-      )}
-    </div>
+        {/* Desktop: the sticky Current-sale column (spec §5). */}
+        <div className="hidden lg:block">
+          <div className="lg:sticky lg:top-8">{salePanel}</div>
+        </div>
+
+        {/* Mobile / tablet: a floating summary bar that opens the sale as a
+            bottom sheet below the two-column breakpoint. */}
+        <div className="lg:hidden">
+          {cart.length > 0 && (
+            <Sheet open={mobileCart} onOpenChange={setMobileCart}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t bg-card px-5 py-4 text-left shadow-lg"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground [&_svg]:size-4">
+                      <HugeiconsIcon icon={ShoppingBag01Icon} />
+                    </span>
+                    <span className="text-sm font-medium">
+                      {t("till.itemsCount", { count: cart.length })}
+                    </span>
+                  </span>
+                  <span className="font-display tabular text-lg">{money(total)}</span>
+                </button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="max-h-[85vh] gap-0 overflow-hidden rounded-t-3xl bg-background p-0"
+              >
+                <SheetHeader className="sr-only">
+                  <SheetTitle>{t("till.currentSale")}</SheetTitle>
+                  <SheetDescription>{store.name}</SheetDescription>
+                </SheetHeader>
+                <div className="max-h-[calc(85vh-2rem)] overflow-y-auto">{salePanel}</div>
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
+
+        {dlg && (
+          <CheckoutDialog
+            kind={dlg}
+            total={total}
+            approval={approval}
+            needsPin={overCap}
+            onClose={() => setDlg(null)}
+            onDone={(f) => finish(dlg, f)}
+          />
+        )}
+        {showDisc && (
+          <DiscountDialog
+            lines={cart.map((l): DiscountLine => ({
+              id: l.p.id,
+              name: l.p.name,
+              unit: price(l.p),
+              qty: l.qty,
+            }))}
+            discounts={discounts}
+            onApply={setDiscounts}
+            onClose={() => setShowDisc(false)}
+          />
+        )}
+        {receipt && (
+          <ReceiptModal receipt={receipt} money={money} onClose={() => setReceipt(null)} />
+        )}
+        {scanning && (
+          <ScanCamera onDetected={(code) => applyCode(code)} onClose={() => setScanning(false)} />
+        )}
+        {quickAdd && (
+          <QuickAddItem
+            code={quickAdd}
+            onCreated={(p) => {
+              add(p);
+              setQuickAdd(null);
+            }}
+            onClose={() => setQuickAdd(null)}
+          />
+        )}
+      </div>
+    </>
+  );
+}
+
+type SaleRow = {
+  id: string;
+  name: string;
+  unit: number;
+  disc: number;
+  gross: number;
+  net: number;
+  qty: number;
+};
+
+// The Current-sale panel (spec §5): header + clear, empty state, pill-stepper
+// rows, and the tinted footer (discount / VAT / total / charge / layby). Rendered
+// inline on desktop and inside the mobile bottom sheet from a single element.
+function SalePanel({
+  title,
+  storeName,
+  rows,
+  emptyText,
+  discountTotal,
+  grossSub,
+  rate,
+  incl,
+  tax,
+  total,
+  approval,
+  money,
+  t,
+  onStep,
+  onRemove,
+  onClear,
+  onDiscount,
+  onCharge,
+  onLayby,
+}: {
+  title: string;
+  storeName: string;
+  rows: SaleRow[];
+  emptyText: string;
+  discountTotal: number;
+  grossSub: number;
+  rate: number;
+  incl: boolean;
+  tax: number;
+  total: number;
+  approval: boolean;
+  money: (n: number | string | null | undefined) => string;
+  t: (key: string, opts?: TranslateParams) => string;
+  onStep: (id: string, qty: number) => void;
+  onRemove: (id: string) => void;
+  onClear: () => void;
+  onDiscount: () => void;
+  onCharge: () => void;
+  onLayby: () => void;
+}) {
+  const has = rows.length > 0;
+  return (
+    <Card className="flex h-fit flex-col overflow-hidden rounded-3xl">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 border-b px-5 py-4">
+        <div className="min-w-0">
+          <CardTitle className="font-display text-lg font-medium">{title}</CardTitle>
+          <CardDescription className="truncate text-xs">{storeName}</CardDescription>
+        </div>
+        {has && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="shrink-0 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("till.clear")}
+          </button>
+        )}
+      </CardHeader>
+      <CardContent className="flex-1 p-0">
+        <ScrollArea className="max-h-[45vh]">
+          <div className="divide-y">
+            {!has && (
+              <div className="flex flex-col items-center gap-3 p-8 text-center">
+                <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+                  <HugeiconsIcon icon={ShoppingBag01Icon} />
+                </span>
+                <p className="text-sm text-muted-foreground">{emptyText}</p>
+              </div>
+            )}
+            {rows.map((r) => (
+              <div key={r.id} className="pos-row flex items-center gap-3 px-5 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{r.name}</div>
+                  <div className="tabular text-xs text-muted-foreground">
+                    {money(r.unit)} {t("till.eachWord")}
+                    {r.disc > 0 && <span className="ml-1 text-warning">· −{money(r.disc)}</span>}
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-0.5 rounded-full border border-input bg-card p-0.5">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7"
+                    aria-label={r.qty <= 1 ? t("till.remove") : t("till.decrease")}
+                    onClick={() => (r.qty <= 1 ? onRemove(r.id) : onStep(r.id, r.qty - 1))}
+                  >
+                    {r.qty <= 1 ? (
+                      <HugeiconsIcon icon={Delete02Icon} />
+                    ) : (
+                      <HugeiconsIcon icon={MinusSignIcon} />
+                    )}
+                  </Button>
+                  <span className="tabular w-6 text-center text-sm font-medium">{r.qty}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7"
+                    aria-label={t("till.increase")}
+                    onClick={() => onStep(r.id, r.qty + 1)}
+                  >
+                    <HugeiconsIcon icon={PlusSignIcon} />
+                  </Button>
+                </div>
+                <div className="tabular w-20 text-right text-sm">
+                  {r.disc > 0 && (
+                    <div className="text-xs font-normal text-muted-foreground line-through">
+                      {money(r.gross)}
+                    </div>
+                  )}
+                  <span className="font-semibold text-secondary-foreground">{money(r.net)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+      <CardFooter className="flex-col items-stretch gap-3 border-t bg-secondary/40 p-5">
+        <button
+          type="button"
+          onClick={onDiscount}
+          disabled={!has}
+          className="w-full rounded-xl border border-dashed border-input py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+        >
+          {discountTotal > 0
+            ? t("till.discountApplied", { amount: money(discountTotal) })
+            : `+ ${t("till.addDiscount")}`}
+        </button>
+        {discountTotal > 0 && (
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{t("till.lineItems")}</span>
+            <span className="tabular">{money(grossSub)}</span>
+          </div>
+        )}
+        {rate > 0 && (
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>
+              {t("till.vat")} {rate}% ({incl ? t("till.included") : t("till.added")})
+            </span>
+            <span className="tabular">{money(tax)}</span>
+          </div>
+        )}
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-muted-foreground">{t("common.total")}</span>
+          <span className="font-display tabular text-[38px] leading-none font-medium">
+            {money(total)}
+          </span>
+        </div>
+        <Button size="xl" variant="default" className="w-full" disabled={!has} onClick={onCharge}>
+          {approval ? t("till.sendForApproval") : t("till.charge", { amount: money(total) })}
+        </Button>
+        <Button size="lg" variant="outline" className="w-full" disabled={!has} onClick={onLayby}>
+          {approval ? t("till.laybyInvoice") : t("till.startLayby")}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
 
@@ -634,7 +849,7 @@ function CheckoutDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden bg-card p-0 shadow-[var(--shadow-pop)]">
+      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-3xl bg-card p-0">
         <DialogHeader className="space-y-0 border-b px-5 py-4 pr-12 text-left">
           <DialogTitle>
             {approval
@@ -656,11 +871,13 @@ function CheckoutDialog({
         </DialogHeader>
 
         <div className="px-5 pt-5">
-          <div className="rounded-lg bg-secondary/45 px-4 py-3 text-center">
+          <div className="rounded-2xl bg-secondary/50 px-4 py-3 text-center">
             <div className={sectionLabel}>
               {approval ? t("till.invoiceTotal") : t("till.amountDue")}
             </div>
-            <div className="tabular mt-1 text-3xl font-extrabold">{money(total)}</div>
+            <div className="font-display tabular mt-1 text-[34px] leading-none font-medium">
+              {money(total)}
+            </div>
             {rate > 0 && (
               <div className="mt-1 text-[11px] text-muted-foreground">
                 {t("till.vat")} {rate}%{" "}
@@ -682,23 +899,17 @@ function CheckoutDialog({
               <Label className={sectionLabel}>
                 {splitting ? t("till.payment1Method") : t("till.paymentMethod")}
               </Label>
-              <ToggleGroup
-                type="single"
+              <SegmentedControl
+                aria-label={t("till.paymentMethod")}
+                className="w-full"
                 value={method}
-                onValueChange={(v) => v && setMethod(v)}
-                className="gap-1 rounded-full border border-input bg-muted/60 p-1"
-              >
-                {payMethods.map((m) => (
-                  <ToggleGroupItem
-                    key={m.v}
-                    value={m.v}
-                    className="flex-1 rounded-full px-2 py-2 text-sm data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  >
-                    <HugeiconsIcon icon={m.i} className="size-4 shrink-0" />
-                    <span className="truncate">{t(m.k)}</span>
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+                onChange={setMethod}
+                options={payMethods.map((m) => ({
+                  value: m.v,
+                  label: t(m.k),
+                  icon: <HugeiconsIcon icon={m.i} className="size-4 shrink-0" />,
+                }))}
+              />
             </div>
           )}
 
@@ -718,7 +929,7 @@ function CheckoutDialog({
                   value={tendered}
                   onChange={(e) => setTendered(e.target.value)}
                   placeholder="0.00"
-                  className="tabular h-12 bg-card text-right text-xl font-bold md:text-xl"
+                  className="tabular h-12 bg-card text-right text-xl font-semibold md:text-xl"
                 />
               </Field>
               {!splitting && (
@@ -785,17 +996,17 @@ function CheckoutDialog({
           )}
 
           {splitting && short > 0.005 && (
-            <div className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-              <span className="text-sm font-semibold text-muted-foreground">
+            <div className="flex items-center justify-between rounded-2xl bg-muted px-4 py-3">
+              <span className="text-sm font-medium text-muted-foreground">
                 {t("till.remainingDue")}
               </span>
-              <span className="tabular text-lg font-extrabold">{money(short)}</span>
+              <span className="tabular text-lg font-semibold">{money(short)}</span>
             </div>
           )}
           {change > 0 && (
-            <div className="flex items-center justify-between rounded-lg bg-success/10 px-4 py-3">
-              <span className="text-sm font-semibold text-success">{t("till.changeDue")}</span>
-              <span className="tabular text-lg font-extrabold text-success">{money(change)}</span>
+            <div className="flex items-center justify-between rounded-2xl bg-success-soft px-4 py-3">
+              <span className="text-sm font-medium text-success">{t("till.changeDue")}</span>
+              <span className="tabular text-lg font-semibold text-success">{money(change)}</span>
             </div>
           )}
 
@@ -831,7 +1042,7 @@ function CheckoutDialog({
           )}
         </div>
 
-        <DialogFooter className="flex-row gap-3 border-t bg-secondary/35 px-5 py-4 sm:justify-between sm:space-x-0">
+        <DialogFooter className="flex-row gap-3 border-t bg-muted px-5 py-4 sm:justify-between sm:space-x-0">
           <Button variant="ghost" size="lg" className="px-4" onClick={onClose}>
             {t("common.cancel")}
           </Button>
@@ -880,5 +1091,33 @@ function Tender({
     >
       {children}
     </Button>
+  );
+}
+
+// Category filter chips (spec §5): a pill row where the active chip is filled
+// `primary`. Scrollable on narrow screens so the row never wraps the toolbar.
+function CatChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-sm font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+        active
+          ? "border-transparent bg-primary text-primary-foreground"
+          : "border-input bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }
