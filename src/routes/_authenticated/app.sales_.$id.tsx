@@ -205,9 +205,7 @@ function SaleDetail() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="text-[11px] uppercase">{t("doc.item")}</TableHead>
-                    <TableHead className="text-right text-[11px] uppercase">
-                      {t("doc.amount")}
-                    </TableHead>
+                    <TableHead className="text-[11px] uppercase">{t("doc.amount")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -225,7 +223,7 @@ function SaleDetail() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="tabular text-right font-semibold">
+                      <TableCell className="tabular font-semibold">
                         {money(Number(i.qty) * Number(i.price))}
                       </TableCell>
                     </TableRow>

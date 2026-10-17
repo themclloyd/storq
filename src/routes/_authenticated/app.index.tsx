@@ -812,9 +812,12 @@ function CheckoutDialog({
   const notes = [...new Set([upTo(step), upTo(step * 2), upTo(step * 4)])]
     .filter((v) => v > total)
     .slice(0, 2);
+  // A layby deposit is any part of a fixed total; half is the other common one.
+  const half = round2(total / 2);
 
   // Split rows carry their own amounts; the primary row is the cash field when
-  // cash, or covers the remainder when a lone card/mobile tender (no split).
+  // cash or a layby deposit (any method, any amount up to the total), or covers
+  // the remainder when a lone card/mobile tender pays a sale in full (no split).
   const tenders: TenderRow[] = approval
     ? []
     : splitting
@@ -824,12 +827,12 @@ function CheckoutDialog({
         ].filter((t) => t.amount > 0)
       : [];
   const sumT = tenders.reduce((a, t) => a + t.amount, 0);
-  const covered = !splitting ? (method === "cash" ? pay : total) : sumT;
+  const covered = !splitting ? (kind === "layby" || method === "cash" ? pay : total) : sumT;
   const short = round2(total - covered);
   const change = approval
     ? 0
     : calcChange(splitting ? tenders : [{ method, amount: pay }], total, kind);
-  const showAmount = !approval && (method === "cash" || splitting);
+  const showAmount = !approval && (kind === "layby" || method === "cash" || splitting);
 
   const submit = async () => {
     setBusy(true);
@@ -838,7 +841,7 @@ function CheckoutDialog({
         ? 0
         : kind === "sale" && !splitting
           ? total
-          : round2(splitting ? sumT : pay),
+          : round2(splitting ? sumT : Math.min(Math.max(pay, 0), total)),
       method,
       tenders: splitting ? tenders : [],
       name,
@@ -939,11 +942,17 @@ function CheckoutDialog({
                   <Tender active={pay === total} onClick={() => setTendered(String(total))}>
                     {kind === "layby" ? t("till.tenderFullAmount") : t("till.tenderExact")}
                   </Tender>
-                  {notes.map((v) => (
-                    <Tender key={v} active={pay === v} onClick={() => setTendered(String(v))}>
-                      {money(v)}
+                  {kind === "layby" ? (
+                    <Tender active={pay === half} onClick={() => setTendered(String(half))}>
+                      {t("till.tenderHalfAmount")}
                     </Tender>
-                  ))}
+                  ) : (
+                    notes.map((v) => (
+                      <Tender key={v} active={pay === v} onClick={() => setTendered(String(v))}>
+                        {money(v)}
+                      </Tender>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -997,7 +1006,7 @@ function CheckoutDialog({
             </div>
           )}
 
-          {splitting && short > 0.005 && (
+          {!approval && (splitting || kind === "layby") && short > 0.005 && (
             <div className="flex items-center justify-between rounded-2xl bg-muted px-4 py-3">
               <span className="text-sm font-medium text-muted-foreground">
                 {t("till.remainingDue")}

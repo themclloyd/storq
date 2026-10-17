@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: Storq Retail POS Application
+title: Storq Retail POS — TanStack Start Monorepo Root
 scope:
     - README.md
     - AGENTS.md

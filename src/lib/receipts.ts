@@ -57,6 +57,12 @@ const STATUS_KEYS: Record<string, string> = {
   layby_completed: "doc.badgeLaybyPaid",
 };
 
+/** Localised chip label for a receipt status ("" when it needs no chip). */
+export const statusLabel = (status: string) => {
+  const key = STATUS_KEYS[status];
+  return key ? t(key) : "";
+};
+
 /**
  * Receipt HTML is built by string concatenation and inserted via innerHTML, so
  * every value must pass through here. Control characters (NUL, tab, newline,
@@ -126,8 +132,7 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
 
 /** 80mm thermal HTML used for both the on-screen preview and printing. */
 export function receiptHtml(r: Receipt, money: MoneyFmt) {
-  const statusKey = STATUS_KEYS[r.status];
-  const status = statusKey ? t(statusKey) : "";
+  const status = statusLabel(r.status);
   const row = (l: string, v: string, bold = false) =>
     '<div class="lr' +
     (bold ? " b" : "") +

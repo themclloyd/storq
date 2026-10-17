@@ -3,6 +3,13 @@
 
 import { csvCell } from "@/lib/validate";
 import { t } from "@/lib/i18n";
+import {
+  methodLabel,
+  receiptTitle,
+  statusLabel,
+  type MoneyFmt,
+  type Receipt,
+} from "@/lib/receipts";
 
 export type PdfKpi = [label: string, value: string];
 export type PdfSection =
@@ -263,6 +270,114 @@ export async function downloadPdf(d: PdfDoc) {
     doc.text(`Page ${p} of ${pages}`, W - M, H - 20, { align: "right" });
   }
   doc.save(d.filename.endsWith(".pdf") ? d.filename : `${d.filename}.pdf`);
+}
+
+// ---------- Thermal receipt PDF (80mm roll) ----------
+// The till prints on an 80mm thermal roll (see PRINT_CSS in receipts.ts), so a
+// saved receipt is cut to that same roll — an A4 sheet shrinks the receipt into
+// a corner and looks nothing like what leaves the printer. Courier matches the
+// monospace look of the printed sheet.
+
+const ROLL = 80; // roll width in mm
+const R_SIDE = 4; // matches the 4mm @page margin of the print sheet
+const R_TEXT = ROLL - R_SIDE * 2; // printable width inside the margins
+const R_PT = 0.3528; // one point in mm
+
+export async function downloadReceiptPdf(r: Receipt, money: MoneyFmt) {
+  const { jsPDF } = await import("jspdf");
+  // A receipt is one continuously tall page: draw once on a tall scratch page
+  // to measure the roll length, then draw the same deterministic layout at the
+  // exact size. The floor height keeps jsPDF's portrait normalisation from
+  // turning a short receipt sideways.
+  const draw = (doc: InstanceType<typeof jsPDF>) => {
+    let y = 7;
+    const setF = (style: "normal" | "bold", size: number) =>
+      doc.setFont("courier", style).setFontSize(size);
+    const line = (size: number) => size * R_PT * 1.5;
+    const center = (text: string, size: number, style: "normal" | "bold" = "normal") => {
+      setF(style, size);
+      doc.text(clean(text), ROLL / 2, y, { align: "center" });
+      y += line(size);
+    };
+    const left = (text: string, size = 9) => {
+      setF("normal", size);
+      const ls = doc.splitTextToSize(clean(text), R_TEXT) as string[];
+      doc.text(ls, R_SIDE, y);
+      y += ls.length * line(size);
+    };
+    // Left label / right value; the pair shrinks a step at a time so a long
+    // label can never run its amount over.
+    const row = (l: string, v: string, size = 9, style: "normal" | "bold" = "normal") => {
+      let s = size;
+      setF(style, s);
+      const fits = () => doc.getTextWidth(clean(l)) + doc.getTextWidth(clean(v)) + 3 <= R_TEXT;
+      while (!fits() && s > 6.5) {
+        s -= 0.5;
+        setF(style, s);
+      }
+      doc.text(clean(l), R_SIDE, y);
+      doc.text(clean(v), ROLL - R_SIDE, y, { align: "right" });
+      y += line(s);
+    };
+    const rule = () => {
+      doc.setDrawColor(153).setLineWidth(0.25).setLineDashPattern([1, 1], 0);
+      doc.line(R_SIDE, y - 1.5, ROLL - R_SIDE, y - 1.5);
+      doc.setLineDashPattern([], 0);
+      y += 3;
+    };
+
+    center(r.bizName, 13, "bold");
+    center(r.storeName, 8.5);
+    center(receiptTitle(r), 10, "bold");
+    const status = statusLabel(r.status);
+    if (status) center(status, 8);
+    rule();
+    row(t("doc.invoice"), `#${r.number}`);
+    row(t("doc.date"), new Date(r.date).toLocaleString());
+    row(t("doc.servedBy"), r.cashier);
+    rule();
+    for (const l of r.lines) {
+      setF("bold", 9);
+      const names = doc.splitTextToSize(clean(l.name), R_TEXT) as string[];
+      doc.text(names, R_SIDE, y);
+      y += names.length * line(9);
+      row(`  ${l.qty} x ${money(l.price)}`, money(l.total));
+    }
+    rule();
+    if (r.discount && r.discount > 0) row(t("doc.discount"), `-${money(r.discount)}`);
+    row(t("doc.subtotal"), money(r.subtotal));
+    if (r.taxRate > 0)
+      row(
+        `${t("till.vat")} ${r.taxRate}%${r.taxInclusive ? ` (${t("till.included")})` : ""}`,
+        money(r.tax),
+      );
+    row(t("doc.total"), money(r.total), 11, "bold");
+    rule();
+    row(t("doc.method"), methodLabel(r.method));
+    for (const tnd of r.tenders ?? []) row(`  ${methodLabel(tnd.method)}`, money(tnd.raw));
+    row(r.kind === "layby" ? t("doc.deposit") : t("doc.paid"), money(r.paid));
+    if (r.change > 0) row(t("doc.change"), money(r.change));
+    if (r.customerName) {
+      rule();
+      left(`${t("doc.customer")}: ${r.customerName}`);
+      if (r.customerPhone) left(`${t("till.phoneLabel")}: ${r.customerPhone}`);
+    }
+    if (r.note) left(`${t("doc.noteLabel")} ${r.note}`);
+    rule();
+    center(t("doc.thankYouKeep"), 8);
+    setF("bold", 11);
+    doc.text(`*${r.number}*`, ROLL / 2, y, { align: "center", charSpace: 0.8 });
+    y += line(11);
+    return y;
+  };
+
+  const end = draw(new jsPDF({ unit: "mm", format: [ROLL, 6000] }));
+  const doc = new jsPDF({
+    unit: "mm",
+    format: [ROLL, Math.max(ROLL + 4, Math.ceil(end + 6))],
+  });
+  draw(doc);
+  doc.save(`storq-receipt-${r.number}.pdf`);
 }
 
 // ---------- CSV ----------

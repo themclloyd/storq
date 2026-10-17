@@ -13,7 +13,19 @@
 - [receipts.ts](file://src/lib/receipts.ts)
 - [refunds.ts](file://src/lib/refunds.ts)
 - [20261009210500_retail_operations.sql](file://supabase/migrations/20261009210500_retail_operations.sql)
+- [use-debounced-value.ts](file://src/hooks/use-debounced-value.ts)
+- [app.inventory.tsx](file://src/routes/_authenticated/app.inventory.tsx)
+- [app.transfers.tsx](file://src/routes/_authenticated/app.transfers.tsx)
+- [app.stocktake.tsx](file://src/routes/_authenticated/app.stocktake.tsx)
+- [app.index.tsx](file://src/routes/_authenticated/app.index.tsx)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Added new section on Debounced Search Performance Optimizations
+- Updated Performance Considerations section with debouncing implementation details
+- Enhanced architecture diagrams to include search optimization components
+- Added practical examples of debounced search usage across different interfaces
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -21,10 +33,11 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+6. [Debounced Search Performance Optimizations](#debounced-search-performance-optimizations)
+7. [Dependency Analysis](#dependency-analysis)
+8. [Performance Considerations](#performance-considerations)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
 
 ## Introduction
 This document explains the Point of Sale system with a focus on:
@@ -34,7 +47,7 @@ This document explains the Point of Sale system with a focus on:
 - Receipt generation and printing functionality.
 - Two store types: direct sales for immediate transactions and approval-based workflows where cashiers create invoices requiring manager approval.
 - Practical examples for processing different transaction types, handling returns and refunds, and managing layby orders.
-- Performance optimization for real-time inventory updates and offline transaction processing.
+- Performance optimization for real-time inventory updates, offline transaction processing, and debounced search functionality.
 
 The project is a retail application designed to help business owners track stock, sales, and perform stock-taking across one or more stores, with support for PIN-based staff roles, layby orders, and two store modes: direct sale and approval-based.
 
@@ -48,6 +61,7 @@ At a high level, the POS experience is composed of:
 - Feature routes for Sales, Invoices (approval), and Laybys.
 - Utilities for receipts, refunds, and offline persistence.
 - Server-side SQL functions that enforce validation, inventory checks, discounts, split tenders, and approvals.
+- **New**: Debounced search hook for optimizing large list filtering performance.
 
 ```mermaid
 graph TB
@@ -57,11 +71,18 @@ PosCtx --> InvoicesRoute["Invoices Route<br/>Approval Workflow"]
 PosCtx --> LaybysRoute["Laybys Route<br/>Open & Completed"]
 PosCtx --> Receipts["Receipt Builder<br/>Text & HTML Printing"]
 PosCtx --> Refunds["Refund Queries<br/>Status Helpers"]
+PosCtx --> SearchOpt["Search Optimization<br/>useDebouncedValue Hook"]
+SearchOpt --> Inventory["Inventory Interface<br/>Debounced Filtering"]
+SearchOpt --> Transfers["Transfer Creation<br/>Debounced Product Search"]
+SearchOpt --> StockTake["Stock Take Interface<br/>Debounced Item Search"]
 SalesRoute --> DB["Supabase RPCs & Tables"]
 InvoicesRoute --> DB
 LaybysRoute --> DB
 Receipts --> DB
 Refunds --> DB
+Inventory --> DB
+Transfers --> DB
+StockTake --> DB
 ```
 
 **Diagram sources**
@@ -72,6 +93,7 @@ Refunds --> DB
 - [app.laybys.tsx:14-37](file://src/routes/_authenticated/app.laybys.tsx#L14-L37)
 - [receipts.ts:1-34](file://src/lib/receipts.ts#L1-L34)
 - [refunds.ts:1-24](file://src/lib/refunds.ts#L1-L24)
+- [use-debounced-value.ts:1-15](file://src/hooks/use-debounced-value.ts#L1-L15)
 
 **Section sources**
 - [app.tsx:73-129](file://src/routes/_authenticated/app.tsx#L73-L129)
@@ -85,6 +107,7 @@ Refunds --> DB
 - Receipts Module: Builds plain-text and thermal-printable HTML receipts; supports multi-tender breakdown and customer metadata.
 - Refunds Module: Reads refund records and provides status sets used elsewhere in the UI.
 - Retail Operations Migration: Defines server-side logic for checkout, discounts, split tenders, approvals, transfers, and low-stock queries.
+- **New**: Debounced Search Hook: Provides delayed value updates for search inputs to optimize large list filtering performance.
 
 **Section sources**
 - [pos.tsx:28-84](file://src/lib/pos.tsx#L28-L84)
@@ -94,6 +117,7 @@ Refunds --> DB
 - [receipts.ts:1-34](file://src/lib/receipts.ts#L1-L34)
 - [refunds.ts:1-24](file://src/lib/refunds.ts#L1-L24)
 - [20261009210500_retail_operations.sql:102-320](file://supabase/migrations/20261009210500_retail_operations.sql#L102-L320)
+- [use-debounced-value.ts:1-15](file://src/hooks/use-debounced-value.ts#L1-L15)
 
 ## Architecture Overview
 The POS architecture separates UI state from server enforcement:
@@ -101,14 +125,18 @@ The POS architecture separates UI state from server enforcement:
 - The server validates inputs, enforces role-based discount caps, checks inventory, computes tax, records sales, and writes payment ledger entries.
 - Approval-only stores transition sales to a pending state until an approver finalizes them.
 - Offline mode queues sales locally and replays them when connectivity resumes.
+- **New**: Search operations are optimized using debounced values to prevent excessive re-renders during rapid user input.
 
 ```mermaid
 sequenceDiagram
 participant Cashier as "Cashier"
 participant POS as "POS Context Provider"
+participant SearchOpt as "Search Optimization"
 participant Server as "Supabase RPC"
 participant DB as "Database"
 Cashier->>POS : Build cart + select method(s)
+POS->>SearchOpt : Apply debounced search
+SearchOpt-->>POS : Optimized filtered results
 POS->>Server : checkout_ref(p_store, p_kind, p_items, p_payment, p_method, p_tenders, p_discounts, p_override_pin)
 Server->>DB : Validate items, discounts, stock, tax
 DB-->>Server : Sale created / pending_approval
@@ -118,20 +146,21 @@ POS-->>Cashier : Show receipt / print
 
 **Diagram sources**
 - [pos.tsx:275-307](file://src/lib/pos.tsx#L275-L307)
+- [use-debounced-value.ts:7-13](file://src/hooks/use-debounced-value.ts#L7-L13)
 - [20261009210500_retail_operations.sql:108-320](file://supabase/migrations/20261009210500_retail_operations.sql#L108-L320)
 
 ## Detailed Component Analysis
 
 ### Main POS Interface Workflow
 The POS interface centers around:
-- Product search and catalog browsing.
+- Product search and catalog browsing with debounced filtering.
 - Cart building with quantities and optional per-line discounts.
 - Checkout via single or split payment methods.
 - Immediate completion for direct stores or pending approval for approval stores.
 
 ```mermaid
 flowchart TD
-Start(["Start POS"]) --> Search["Search Products"]
+Start(["Start POS"]) --> Search["Search Products<br/>(Debounced)"]
 Search --> AddToCart["Add Items to Cart"]
 AddToCart --> Discounts{"Apply Discounts?"}
 Discounts --> |Yes| PerLine["Per-Line Discounts"]
@@ -169,7 +198,7 @@ The server enforces:
 - Tender validation and maximum counts.
 - Coverage rules (tenders must cover total).
 - Change handling for overpaid cash.
-- Method resolution to a primary method or “split”.
+- Method resolution to a primary method or "split".
 
 ```mermaid
 flowchart TD
@@ -340,8 +369,79 @@ Key implementation references:
 Key implementation references:
 - [refunds.ts:26-52](file://src/lib/refunds.ts#L26-L52)
 
+## Debounced Search Performance Optimizations
+
+### Overview
+The POS system now implements debounced search functionality across multiple interfaces to improve responsiveness and reduce computational overhead during rapid user input. The `useDebouncedValue` hook delays the execution of expensive filtering operations until the user pauses typing, typically for 250 milliseconds.
+
+### Implementation Details
+The debounced search hook works by:
+- Accepting a value and optional delay parameter (default 250ms)
+- Using React's `useState` and `useEffect` to manage the debounced state
+- Setting a timeout that updates the debounced value after the specified delay
+- Cleaning up timeouts on component unmount or value changes
+
+```mermaid
+flowchart TD
+UserInput["User Types in Search Box"] --> SetState["Set Raw State"]
+SetState --> StartTimeout["Start 250ms Timeout"]
+StartTimeout --> Wait["Wait for User Pause"]
+Wait --> UpdateDebounced["Update Debounced Value"]
+UpdateDebounced --> FilterList["Filter Large List"]
+FilterList --> RenderUI["Render Optimized Results"]
+```
+
+**Diagram sources**
+- [use-debounced-value.ts:7-13](file://src/hooks/use-debounced-value.ts#L7-L13)
+
+### Applied Interfaces
+
+#### Inventory Management Interface
+The inventory page uses debounced search to optimize product filtering across large catalogs:
+- Filters products by name, SKU, and collection membership
+- Combines with low-stock and collection filters
+- Maintains sorting by name, price, or stock levels
+
+**Section sources**
+- [app.inventory.tsx:187-209](file://src/routes/_authenticated/app.inventory.tsx#L187-L209)
+
+#### Transfer Creation Interface
+The transfer creation dialog implements debounced product search:
+- Searches active products by name or SKU
+- Shows available stock levels from source store
+- Limits initial display to top 20 results for performance
+
+**Section sources**
+- [app.transfers.tsx:207-221](file://src/routes/_authenticated/app.transfers.tsx#L207-L221)
+
+#### Stock Take Interface
+The stock take counting interface uses debounced search:
+- Filters counted items by product name
+- Supports filtering only uncouned items
+- Sorts results alphabetically by product name
+
+**Section sources**
+- [app.stocktake.tsx:144-154](file://src/routes/_authenticated/app.stocktake.tsx#L144-L154)
+
+### Performance Benefits
+The debounced search implementation provides several key benefits:
+- **Reduced Re-renders**: Prevents expensive list filtering on every keystroke
+- **Improved Responsiveness**: Search input remains instantly responsive while filtering runs in background
+- **Lower CPU Usage**: Significantly reduces computational overhead during rapid typing
+- **Better UX**: Users get immediate feedback while heavy operations are deferred
+
+### Integration Pattern
+Components integrate the debounced search pattern as follows:
+1. Import the `useDebouncedValue` hook
+2. Create a debounced version of the search query state
+3. Use the debounced value in expensive filtering operations
+4. Memoize filtered results with `useMemo` for additional performance
+
+**Section sources**
+- [use-debounced-value.ts:1-15](file://src/hooks/use-debounced-value.ts#L1-L15)
+
 ## Dependency Analysis
-The following diagram shows how key modules depend on each other and on server operations.
+The following diagram shows how key modules depend on each other and on server operations, including the new search optimization layer.
 
 ```mermaid
 graph LR
@@ -350,6 +450,10 @@ PosCtx --> Offline["Offline Persistence"]
 PosCtx --> Sales["Sales Hooks"]
 PosCtx --> Invoices["Invoices UI"]
 PosCtx --> Laybys["Laybys UI"]
+PosCtx --> SearchOpt["Search Optimization"]
+SearchOpt --> Inventory["Inventory Interface"]
+SearchOpt --> Transfers["Transfer UI"]
+SearchOpt --> StockTake["Stock Take UI"]
 Sales --> Receipts["Receipts"]
 Invoices --> Receipts
 Laybys --> Receipts
@@ -357,6 +461,9 @@ PosCtx --> DB["Supabase RPCs"]
 Sales --> DB
 Invoices --> DB
 Laybys --> DB
+Inventory --> DB
+Transfers --> DB
+StockTake --> DB
 ```
 
 **Diagram sources**
@@ -367,6 +474,7 @@ Laybys --> DB
 - [app.invoices.tsx:26-66](file://src/routes/_authenticated/app.invoices.tsx#L26-L66)
 - [app.laybys.tsx:27-37](file://src/routes/_authenticated/app.laybys.tsx#L27-L37)
 - [receipts.ts:1-34](file://src/lib/receipts.ts#L1-L34)
+- [use-debounced-value.ts:1-15](file://src/hooks/use-debounced-value.ts#L1-L15)
 
 **Section sources**
 - [app.tsx:73-129](file://src/routes/_authenticated/app.tsx#L73-L129)
@@ -382,16 +490,19 @@ Laybys --> DB
 - Offline sales queue: When offline, sales are queued locally and replayed automatically when online, with retry and discard controls.
 - Efficient data loading: Sales lists page server-side; summaries use server aggregates to avoid pulling large datasets into the browser.
 - Stale-time tuning: Queries use short stale times to keep UI fresh while avoiding excessive refetches.
+- **New**: Debounced search optimization: Large list filtering operations are delayed until user input pauses, significantly reducing computational overhead during rapid typing.
 
 Recommendations:
 - Keep reference data caches minimal and non-role-gated to reduce storage size.
 - Batch expensive operations (e.g., exports) and limit result sizes.
 - Monitor network errors and provide clear retry/discard UX for failed queued sales.
+- **New**: Apply debounced search patterns consistently across all interfaces with large product lists to maintain optimal performance.
 
 **Section sources**
 - [offline.ts:15-55](file://src/lib/offline.ts#L15-L55)
 - [pos.tsx:242-345](file://src/lib/pos.tsx#L242-L345)
 - [sales.ts:126-180](file://src/lib/sales.ts#L126-L180)
+- [use-debounced-value.ts:1-15](file://src/hooks/use-debounced-value.ts#L1-L15)
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -399,11 +510,13 @@ Common issues and resolutions:
 - Discount requires manager PIN: If cashier exceeds allowed discount thresholds, a manager PIN is required; otherwise the operation fails.
 - Insufficient stock: For direct sales, insufficient stock raises an error; for approval stores, stock is checked at approval time.
 - Tender underpayment or overpayment: Tenders must cover the total; overpaid cash is adjusted for change.
+- **New**: Slow search performance: Ensure debounced search is properly implemented for large product lists; verify that filtering operations are memoized and not running on every keystroke.
 
 Operational tips:
 - Use the offline banner to monitor queued sales and retry failed ones.
 - For approval stores, ensure approvers review pending invoices promptly.
 - For laybys, verify outstanding balances and record partial payments accurately.
+- **New**: Monitor search performance across inventory, transfer, and stock take interfaces to ensure debounced filtering is working effectively.
 
 **Section sources**
 - [pos.tsx:93-104](file://src/lib/pos.tsx#L93-L104)
@@ -411,6 +524,7 @@ Operational tips:
 - [20261009210500_retail_operations.sql:171-186](file://supabase/migrations/20261009210500_retail_operations.sql#L171-L186)
 - [20261009210500_retail_operations.sql:192-203](file://supabase/migrations/20261009210500_retail_operations.sql#L192-L203)
 - [20261009210500_retail_operations.sql:222-231](file://supabase/migrations/20261009210500_retail_operations.sql#L222-L231)
+- [use-debounced-value.ts:1-15](file://src/hooks/use-debounced-value.ts#L1-L15)
 
 ## Conclusion
-The POS system provides a robust, role-aware workflow for direct and approval-based stores, with strong server-side validation for discounts, tenders, and inventory. It supports flexible payment methods including split tenders, generates printable receipts, and handles layby orders and refunds. Offline resilience ensures continuity of operations, while efficient data loading keeps the interface responsive. By leveraging these components, businesses can manage day-to-day retail operations reliably and scale across multiple stores.
+The POS system provides a robust, role-aware workflow for direct and approval-based stores, with strong server-side validation for discounts, tenders, and inventory. It supports flexible payment methods including split tenders, generates printable receipts, and handles layby orders and refunds. Offline resilience ensures continuity of operations, while efficient data loading keeps the interface responsive. The newly implemented debounced search functionality significantly improves performance across inventory management, transfer creation, and stock take interfaces by preventing excessive re-renders during rapid user input. By leveraging these components and optimization techniques, businesses can manage day-to-day retail operations reliably and scale across multiple stores with optimal performance.

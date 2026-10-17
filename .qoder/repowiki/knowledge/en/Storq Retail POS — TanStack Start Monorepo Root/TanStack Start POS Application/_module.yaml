@@ -1,9 +1,8 @@
 schema_version: 1
 module_path: frontend_app
-title: Frontend App (TanStack Start)
+title: TanStack Start POS Application
 scope:
     - src/
 source_files: []
 depends_on: []
-related_to:
-    - path: database_schema
+related_to: []

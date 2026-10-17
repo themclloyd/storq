@@ -9,7 +9,16 @@
 - [transfers.ts](file://src/lib/transfers.ts)
 - [pdf.ts](file://src/lib/pdf.ts)
 - [validate.ts](file://src/lib/validate.ts)
+- [paging.ts](file://src/lib/paging.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated advanced filtering system documentation with low stock, collection, and sorting filters
+- Added comprehensive pagination controls documentation with responsive design
+- Enhanced export functionality section covering CSV and PDF exports with templates
+- Expanded search integration details with debounced search implementation
+- Updated responsive design improvements across all inventory screens
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -17,24 +26,30 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+6. [Advanced Filtering System](#advanced-filtering-system)
+7. [Pagination Controls](#pagination-controls)
+8. [Export Functionality](#export-functionality)
+9. [Search Integration](#search-integration)
+10. [Responsive Design Improvements](#responsive-design-improvements)
+11. [Dependency Analysis](#dependency-analysis)
+12. [Performance Considerations](#performance-considerations)
+13. [Troubleshooting Guide](#troubleshooting-guide)
+14. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the inventory management system for a multi-store point-of-sale application. It covers how products are organized into categories and collections, how stock is tracked per store with near real-time updates, how barcode integration works for both manual entry and scanner input, how item codes are generated and managed, and how bulk import/export supports product data management. It also includes examples for adding products, updating stock levels, generating inventory reports, allocating inventory across stores, and transferring stock between locations.
+This document explains the inventory management system for a multi-store point-of-sale application. It covers how products are organized into categories and collections, how stock is tracked per store with near real-time updates, how barcode integration works for both manual entry and scanner input, how item codes are generated and managed, and how bulk import/export supports product data management. The system now features an enhanced interface with advanced filtering, pagination controls, comprehensive export capabilities, integrated search functionality, and responsive design improvements across collections, inventory, transfers, and stock take screens.
 
 ## Project Structure
-The inventory feature spans an authenticated route that renders the inventory UI and several library modules that provide data access, code handling, collection membership, and transfer operations:
+The inventory feature spans an authenticated route that renders the inventory UI and several library modules that provide data access, code handling, collection membership, transfer operations, and pagination utilities:
 
-- `src/routes/_authenticated/app.inventory.tsx` — Inventory page UI, filtering, pagination, dialogs, CSV import/export, label printing, and stock adjustments.
+- `src/routes/_authenticated/app.inventory.tsx` — Inventory page UI with advanced filtering, pagination, dialogs, CSV import/export, label printing, and stock adjustments.
 - `src/lib/products.ts` — Product catalog query hook, barcode lookup helper, and per-store stock query hook.
 - `src/lib/collections.ts` — Collection definitions, product-to-collection mapping, discount calculation helpers.
 - `src/lib/item-codes.ts` — Code normalization, auto-code generation, clash detection, and QR payload formatting.
 - `src/lib/transfers.ts` — Transfer listing, low-stock queries, and mutations for dispatching/receiving/canceling transfers.
 - `src/lib/pdf.ts` — CSV/PDF utilities used by export and label sheet generation.
 - `src/lib/validate.ts` — Validation helpers used by forms (SKU validation, amount limits).
+- `src/lib/paging.ts` — Pagination utility for consistent list paging across screens.
 
 ```mermaid
 graph TB
@@ -44,6 +59,7 @@ INV --> CODE["Item Codes Utils<br/>item-codes.ts"]
 INV --> PDF["PDF/CSV Utilities<br/>pdf.ts"]
 INV --> TRANS["Transfers & Low Stock<br/>transfers.ts"]
 INV --> VAL["Validation Helpers<br/>validate.ts"]
+INV --> PAGING["Pagination Utility<br/>paging.ts"]
 PROD --> DB["Database Tables<br/>products / store_stock"]
 COL --> DB
 TRANS --> DB
@@ -55,8 +71,9 @@ TRANS --> DB
 - [collections.ts:1-56](file://src/lib/collections.ts#L1-L56)
 - [item-codes.ts:1-84](file://src/lib/item-codes.ts#L1-L84)
 - [transfers.ts:1-140](file://src/lib/transfers.ts#L1-L140)
-- [pdf.ts:1-200](file://src/lib/pdf.ts#L1-L200)
-- [validate.ts:1-200](file://src/lib/validate.ts#L1-L200)
+- [pdf.ts:1-412](file://src/lib/pdf.ts#L1-L412)
+- [validate.ts:1-147](file://src/lib/validate.ts#L1-L147)
+- [paging.ts:1-17](file://src/lib/paging.ts#L1-L17)
 
 **Section sources**
 - [app.inventory.tsx:1-100](file://src/routes/_authenticated/app.inventory.tsx#L1-L100)
@@ -64,6 +81,7 @@ TRANS --> DB
 - [collections.ts:1-56](file://src/lib/collections.ts#L1-L56)
 - [item-codes.ts:1-84](file://src/lib/item-codes.ts#L1-L84)
 - [transfers.ts:1-140](file://src/lib/transfers.ts#L1-L140)
+- [paging.ts:1-17](file://src/lib/paging.ts#L1-L17)
 
 ## Core Components
 - Product Catalog
@@ -208,11 +226,11 @@ B --> |Export PDF| G["Generate Inventory Report PDF"]
 
 **Diagram sources**
 - [app.inventory.tsx:273-368](file://src/routes/_authenticated/app.inventory.tsx#L273-L368)
-- [pdf.ts:1-200](file://src/lib/pdf.ts#L1-L200)
+- [pdf.ts:1-412](file://src/lib/pdf.ts#L1-L412)
 
 **Section sources**
 - [app.inventory.tsx:273-368](file://src/routes/_authenticated/app.inventory.tsx#L273-L368)
-- [pdf.ts:1-200](file://src/lib/pdf.ts#L1-L200)
+- [pdf.ts:1-412](file://src/lib/pdf.ts#L1-L412)
 
 ### Adding Products and Updating Stock Levels
 - Adding a Product
@@ -243,7 +261,7 @@ Dialog->>Cache : invalidate(["products","stock","movements","collections","dash-
 
 **Section sources**
 - [app.inventory.tsx:698-769](file://src/routes/_authenticated/app.inventory.tsx#L698-L769)
-- [validate.ts:1-200](file://src/lib/validate.ts#L1-L200)
+- [validate.ts:1-147](file://src/lib/validate.ts#L1-L147)
 
 ### Multi-Store Inventory Allocation and Transfer Processes
 - Low Stock Alerts
@@ -321,6 +339,196 @@ PRODUCTS ||--o{ STORE_STOCK : "has stock per store"
 - [collections.ts:22-38](file://src/lib/collections.ts#L22-L38)
 - [products.ts:94-104](file://src/lib/products.ts#L94-L104)
 
+## Advanced Filtering System
+
+The inventory interface now provides a comprehensive filtering system that allows users to narrow down product lists efficiently:
+
+### Filter Types
+- **Low Stock Filter**: Toggle to show only products at or below their reorder point
+- **Collection Filter**: Filter products by specific collections with a radio button interface
+- **Sort Options**: Sort by name, price, or stock levels
+
+### Implementation Details
+- Filters are implemented using React state management with debounced search
+- Active filter count is displayed in a badge on the filter button
+- Filter combinations are supported (e.g., low stock + specific collection)
+- All filters reset pagination to page 0 for consistent user experience
+
+```mermaid
+flowchart TD
+FilterButton["Filter Button"] --> Dropdown["Filter Dropdown Menu"]
+Dropdown --> LowStock["Low Stock Checkbox"]
+Dropdown --> CollectionFilter["Collection Radio Group"]
+Dropdown --> SortOptions["Sort Radio Group"]
+LowStock --> ApplyFilters["Apply Filters"]
+CollectionFilter --> ApplyFilters
+SortOptions --> ApplyFilters
+ApplyFilters --> UpdateRows["Update Filtered Rows"]
+UpdateRows --> ResetPage["Reset to Page 1"]
+```
+
+**Diagram sources**
+- [app.inventory.tsx:368-435](file://src/routes/_authenticated/app.inventory.tsx#L368-L435)
+
+**Section sources**
+- [app.inventory.tsx:154-158](file://src/routes/_authenticated/app.inventory.tsx#L154-L158)
+- [app.inventory.tsx:187-209](file://src/routes/_authenticated/app.inventory.tsx#L187-L209)
+- [app.inventory.tsx:368-435](file://src/routes/_authenticated/app.inventory.tsx#L368-L435)
+
+## Pagination Controls
+
+The inventory system implements robust pagination controls to handle large product catalogs efficiently:
+
+### Pagination Features
+- **Fixed Page Size**: 10 items per page for optimal mobile and desktop viewing
+- **Smart Page Clamping**: Automatically adjusts page numbers when filters reduce result count
+- **Visual Indicators**: Shows total items, current page, and navigation controls
+- **Responsive Layout**: Adapts to different screen sizes while maintaining usability
+
+### Technical Implementation
+- Uses the `pageSlice` utility function for consistent pagination logic
+- Integrates with the `Pager` component for visual navigation
+- Maintains pagination state independently from filter state
+- Provides smooth transitions when filters change result counts
+
+```mermaid
+flowchart TD
+Rows["Filtered Rows"] --> PageSlice["pageSlice Utility"]
+PageSlice --> CalculatePages["Calculate Total Pages"]
+CalculatePages --> ClampPage["Clamp Current Page"]
+ClampPage --> SliceData["Slice Data for Current Page"]
+SliceData --> RenderTable["Render Paginated Table"]
+RenderTable --> PagerComponent["Pager Navigation"]
+```
+
+**Diagram sources**
+- [app.inventory.tsx:315-316](file://src/routes/_authenticated/app.inventory.tsx#L315-L316)
+- [paging.ts:1-17](file://src/lib/paging.ts#L1-L17)
+
+**Section sources**
+- [app.inventory.tsx:315-316](file://src/routes/_authenticated/app.inventory.tsx#L315-L316)
+- [app.inventory.tsx:655](file://src/routes/_authenticated/app.inventory.tsx#L655)
+- [paging.ts:1-17](file://src/lib/paging.ts#L1-L17)
+
+## Export Functionality
+
+The inventory system provides comprehensive export capabilities for both CSV and PDF formats:
+
+### CSV Export Features
+- **Complete Data Export**: Exports all product information including name, SKU, cost, price, quantity, collections, and active status
+- **Template Download**: Provides a downloadable CSV template for bulk imports
+- **Flexible Import**: Supports various column name variations for compatibility
+
+### PDF Report Generation
+- **Professional Layout**: Generates branded PDF reports with business headers and footers
+- **KPI Dashboard**: Includes key performance indicators (items count, units, cost value, retail value)
+- **Detailed Tables**: Comprehensive product listings with collection memberships and stock valuations
+- **Multi-page Support**: Automatically handles large datasets across multiple pages
+
+### Label Printing
+- **QR Code Labels**: Generates printable labels with QR codes for each product
+- **Batch Processing**: Supports printing multiple copies of labels for different products
+- **Responsive Layout**: Optimized label layout for standard label printers
+
+```mermaid
+flowchart TD
+ExportAction["Export Action"] --> FormatChoice{"Format Type?"}
+FormatChoice --> |CSV| CSVExport["CSV Export"]
+FormatChoice --> |PDF| PDFExport["PDF Export"]
+CSVExport --> TemplateCheck{"Has Template?"}
+TemplateCheck --> |Yes| TemplateDownload["Download Template"]
+TemplateCheck --> |No| CSVDownload["Download CSV"]
+PDFExport --> ReportGen["Generate Report"]
+ReportGen --> KPICalculation["Calculate KPIs"]
+KPICalculation --> TableGeneration["Generate Tables"]
+TableGeneration --> PDFDownload["Download PDF"]
+```
+
+**Diagram sources**
+- [app.inventory.tsx:252-314](file://src/routes/_authenticated/app.inventory.tsx#L252-L314)
+- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+
+**Section sources**
+- [app.inventory.tsx:252-314](file://src/routes/_authenticated/app.inventory.tsx#L252-L314)
+- [app.inventory.tsx:443-462](file://src/routes/_authenticated/app.inventory.tsx#L443-L462)
+- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [pdf.ts:332-411](file://src/lib/pdf.ts#L332-L411)
+
+## Search Integration
+
+The inventory system features advanced search capabilities with debounced input handling:
+
+### Search Features
+- **Debounced Input**: Prevents excessive filtering during rapid typing
+- **Multi-field Search**: Searches across product names, SKUs, and collection names
+- **Case-Insensitive**: Handles mixed-case searches seamlessly
+- **Real-time Results**: Updates results as users type with minimal performance impact
+
+### Implementation Details
+- Uses `useDebouncedValue` hook for efficient search performance
+- Integrates with existing filter system for combined search and filtering
+- Maintains search state independently from other filters
+- Provides visual feedback during search operations
+
+```mermaid
+flowchart TD
+SearchInput["Search Input"] --> DebounceHook["useDebouncedValue Hook"]
+DebounceHook --> SearchLogic["Search Logic"]
+SearchLogic --> NameMatch["Name Match"]
+SearchLogic --> SkuMatch["SKU Match"]
+SearchLogic --> CollectionMatch["Collection Match"]
+NameMatch --> CombineResults["Combine Results"]
+SkuMatch --> CombineResults
+CollectionMatch --> CombineResults
+CombineResults --> FilteredResults["Filtered Results"]
+```
+
+**Diagram sources**
+- [app.inventory.tsx:154-187](file://src/routes/_authenticated/app.inventory.tsx#L154-L187)
+- [app.inventory.tsx:187-209](file://src/routes/_authenticated/app.inventory.tsx#L187-L209)
+
+**Section sources**
+- [app.inventory.tsx:154-187](file://src/routes/_authenticated/app.inventory.tsx#L154-L187)
+- [app.inventory.tsx:353-367](file://src/routes/_authenticated/app.inventory.tsx#L353-L367)
+- [app.inventory.tsx:187-209](file://src/routes/_authenticated/app.inventory.tsx#L187-L209)
+
+## Responsive Design Improvements
+
+The inventory interface has been enhanced with responsive design principles for optimal user experience across devices:
+
+### Responsive Features
+- **Mobile-First Layout**: Optimized for touch interactions on smaller screens
+- **Adaptive Grid Systems**: Uses CSS grid with responsive breakpoints
+- **Touch-Friendly Controls**: Larger tap targets and improved spacing for mobile devices
+- **Collapsible Interfaces**: Hidden elements on small screens to maximize content visibility
+
+### Key Responsive Elements
+- **Flexible Header**: Adapts search bar and action buttons based on screen width
+- **Responsive Tables**: Horizontal scrolling for wide tables on mobile devices
+- **Adaptive Cards**: Grid layout adjusts from single column on mobile to multi-column on desktop
+- **Scalable Typography**: Font sizes and spacing adjust for readability across devices
+
+```mermaid
+flowchart TD
+ScreenSize["Screen Size Detection"] --> MobileLayout["Mobile Layout (< 640px)"]
+ScreenSize --> TabletLayout["Tablet Layout (640px - 1024px)"]
+ScreenSize --> DesktopLayout["Desktop Layout (> 1024px)"]
+MobileLayout --> SingleColumn["Single Column Layout"]
+TabletLayout --> TwoColumn["Two Column Layout"]
+DesktopLayout --> MultiColumn["Multi Column Layout"]
+SingleColumn --> TouchOptimized["Touch-Optimized Controls"]
+TwoColumn --> BalancedView["Balanced View"]
+MultiColumn --> FullFeatures["Full Feature Set"]
+```
+
+**Diagram sources**
+- [app.inventory.tsx:324-476](file://src/routes/_authenticated/app.inventory.tsx#L324-L476)
+- [app.inventory.tsx:492-520](file://src/routes/_authenticated/app.inventory.tsx#L492-L520)
+
+**Section sources**
+- [app.inventory.tsx:324-476](file://src/routes/_authenticated/app.inventory.tsx#L324-L476)
+- [app.inventory.tsx:492-520](file://src/routes/_authenticated/app.inventory.tsx#L492-L520)
+
 ## Dependency Analysis
 The inventory page depends on several libraries:
 
@@ -332,19 +540,21 @@ INV --> I["item-codes.ts"]
 INV --> T["transfers.ts"]
 INV --> V["validate.ts"]
 INV --> PDF["pdf.ts"]
+INV --> PG["paging.ts"]
 ```
 
 **Diagram sources**
-- [app.inventory.tsx:1-75](file://src/routes/_authenticated/app.inventory.tsx#L1-L75)
+- [app.inventory.tsx:1-89](file://src/routes/_authenticated/app.inventory.tsx#L1-L89)
 - [products.ts:1-107](file://src/lib/products.ts#L1-L107)
 - [collections.ts:1-56](file://src/lib/collections.ts#L1-L56)
 - [item-codes.ts:1-84](file://src/lib/item-codes.ts#L1-L84)
 - [transfers.ts:1-140](file://src/lib/transfers.ts#L1-L140)
-- [pdf.ts:1-200](file://src/lib/pdf.ts#L1-L200)
-- [validate.ts:1-200](file://src/lib/validate.ts#L1-L200)
+- [pdf.ts:1-412](file://src/lib/pdf.ts#L1-L412)
+- [validate.ts:1-147](file://src/lib/validate.ts#L1-L147)
+- [paging.ts:1-17](file://src/lib/paging.ts#L1-L17)
 
 **Section sources**
-- [app.inventory.tsx:1-75](file://src/routes/_authenticated/app.inventory.tsx#L1-L75)
+- [app.inventory.tsx:1-89](file://src/routes/_authenticated/app.inventory.tsx#L1-L89)
 
 ## Performance Considerations
 - Cached Catalog
@@ -357,8 +567,8 @@ INV --> PDF["pdf.ts"]
   - Filtering, sorting, and totals are memoized and computed over cached data to avoid re-scanning on unrelated updates.
 - Pagination
   - Large catalogs paginate rows to keep the UI responsive.
-
-[No sources needed since this section provides general guidance]
+- Debounced Search
+  - Search input is debounced to prevent excessive filtering operations during rapid typing.
 
 ## Troubleshooting Guide
 - Duplicate SKU Errors
@@ -371,12 +581,14 @@ INV --> PDF["pdf.ts"]
   - After edits, ensure cache invalidation occurs for products, stock, movements, collections, and dash-alerts. Verify that the correct store context is active.
 - CSV Import Issues
   - Validate CSV headers and data types. Use the provided template to ensure compatibility. Review parsed rows before applying changes.
+- Filter Performance
+  - If filters seem slow, check that the debounced search is working properly and that filters are being applied efficiently.
+- Pagination Issues
+  - If pagination appears broken, verify that the pageSlice utility is correctly clamping page numbers and that filter changes reset pagination appropriately.
 
 **Section sources**
 - [app.inventory.tsx:698-769](file://src/routes/_authenticated/app.inventory.tsx#L698-L769)
-- [validate.ts:1-200](file://src/lib/validate.ts#L1-L200)
+- [validate.ts:1-147](file://src/lib/validate.ts#L1-L147)
 
 ## Conclusion
-The inventory management system provides a robust foundation for managing products, organizing them into collections, tracking stock per store, integrating barcodes, generating and validating item codes, and performing bulk import/export. It supports multi-store allocation and transfers with clear status tracking and low-stock alerts. By leveraging cached queries, precise validation, and explicit cache invalidation, the system remains performant and reliable across devices and roles.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The inventory management system provides a robust foundation for managing products, organizing them into collections, tracking stock per store, integrating barcodes, generating and validating item codes, and performing bulk import/export. The enhanced interface now includes advanced filtering capabilities, responsive pagination controls, comprehensive export functionality, integrated search with debounced input, and responsive design improvements across all screens. By leveraging cached queries, precise validation, explicit cache invalidation, and modern UI patterns, the system remains performant and reliable across devices and roles while providing an intuitive user experience for inventory management tasks.

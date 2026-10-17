@@ -298,7 +298,7 @@ function Sales() {
                 <TableHead className="w-32">{t("doc.date")}</TableHead>
                 <TableHead>{t("sales.colStatus")}</TableHead>
                 <TableHead className="hidden sm:table-cell">{t("sales.colDetails")}</TableHead>
-                <TableHead className="text-right">{t("common.total")}</TableHead>
+                <TableHead>{t("common.total")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -318,9 +318,7 @@ function Sales() {
                     {names.data?.[s.created_by ?? ""]}
                     {s.customer_name && ` · ${s.customer_name}`}
                   </TableCell>
-                  <TableCell className="tabular text-right font-semibold">
-                    {money(s.total)}
-                  </TableCell>
+                  <TableCell className="tabular font-semibold">{money(s.total)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

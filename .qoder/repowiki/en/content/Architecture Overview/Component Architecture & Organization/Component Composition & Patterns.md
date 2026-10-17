@@ -13,7 +13,21 @@
 - [Billing.tsx](file://src/components/pos/Billing.tsx)
 - [app.index.tsx](file://src/routes/_authenticated/app.index.tsx)
 - [use-mobile.tsx](file://src/hooks/use-mobile.tsx)
+- [workspace-navigation.ts](file://src/lib/workspace-navigation.ts)
+- [breadcrumb.tsx](file://src/components/ui/breadcrumb.tsx)
+- [app.collections.index.tsx](file://src/routes/_authenticated/app.collections.index.tsx)
+- [app.transfers.tsx](file://src/routes/_authenticated/app.transfers.tsx)
+- [app.stocktake.tsx](file://src/routes/_authenticated/app.stocktake.tsx)
+- [app.collections.$id.tsx](file://src/routes/_authenticated/app.collections.$id.tsx)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added documentation for the new BackLink component for parent-page navigation
+- Updated workspace navigation section to reflect grouped layout structure improvements
+- Enhanced breadcrumb integration patterns with PageHeader component
+- Added examples of BackLink usage across inventory-related routes
+- Updated component composition patterns to include new navigation utilities
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -35,6 +49,7 @@ This document explains the component composition patterns and architectural prin
 - Strategies to avoid prop drilling.
 - Custom hook patterns for state, device behavior, and offline operations.
 - Integration between components and the POS context.
+- Navigation patterns including the new BackLink component and breadcrumb integration.
 - Naming conventions and file organization guidelines for extending the codebase safely.
 
 The goal is to make these patterns accessible to both experienced developers and contributors with limited technical background.
@@ -47,12 +62,19 @@ graph TB
 subgraph "Routes"
 AppRoute["app.tsx"]
 RegisterRoute["app.index.tsx"]
+CollectionsRoute["app.collections.*.tsx"]
+TransfersRoute["app.transfers.tsx"]
+StocktakeRoute["app.stocktake.tsx"]
 end
 subgraph "POS Domain"
 PosProvider["lib/pos.tsx<br/>PosProvider + usePos"]
-Bits["components/pos/bits.tsx"]
+Bits["components/pos/bits.tsx<br/>BackLink, PageHeader, etc."]
 WorkspaceTabs["components/pos/WorkspaceTabs.tsx"]
 Billing["components/pos/Billing.tsx"]
+end
+subgraph "Navigation & Layout"
+WorkspaceNav["lib/workspace-navigation.ts"]
+BreadcrumbUI["components/ui/breadcrumb.tsx"]
 end
 subgraph "Device & UX Hooks"
 IdleLock["components/pos/use-idle-lock.ts"]
@@ -68,6 +90,11 @@ RegisterRoute --> Bits
 RegisterRoute --> ScannerWedge
 RegisterRoute --> ScanCamera
 RegisterRoute --> QrHook
+CollectionsRoute --> Bits
+TransfersRoute --> Bits
+StocktakeRoute --> Bits
+Bits --> WorkspaceNav
+WorkspaceTabs --> WorkspaceNav
 PosProvider --> IdleLock
 Billing --> PosProvider
 ```
@@ -79,7 +106,13 @@ Billing --> PosProvider
 - [pos.tsx:115-117](file://src/lib/pos.tsx#L115-L117)
 - [bits.tsx:15-76](file://src/components/pos/bits.tsx#L15-L76)
 - [WorkspaceTabs.tsx:20-63](file://src/components/pos/WorkspaceTabs.tsx#L20-L63)
-- [Billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
+- [billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
+- [workspace-navigation.ts:1-169](file://src/lib/workspace-navigation.ts#L1-L169)
+- [breadcrumb.tsx:1-101](file://src/components/ui/breadcrumb.tsx#L1-L101)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
+- [app.collections.$id.tsx:140-167](file://src/routes/_authenticated/app.collections.$id.tsx#L140-L167)
 - [use-idle-lock.ts:9-39](file://src/components/pos/use-idle-lock.ts#L9-L39)
 - [use-scanner.ts:31-83](file://src/components/pos/use-scanner.ts#L31-L83)
 - [ScanCamera.tsx:22-81](file://src/components/pos/ScanCamera.tsx#L22-L81)
@@ -93,7 +126,13 @@ Billing --> PosProvider
 - [pos.tsx:115-117](file://src/lib/pos.tsx#L115-L117)
 - [bits.tsx:15-76](file://src/components/pos/bits.tsx#L15-L76)
 - [WorkspaceTabs.tsx:20-63](file://src/components/pos/WorkspaceTabs.tsx#L20-L63)
-- [Billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
+- [billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
+- [workspace-navigation.ts:1-169](file://src/lib/workspace-navigation.ts#L1-L169)
+- [breadcrumb.tsx:1-101](file://src/components/ui/breadcrumb.tsx#L1-L101)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
+- [app.collections.$id.tsx:140-167](file://src/routes/_authenticated/app.collections.$id.tsx#L140-L167)
 - [use-idle-lock.ts:9-39](file://src/components/pos/use-idle-lock.ts#L9-L39)
 - [use-scanner.ts:31-83](file://src/components/pos/use-scanner.ts#L31-L83)
 - [ScanCamera.tsx:22-81](file://src/components/pos/ScanCamera.tsx#L22-L81)
@@ -101,7 +140,7 @@ Billing --> PosProvider
 - [use-mobile.tsx:5-19](file://src/hooks/use-mobile.tsx#L5-L19)
 
 ## Core Components
-The core of the application’s architecture is the POS context provider and its consumer hook. This pattern centralizes authentication, store selection, currency formatting, RPC calls, offline queueing, and idle locking.
+The core of the application's architecture is the POS context provider and its consumer hook. This pattern centralizes authentication, store selection, currency formatting, RPC calls, offline queueing, and idle locking.
 
 Key responsibilities:
 - Provider setup and lifecycle management.
@@ -131,6 +170,7 @@ The application uses a layered approach:
 - Shared UI primitives live under `components/ui`.
 - POS-specific composable building blocks live under `components/pos`.
 - Device and UX behaviors are encapsulated in custom hooks.
+- Navigation is managed through centralized workspace configuration and routing utilities.
 
 ```mermaid
 sequenceDiagram
@@ -138,9 +178,11 @@ participant Route as "Route Layout"
 participant Provider as "PosProvider"
 participant Gate as "Gate / Shell"
 participant Register as "Register Page"
+participant Navigation as "Workspace Navigation"
 participant UI as "Base UI Components"
 Route->>Provider : Wrap children with PosProvider(userId)
 Provider-->>Gate : Provide staff, stores, rpc, money, checkout
+Gate->>Navigation : Initialize workspace tabs
 Gate->>Register : Render workspace and Outlet
 Register->>Provider : usePos() for store, money, checkout, can
 Register->>UI : Compose Button, Dialog, Card, etc.
@@ -214,18 +256,21 @@ usePos --> PosProvider : "consumes context"
 ### Base UI Components and POS Building Blocks
 Base UI components from `components/ui` are composed into higher-level POS building blocks:
 - `PageHeader`, `Field`, `NativeSelect`, `Status`, `Empty`, `StoreTypeTag` provide consistent layouts and labels.
+- **New**: `BackLink` component provides parent-page navigation for screens whose group no longer renders a shell tab row.
 - These components are reused by feature screens like Register and Setup.
 
 ```mermaid
 flowchart TD
 Start(["Feature Screen"]) --> UseBits["Use bits.tsx helpers"]
 UseBits --> PageHeader["PageHeader"]
+UseBits --> BackLink["BackLink (NEW)"]
 UseBits --> Field["Field"]
 UseBits --> NativeSelect["NativeSelect"]
 UseBits --> Status["Status"]
 UseBits --> Empty["Empty"]
 UseBits --> StoreTypeTag["StoreTypeTag"]
 PageHeader --> Rendered["Rendered UI"]
+BackLink --> Rendered
 Field --> Rendered
 NativeSelect --> Rendered
 Status --> Rendered
@@ -233,36 +278,121 @@ Empty --> Rendered
 StoreTypeTag --> Rendered
 ```
 
+**Updated** Added BackLink component for parent-page navigation support
+
 **Diagram sources**
 - [bits.tsx:15-76](file://src/components/pos/bits.tsx#L15-L76)
+- [bits.tsx:48-57](file://src/components/pos/bits.tsx#L48-L57)
 - [bits.tsx:102-129](file://src/components/pos/bits.tsx#L102-L129)
 - [app.tsx:153-267](file://src/routes/_authenticated/app.tsx#L153-L267)
 - [app.index.tsx:111-180](file://src/routes/_authenticated/app.index.tsx#L111-L180)
 
 **Section sources**
 - [bits.tsx:15-76](file://src/components/pos/bits.tsx#L15-L76)
+- [bits.tsx:48-57](file://src/components/pos/bits.tsx#L48-L57)
 - [bits.tsx:102-129](file://src/components/pos/bits.tsx#L102-L129)
 - [app.tsx:153-267](file://src/routes/_authenticated/app.tsx#L153-L267)
 - [app.index.tsx:111-180](file://src/routes/_authenticated/app.index.tsx#L111-L180)
 
-### Workspace Tabs and Navigation
-Workspace tabs render grouped navigation links based on user role and store type. They rely on shared navigation configuration and i18n labels.
+### Enhanced Workspace Navigation and Grouped Layout Structure
+The workspace navigation system has been enhanced with improved grouped layout structure and better navigation patterns:
+
+**New Features:**
+- Centralized workspace page configuration with role-based visibility
+- Grouped navigation with intelligent tab rendering
+- Menu navigation groups that move sibling pages into page-specific actions menus
+- Improved mobile navigation with bottom tab bar
 
 ```mermaid
 flowchart TD
 Input(["path, role, storeType"]) --> Compute["Compute current group and visible pages"]
-Compute --> Filter["Filter pages by group"]
-Filter --> Render["Render tab links"]
+Compute --> Filter["Filter pages by group and roles"]
+Filter --> CheckMenu{"Is menu navigation group?"}
+CheckMenu --> |Yes| HideTabs["Hide shell tabs, show page menu"]
+CheckMenu --> |No| Render["Render tab links"]
 Render --> ActiveState{"Is page active?"}
 ActiveState --> |Yes| Highlight["Highlight active tab"]
 ActiveState --> |No| Default["Default tab style"]
+HideTabs --> End(["Enhanced navigation"])
+Highlight --> End
+Default --> End
 ```
+
+**Updated** Enhanced workspace navigation with grouped layout structure and menu navigation groups
 
 **Diagram sources**
 - [WorkspaceTabs.tsx:20-63](file://src/components/pos/WorkspaceTabs.tsx#L20-L63)
+- [workspace-navigation.ts:124-168](file://src/lib/workspace-navigation.ts#L124-L168)
 
 **Section sources**
 - [WorkspaceTabs.tsx:20-63](file://src/components/pos/WorkspaceTabs.tsx#L20-L63)
+- [workspace-navigation.ts:1-169](file://src/lib/workspace-navigation.ts#L1-L169)
+
+### BackLink Component and Parent-Page Navigation
+The new BackLink component provides consistent parent-page navigation for screens that don't render shell tab rows (Transfers, Collections, Stock takes). It sits above the PageHeader and mirrors the breadcrumb trail.
+
+**Key Features:**
+- Consistent back navigation styling with arrow icon
+- Type-safe workspace path routing
+- i18n support for labels
+- Accessible link implementation
+
+```mermaid
+flowchart TD
+Usage["Route Component"] --> BackLink["BackLink Component"]
+BackLink --> Link["TanStack Router Link"]
+Link --> Style["Styled Navigation Link"]
+Style --> Arrow["Arrow Icon + Label"]
+Arrow --> Breadcrumb["Mirrors Breadcrumb Trail"]
+```
+
+**Diagram sources**
+- [bits.tsx:48-57](file://src/components/pos/bits.tsx#L48-L57)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
+- [app.collections.$id.tsx:140-167](file://src/routes/_authenticated/app.collections.$id.tsx#L140-L167)
+
+**Section sources**
+- [bits.tsx:48-57](file://src/components/pos/bits.tsx#L48-L57)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
+- [app.collections.$id.tsx:140-167](file://src/routes/_authenticated/app.collections.$id.tsx#L140-L167)
+
+### Breadcrumb Integration with PageHeader
+The PageHeader component now supports breadcrumb integration, providing contextual navigation information above page titles. Routes combine BackLink with PageHeader breadcrumbs for comprehensive navigation.
+
+**Integration Pattern:**
+- BackLink provides immediate parent navigation
+- PageHeader breadcrumb shows full navigation hierarchy
+- Consistent styling and accessibility across all pages
+
+```mermaid
+sequenceDiagram
+participant Route as "Route Component"
+participant BackLink as "BackLink"
+participant PageHeader as "PageHeader"
+participant Breadcrumb as "Breadcrumb Text"
+Route->>BackLink : Render parent navigation
+Route->>PageHeader : Pass breadcrumb prop
+PageHeader->>Breadcrumb : Display navigation hierarchy
+Breadcrumb-->>Route : Show "Inventory / Transfers"
+```
+
+**Diagram sources**
+- [bits.tsx:20-41](file://src/components/pos/bits.tsx#L20-L41)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
+- [app.collections.$id.tsx:140-167](file://src/routes/_authenticated/app.collections.$id.tsx#L140-L167)
+
+**Section sources**
+- [bits.tsx:20-41](file://src/components/pos/bits.tsx#L20-L41)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
+- [app.collections.$id.tsx:140-167](file://src/routes/_authenticated/app.collections.$id.tsx#L140-L167)
 
 ### Barcode Scanning and Camera Integration
 Two scanning strategies coexist:
@@ -362,7 +492,7 @@ State --> Return(["Return !!isMobile"])
 - [use-mobile.tsx:5-19](file://src/hooks/use-mobile.tsx#L5-L19)
 
 ## Dependency Analysis
-The following diagram shows how components depend on the POS context and each other.
+The following diagram shows how components depend on the POS context and each other, including the new navigation components.
 
 ```mermaid
 graph LR
@@ -372,10 +502,17 @@ RegisterRoute --> Bits["components/pos/bits.tsx"]
 RegisterRoute --> ScannerWedge["components/pos/use-scanner.ts"]
 RegisterRoute --> ScanCamera["components/pos/ScanCamera.tsx"]
 RegisterRoute --> QrHook["components/pos/use-qr.ts"]
+CollectionsRoute["routes/_authenticated/app.collections.*.tsx"] --> Bits
+TransfersRoute["routes/_authenticated/app.transfers.tsx"] --> Bits
+StocktakeRoute["routes/_authenticated/app.stocktake.tsx"] --> Bits
+Bits --> WorkspaceNav["lib/workspace-navigation.ts"]
+WorkspaceTabs["components/pos/WorkspaceTabs.tsx"] --> WorkspaceNav
+WorkspaceTabs --> PosTypes["types from lib/pos.tsx"]
 Billing["components/pos/Billing.tsx"] --> PosProvider
-WorkspaceTabs["components/pos/WorkspaceTabs.tsx"] --> PosTypes["types from lib/pos.tsx"]
 PosProvider --> IdleLock["components/pos/use-idle-lock.ts"]
 ```
+
+**Updated** Added dependencies for new navigation components and route files
 
 **Diagram sources**
 - [app.tsx:84-92](file://src/routes/_authenticated/app.tsx#L84-L92)
@@ -384,8 +521,12 @@ PosProvider --> IdleLock["components/pos/use-idle-lock.ts"]
 - [use-scanner.ts:31-83](file://src/components/pos/use-scanner.ts#L31-L83)
 - [ScanCamera.tsx:22-81](file://src/components/pos/ScanCamera.tsx#L22-L81)
 - [use-qr.ts:9-26](file://src/components/pos/use-qr.ts#L9-L26)
-- [Billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
+- [billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
 - [WorkspaceTabs.tsx:20-63](file://src/components/pos/WorkspaceTabs.tsx#L20-L63)
+- [workspace-navigation.ts:1-169](file://src/lib/workspace-navigation.ts#L1-L169)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
 - [pos.tsx:115-117](file://src/lib/pos.tsx#L115-L117)
 - [use-idle-lock.ts:9-39](file://src/components/pos/use-idle-lock.ts#L9-L39)
 
@@ -396,8 +537,12 @@ PosProvider --> IdleLock["components/pos/use-idle-lock.ts"]
 - [use-scanner.ts:31-83](file://src/components/pos/use-scanner.ts#L31-L83)
 - [ScanCamera.tsx:22-81](file://src/components/pos/ScanCamera.tsx#L22-L81)
 - [use-qr.ts:9-26](file://src/components/pos/use-qr.ts#L9-L26)
-- [Billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
+- [billing.tsx:54-69](file://src/components/pos/Billing.tsx#L54-L69)
 - [WorkspaceTabs.tsx:20-63](file://src/components/pos/WorkspaceTabs.tsx#L20-L63)
+- [workspace-navigation.ts:1-169](file://src/lib/workspace-navigation.ts#L1-L169)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
 - [pos.tsx:115-117](file://src/lib/pos.tsx#L115-L117)
 - [use-idle-lock.ts:9-39](file://src/components/pos/use-idle-lock.ts#L9-L39)
 
@@ -407,6 +552,7 @@ PosProvider --> IdleLock["components/pos/use-idle-lock.ts"]
 - Live stock reads: Stock is re-read live to reflect imports or concurrent till activity without stale badges.
 - Offline queue batching: Queue sync runs periodically and avoids redundant work when already syncing.
 - Idle lock pauses during sync: Prevents locking the till while replaying queued sales.
+- **New**: Workspace navigation optimization - menu navigation groups hide shell tabs to reduce DOM complexity.
 
 [No sources needed since this section provides general guidance]
 
@@ -416,6 +562,9 @@ Common issues and their handling:
 - Session lockout: If the server reports a locked session, the provider clears local staff state and prompts re-unlock.
 - Offline queue failures: Failed items show localized error messages with retry and discard options.
 - Subscription errors: Billing surfaces a retry button when subscription checks fail.
+- **New**: Navigation issues - ensure BackLink paths match workspace navigation configuration for consistent routing.
+
+**Updated** Added troubleshooting guidance for new navigation components
 
 **Section sources**
 - [pos.tsx:93-104](file://src/lib/pos.tsx#L93-L104)
@@ -428,6 +577,7 @@ Follow these patterns to integrate new components consistently:
 
 - Prefer composition over inheritance:
   - Compose base UI components (`Button`, `Dialog`, `Card`, `Input`) with POS building blocks (`PageHeader`, `Field`, `NativeSelect`, `Status`).
+  - **New**: Use `BackLink` for parent-page navigation in routes that don't render shell tab rows.
   - Keep feature-specific logic close to the feature screen; reuse shared helpers where appropriate.
 
 - Avoid prop drilling:
@@ -442,6 +592,12 @@ Follow these patterns to integrate new components consistently:
   - Presentational components should not directly call RPCs; delegate to `usePos().rpc` or `usePos().checkout`.
   - Use typed return values and error handling at the boundary between UI and context.
 
+- **New**: Navigation patterns:
+  - Use `BackLink` component for parent-page navigation in inventory-related routes.
+  - Combine `BackLink` with `PageHeader` breadcrumb for comprehensive navigation.
+  - Follow workspace navigation configuration for consistent routing.
+  - Use type-safe workspace paths from `workspace-navigation.ts`.
+
 - Naming conventions:
   - Feature components under `components/pos/`: `Billing.tsx`, `DiscountDialog.tsx`, `QuickAddItem.tsx`, `ReceiptModal.tsx`, `WorkspaceTabs.tsx`.
   - Hooks under `components/pos/` or `hooks/`: `use-idle-lock.ts`, `use-scanner.ts`, `use-qr.ts`, `use-mobile.tsx`.
@@ -451,6 +607,7 @@ Follow these patterns to integrate new components consistently:
   - Co-locate related types and helpers near their usage (e.g., POS types in `lib/pos.tsx`).
   - Keep UI primitives in `components/ui`; compose them in `components/pos`.
   - Place feature-specific composables in `components/pos/bits.tsx` when they are broadly reused within POS features.
+  - **New**: Centralize workspace navigation configuration in `lib/workspace-navigation.ts`.
 
 - Error handling:
   - Surface user-friendly messages; never expose raw database errors.
@@ -459,9 +616,17 @@ Follow these patterns to integrate new components consistently:
 - Accessibility and internationalization:
   - Use i18n keys for all user-facing strings.
   - Include aria attributes for interactive elements and status regions.
+  - **New**: Ensure BackLink and breadcrumb components maintain proper accessibility semantics.
+
+**Updated** Added guidelines for new BackLink component and navigation patterns
 
 **Section sources**
 - [bits.tsx:15-76](file://src/components/pos/bits.tsx#L15-L76)
+- [bits.tsx:48-57](file://src/components/pos/bits.tsx#L48-L57)
+- [workspace-navigation.ts:1-169](file://src/lib/workspace-navigation.ts#L1-L169)
+- [app.collections.index.tsx:58-70](file://src/routes/_authenticated/app.collections.index.tsx#L58-L70)
+- [app.transfers.tsx:80-92](file://src/routes/_authenticated/app.transfers.tsx#L80-L92)
+- [app.stocktake.tsx:74-88](file://src/routes/_authenticated/app.stocktake.tsx#L74-L88)
 - [pos.tsx:109-113](file://src/lib/pos.tsx#L109-L113)
 - [use-scanner.ts:31-83](file://src/components/pos/use-scanner.ts#L31-L83)
 - [use-idle-lock.ts:9-39](file://src/components/pos/use-idle-lock.ts#L9-L39)
@@ -469,13 +634,14 @@ Follow these patterns to integrate new components consistently:
 - [app.index.tsx:111-180](file://src/routes/_authenticated/app.index.tsx#L111-L180)
 
 ## Conclusion
-Storq’s component architecture emphasizes:
+Storq's component architecture emphasizes:
 - A single source of truth for POS state via `PosProvider` and `usePos`.
 - Clean composition of base UI components into feature-specific screens.
 - Robust separation of concerns between presentation and business logic.
 - Effective avoidance of prop drilling through context and hooks.
 - Reliable device integration and offline support.
+- **New**: Enhanced navigation patterns with BackLink component and improved workspace navigation supporting grouped layout structure.
 
-By following the established patterns and guidelines, new components will integrate seamlessly, remain maintainable, and scale with the application’s growing feature set.
+By following the established patterns and guidelines, new components will integrate seamlessly, remain maintainable, and scale with the application's growing feature set. The addition of BackLink and enhanced workspace navigation provides better user experience and more consistent navigation patterns across the application.
 
 [No sources needed since this section summarizes without analyzing specific files]

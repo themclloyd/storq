@@ -11,10 +11,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { downloadPdf } from "@/lib/pdf";
+import { downloadReceiptPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
 import {
-  methodLabel,
   printReceipt,
   receiptHtml,
   receiptTitle,
@@ -80,48 +79,10 @@ export function ReceiptModal({
             size="lg"
             className="flex-1"
             onClick={() => {
-              const r = receipt;
-              void downloadPdf({
-                filename: `storq-receipt-${r.number}`,
-                title: `${r.kind === "layby" ? t("doc.laybyReceipt") : t("doc.receipt")} #${r.number}`,
-                business: r.bizName,
-                subtitle: r.storeName,
-                badge: r.status === "layby_open" ? t("doc.badgeLaybyOpen") : t("doc.badgePaid"),
-                meta: [
-                  [t("doc.date"), r.date],
-                  [t("doc.servedBy"), r.cashier],
-                  [t("doc.payment"), methodLabel(r.method)],
-                  [
-                    t("doc.customer"),
-                    r.customerName
-                      ? `${r.customerName}${r.customerPhone ? ` · ${r.customerPhone}` : ""}`
-                      : t("doc.walkIn"),
-                  ],
-                ],
-                sections: [
-                  {
-                    type: "table",
-                    head: [t("doc.item"), t("doc.qty"), t("doc.unitPrice"), t("doc.amount")],
-                    align: ["left", "right", "right", "right"],
-                    body: r.lines.map((l) => [l.name, l.qty, money(l.price), money(l.total)]),
-                  },
-                ],
-                totals: [
-                  [t("doc.subtotal"), money(r.subtotal)],
-                  ...(r.tax > 0
-                    ? [
-                        [
-                          `${t("till.vat")} ${r.taxRate}%${r.taxInclusive ? ` (${t("till.included")})` : ""}`,
-                          money(r.tax),
-                        ] as [string, string],
-                      ]
-                    : []),
-                  [t("doc.paid"), money(r.paid)],
-                  ...(r.change > 0 ? [[t("doc.change"), money(r.change)] as [string, string]] : []),
-                  [t("doc.total"), money(r.total)],
-                ],
-                footerNote: `${r.note ? `${t("doc.noteLabel")} ${r.note}\n\n` : ""}${t("doc.thankYou")}`,
-              }).then(() => toast.success(t("till.receiptDownloaded")));
+              // Same 80mm roll as the Print sheet, just saved as a PDF.
+              void downloadReceiptPdf(receipt, money).then(() =>
+                toast.success(t("till.receiptDownloaded")),
+              );
             }}
           >
             <HugeiconsIcon icon={Download01Icon} /> PDF

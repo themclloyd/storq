@@ -1,1 +1,0 @@
-Top-level TanStack Start project that wires a React-based retail dashboard to a Supabase-backed PostgreSQL schema via Vite/Nitro, with shared tooling and environment configuration.

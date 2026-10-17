@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-10-17T11:17:00Z"
+exported_at: "2026-10-17T11:52:10Z"
 modules:
     "":
-        dir_name: Storq Retail POS Application
-        title: Storq Retail POS Application
+        dir_name: Storq Retail POS — TanStack Start Monorepo Root
+        title: Storq Retail POS — TanStack Start Monorepo Root
         scope:
             - README.md
             - AGENTS.md
@@ -38,19 +38,17 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to:
-            - path: frontend_app
+        related_to: []
     frontend_app:
-        dir_name: Frontend App (TanStack Start)
-        title: Frontend App (TanStack Start)
+        dir_name: TanStack Start POS Application
+        title: TanStack Start POS Application
         scope:
             - src/
         source_files: []
         children:
             - frontend_app/app_bootstrap
         depends_on: []
-        related_to:
-            - path: database_schema
+        related_to: []
     frontend_app/app_bootstrap:
         dir_name: Application Bootstrap & Runtime Entry
         title: Application Bootstrap & Runtime Entry

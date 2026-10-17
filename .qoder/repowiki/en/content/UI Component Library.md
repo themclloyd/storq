@@ -17,7 +17,19 @@
 - [src/components/ui/dropdown-menu.tsx](file://src/components/ui/dropdown-menu.tsx)
 - [src/components/ui/select.tsx](file://src/components/ui/select.tsx)
 - [src/components/ui/tabs.tsx](file://src/components/ui/tabs.tsx)
+- [src/components/ui/pagination.tsx](file://src/components/ui/pagination.tsx)
+- [src/components/pos/bits.tsx](file://src/components/pos/bits.tsx)
+- [src/lib/icons.ts](file://src/lib/icons.ts)
+- [src/lib/paging.ts](file://src/lib/paging.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added new Pager component for pagination controls in POS screens
+- Enhanced dropdown menu system with improved styling and accessibility
+- Introduced BackLink component for navigation patterns
+- Improved icon integration throughout the interface using Hugeicons library
+- Updated dependency management for better performance
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -25,16 +37,18 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+6. [New Components](#new-components)
+7. [Icon Integration System](#icon-integration-system)
+8. [Dependency Analysis](#dependency-analysis)
+9. [Performance Considerations](#performance-considerations)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Conclusion](#conclusion)
+12. [Appendices](#appendices)
 
 ## Introduction
 This document describes the UI component library built on Radix UI primitives, styled with Tailwind CSS and organized under src/components/ui. It explains the design system principles, available components (buttons, forms, dialogs, tables, layout/navigation), props and events, customization via Tailwind and theme variables, accessibility features, responsive patterns, testing strategies, performance considerations, and guidelines for extending or creating new components.
 
-The application is a POS system; the UI layer provides accessible, composable primitives that can be composed into complex screens.
+The application is a POS system; the UI layer provides accessible, composable primitives that can be composed into complex screens. Recent updates include enhanced pagination controls, improved navigation patterns, and optimized icon integration.
 
 **Section sources**
 - [README.md:1-26](file://README.md#L1-L26)
@@ -55,8 +69,11 @@ Accordion["accordion.tsx"]
 Dropdown["dropdown-menu.tsx"]
 Select["select.tsx"]
 Tabs["tabs.tsx"]
+Pagination["pagination.tsx"]
 end
+POSComponents["pos/bits.tsx<br/>BackLink, Pager, etc."]
 Utils["lib/utils.ts"]
+Icons["lib/icons.ts<br/>Hugeicons integration"]
 Theme["styles.css<br/>Tailwind + CSS Variables"]
 Button --> Utils
 Dialog --> Utils
@@ -68,6 +85,10 @@ Accordion --> Utils
 Dropdown --> Utils
 Select --> Utils
 Tabs --> Utils
+Pagination --> Button
+POSComponents --> Button
+POSComponents --> Icons
+Icons --> Theme
 Theme --> Button
 Theme --> Dialog
 Theme --> AlertDialog
@@ -78,6 +99,7 @@ Theme --> Accordion
 Theme --> Dropdown
 Theme --> Select
 Theme --> Tabs
+Theme --> Pagination
 ```
 
 **Diagram sources**
@@ -91,6 +113,9 @@ Theme --> Tabs
 - [src/components/ui/dropdown-menu.tsx:1-188](file://src/components/ui/dropdown-menu.tsx#L1-L188)
 - [src/components/ui/select.tsx:1-153](file://src/components/ui/select.tsx#L1-L153)
 - [src/components/ui/tabs.tsx:1-54](file://src/components/ui/tabs.tsx#L1-L54)
+- [src/components/ui/pagination.tsx:1-98](file://src/components/ui/pagination.tsx#L1-L98)
+- [src/components/pos/bits.tsx:1-200](file://src/components/pos/bits.tsx#L1-L200)
+- [src/lib/icons.ts:1-63](file://src/lib/icons.ts#L1-L63)
 
 **Section sources**
 - [components.json:1-23](file://components.json#L1-L23)
@@ -108,6 +133,7 @@ This section summarizes the primary building blocks and their responsibilities.
 - Dropdown Menu: Rich menu interactions with keyboard navigation and nested submenus.
 - Select: Accessible select with virtualized viewport and scroll buttons.
 - Tabs: Tabbed interface with accessible triggers and content panels.
+- **Pagination**: New comprehensive pagination system with page navigation controls.
 
 These components share consistent styling through Tailwind utilities and CSS variables, and they expose standard React props plus Radix-specific behaviors.
 
@@ -122,6 +148,7 @@ These components share consistent styling through Tailwind utilities and CSS var
 - [src/components/ui/dropdown-menu.tsx:1-188](file://src/components/ui/dropdown-menu.tsx#L1-L188)
 - [src/components/ui/select.tsx:1-153](file://src/components/ui/select.tsx#L1-L153)
 - [src/components/ui/tabs.tsx:1-54](file://src/components/ui/tabs.tsx#L1-L54)
+- [src/components/ui/pagination.tsx:1-98](file://src/components/ui/pagination.tsx#L1-L98)
 
 ## Architecture Overview
 The UI architecture layers Radix UI primitives with Tailwind CSS and a shared utility function for class merging. Each component encapsulates its own structure and styles while exposing a stable API. Composition is encouraged via asChild and slot patterns where applicable.
@@ -197,6 +224,14 @@ class Tabs {
 +Trigger
 +Content
 }
+class Pagination {
++Content
++Link
++Item
++Previous
++Next
++Ellipsis
+}
 Button --> "uses" : "cva + Slot"
 Dialog --> "wraps" : "@radix-ui/react-dialog"
 AlertDialog --> "wraps" : "@radix-ui/react-alert-dialog"
@@ -206,6 +241,7 @@ Accordion --> "wraps" : "@radix-ui/react-accordion"
 DropdownMenu --> "wraps" : "@radix-ui/react-dropdown-menu"
 Select --> "wraps" : "@radix-ui/react-select"
 Tabs --> "wraps" : "@radix-ui/react-tabs"
+Pagination --> "wraps" : "Button + lucide-react"
 ```
 
 **Diagram sources**
@@ -218,6 +254,7 @@ Tabs --> "wraps" : "@radix-ui/react-tabs"
 - [src/components/ui/dropdown-menu.tsx:1-188](file://src/components/ui/dropdown-menu.tsx#L1-L188)
 - [src/components/ui/select.tsx:1-153](file://src/components/ui/select.tsx#L1-L153)
 - [src/components/ui/tabs.tsx:1-54](file://src/components/ui/tabs.tsx#L1-L54)
+- [src/components/ui/pagination.tsx:1-98](file://src/components/ui/pagination.tsx#L1-L98)
 
 ## Detailed Component Analysis
 
@@ -225,7 +262,7 @@ Tabs --> "wraps" : "@radix-ui/react-tabs"
 - Purpose: Primary interactive element with multiple visual variants and sizes.
 - Props: variant, size, asChild, and all native button attributes.
 - Events: onClick and other standard DOM events forwarded to the underlying element.
-- Customization: Use cva variants and Tailwind classes; extend variants by modifying the component’s variant map.
+- Customization: Use cva variants and Tailwind classes; extend variants by modifying the component's variant map.
 - Accessibility: Focus ring and disabled state handled; supports keyboard activation.
 
 Usage example path: [Button usage:1-55](file://src/components/ui/button.tsx#L1-L55)
@@ -341,6 +378,63 @@ Usage example path: [Tabs implementation:1-54](file://src/components/ui/tabs.tsx
 **Section sources**
 - [src/components/ui/tabs.tsx:1-54](file://src/components/ui/tabs.tsx#L1-L54)
 
+## New Components
+
+### Pagination Component
+- Purpose: Comprehensive pagination system for large datasets with accessible navigation controls.
+- Components: Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis.
+- Props: isActive for current page indication, size variants inherited from Button, and standard anchor attributes.
+- Events: Navigation events handled through Link components; accessibility attributes for screen readers.
+- Customization: Uses Button variants for consistent styling; supports different sizes and states.
+- Accessibility: Proper ARIA attributes including aria-current="page" for active pages and descriptive labels for navigation.
+
+Usage example path: [Pagination implementation:1-98](file://src/components/ui/pagination.tsx#L1-L98)
+
+**Section sources**
+- [src/components/ui/pagination.tsx:1-98](file://src/components/ui/pagination.tsx#L1-L98)
+
+### BackLink Component
+- Purpose: Parent-page link for screens whose group no longer renders a shell tab row, providing consistent navigation patterns.
+- Props: to (WorkspacePath), label (ReactNode).
+- Features: Integrated with TanStack Router for navigation, includes arrow icon for visual feedback.
+- Styling: Consistent with application's muted foreground colors and hover states.
+- Usage: Used in collections, stocktake, and transfers screens for parent navigation.
+
+Usage example path: [BackLink implementation:48-57](file://src/components/pos/bits.tsx#L48-L57)
+
+**Section sources**
+- [src/components/pos/bits.tsx:48-57](file://src/components/pos/bits.tsx#L48-L57)
+
+### Pager Component
+- Purpose: Simple pagination control for inventory lists with ten rows per page, providing intuitive prev/next navigation.
+- Props: page (current page number), pageCount (total pages), total (total items count), onPage (page change handler).
+- Features: Shows "X of Y" counter, disabled state management for first/last pages, internationalization support.
+- Integration: Works with pageSlice utility for data slicing and i18n for localized text.
+- Styling: Compact design suitable for POS environments with appropriate spacing and typography.
+
+Usage example path: [Pager implementation:60-96](file://src/components/pos/bits.tsx#L60-L96)
+
+**Section sources**
+- [src/components/pos/bits.tsx:60-96](file://src/components/pos/bits.tsx#L60-L96)
+
+## Icon Integration System
+The application has implemented an optimized icon integration system using Hugeicons library with strategic tree-shaking to improve development performance.
+
+### Icon Surface Architecture
+- Centralized icon exports in src/lib/icons.ts provide individual module imports for each glyph.
+- Avoids Vite pre-bundling issues that would load 7.4 MB of unmangled JavaScript in development.
+- Supports ~6,000 glyphs from @hugeicons/core-free-icons with production tree-shaking.
+- Provides both direct icon imports and alias support for barrel-only icons.
+
+### Icon Usage Patterns
+- Direct imports from "@/lib/icons" for optimal bundle size and development performance.
+- Integration with @hugeicons/react for React component rendering.
+- Consistent sizing and styling across all icon implementations.
+- Support for both functional icons and decorative icons with proper accessibility.
+
+**Section sources**
+- [src/lib/icons.ts:1-63](file://src/lib/icons.ts#L1-L63)
+
 ## Dependency Analysis
 The UI components depend on:
 - Radix UI primitives for behavior and accessibility.
@@ -348,6 +442,8 @@ The UI components depend on:
 - class-variance-authority for variant composition (e.g., Button).
 - lucide-react for icons used within components.
 - react-hook-form integration for the Form system.
+- **@hugeicons/core-free-icons and @hugeicons/react for optimized icon integration**.
+- **TanStack Router for navigation components like BackLink**.
 
 ```mermaid
 graph LR
@@ -368,13 +464,18 @@ Tailwind --> Accordion
 Tailwind --> DropdownMenu
 Tailwind --> Select
 Tailwind --> Tabs
+Tailwind --> Pagination
 CVA["class-variance-authority"] --> Button
 LHFR["react-hook-form"] --> Form
-Icons["lucide-react"] --> Dialog
-Icons --> AlertDialog
-Icons --> Accordion
-Icons --> DropdownMenu
-Icons --> Select
+Lucide["lucide-react"] --> Dialog
+Lucide --> AlertDialog
+Lucide --> Accordion
+Lucide --> DropdownMenu
+Lucide --> Select
+Hugeicons["@hugeicons/*"] --> IconsSurface
+IconsSurface --> BackLink
+IconsSurface --> Pager
+Router["@tanstack/react-router"] --> BackLink
 ```
 
 **Diagram sources**
@@ -387,6 +488,9 @@ Icons --> Select
 - [src/components/ui/dropdown-menu.tsx:1-188](file://src/components/ui/dropdown-menu.tsx#L1-L188)
 - [src/components/ui/select.tsx:1-153](file://src/components/ui/select.tsx#L1-L153)
 - [src/components/ui/tabs.tsx:1-54](file://src/components/ui/tabs.tsx#L1-L54)
+- [src/components/ui/pagination.tsx:1-98](file://src/components/ui/pagination.tsx#L1-L98)
+- [src/components/pos/bits.tsx:1-200](file://src/components/pos/bits.tsx#L1-L200)
+- [src/lib/icons.ts:1-63](file://src/lib/icons.ts#L1-L63)
 
 **Section sources**
 - [package.json:19-79](file://package.json#L19-L79)
@@ -396,7 +500,10 @@ Icons --> Select
 - Use asChild sparingly; it changes the rendered element and may affect performance if overused.
 - Avoid heavy computations inside render paths; memoize derived values when composing complex forms.
 - Keep table rows lightweight; virtualize large datasets externally if needed.
-- Leverage Tailwind’s utility-first approach to minimize custom CSS and reduce bundle size.
+- Leverage Tailwind's utility-first approach to minimize custom CSS and reduce bundle size.
+- **Use individual icon imports from "@/lib/icons" instead of barrel imports to avoid 7.4 MB dev server overhead**.
+- **Implement pagination for large datasets using the Pager component to reduce initial render time**.
+- **Utilize pageSlice utility for efficient data slicing in list components**.
 
 [No sources needed since this section provides general guidance]
 
@@ -406,6 +513,9 @@ Icons --> Select
 - Dropdown/Select positioning issues: Adjust sideOffset or position props; check container overflow settings.
 - Button not clickable: Confirm asChild usage does not override pointer-events; verify disabled state.
 - Table header not sticky: Ensure parent containers do not clip overflow; verify z-index stacking contexts.
+- **Pagination not working correctly: Ensure page state is properly managed and passed to Pager component**.
+- **BackLink navigation not working: Verify WorkspacePath types and router configuration**.
+- **Icon display issues: Check that icons are imported from "@/lib/icons" rather than directly from the barrel**.
 
 **Section sources**
 - [src/components/ui/form.tsx:40-65](file://src/components/ui/form.tsx#L40-L65)
@@ -413,16 +523,18 @@ Icons --> Select
 - [src/components/ui/dropdown-menu.tsx:57-74](file://src/components/ui/dropdown-menu.tsx#L57-L74)
 - [src/components/ui/select.tsx:63-93](file://src/components/ui/select.tsx#L63-L93)
 - [src/components/ui/table.tsx:5-11](file://src/components/ui/table.tsx#L5-L11)
+- [src/components/pos/bits.tsx:60-96](file://src/components/pos/bits.tsx#L60-L96)
+- [src/lib/icons.ts:1-13](file://src/lib/icons.ts#L1-L13)
 
 ## Conclusion
-This UI component library provides a cohesive set of accessible, customizable primitives built on Radix UI and styled with Tailwind CSS. By following the established patterns—composing components, leveraging variants, and adhering to accessibility best practices—you can build consistent, maintainable interfaces across the application.
+This UI component library provides a cohesive set of accessible, customizable primitives built on Radix UI and styled with Tailwind CSS. Recent enhancements include comprehensive pagination controls, improved navigation patterns with BackLink, and optimized icon integration using Hugeicons. By following the established patterns—composing components, leveraging variants, and adhering to accessibility best practices—you can build consistent, maintainable interfaces across the application.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
 ### Styling and Theme Customization
-- Tailwind configuration and CSS variables are managed via the project’s Tailwind setup and src/styles.css.
+- Tailwind configuration and CSS variables are managed via the project's Tailwind setup and src/styles.css.
 - The base color palette and CSS variables are configured in components.json.
 - Use Tailwind utilities consistently across components; extend themes by updating CSS variables and Tailwind config.
 
@@ -435,6 +547,8 @@ This UI component library provides a cohesive set of accessible, customizable pr
 - Accessibility tests: Assert ARIA attributes and keyboard navigation for overlays and form fields.
 - Integration tests: Compose components (e.g., Form + Input + Button) to validate workflows.
 - Snapshot tests: Use cautiously; prefer behavioral assertions over snapshots for UI stability.
+- **Test pagination components with various page counts and edge cases**.
+- **Verify BackLink navigation works with different route configurations**.
 
 [No sources needed since this section provides general guidance]
 
@@ -444,7 +558,18 @@ This UI component library provides a cohesive set of accessible, customizable pr
 - Provide sensible defaults and allow className overrides for flexibility.
 - Maintain accessibility by preserving Radix roles and adding sr-only text where needed.
 - Centralize shared logic and styles via src/lib/utils.ts and theme variables.
+- **For navigation components, integrate with TanStack Router and use WorkspacePath types**.
+- **For icon usage, import from "@/lib/icons" to maintain optimal bundle performance**.
 
 **Section sources**
 - [src/components/ui/button.tsx:1-55](file://src/components/ui/button.tsx#L1-L55)
 - [src/lib/utils.ts](file://src/lib/utils.ts)
+- [src/lib/icons.ts:1-13](file://src/lib/icons.ts#L1-L13)
+
+### Data Management Utilities
+- **pageSlice utility**: Efficiently slices arrays for pagination with automatic page clamping.
+- **LIST_PAGE_SIZE constant**: Defines default page size (10 items) for consistent pagination across the application.
+- Integration with Pager component for seamless data presentation.
+
+**Section sources**
+- [src/lib/paging.ts:1-16](file://src/lib/paging.ts#L1-L16)
