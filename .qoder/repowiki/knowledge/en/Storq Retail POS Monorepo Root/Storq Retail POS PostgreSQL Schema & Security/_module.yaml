@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: database_schema
-title: Storq Retail POS PostgreSQL Schema & Security
-scope:
-    - supabase/
-source_files: []
-depends_on: []
-related_to: []
