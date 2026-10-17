@@ -15,9 +15,11 @@ export function useSubscription(businessId?: string, storeCount = 0) {
   const query = useQuery({
     queryKey: ["subscription", businessId],
     enabled: !!businessId,
-    // Enforcement lives in SQL; this only refreshes the banner, so poll gently.
-    staleTime: 5 * 60_000,
-    refetchInterval: 10 * 60_000,
+    // Enforcement lives in SQL (every write checks it). The client only needs
+    // the expiry dates, which it evaluates locally; no polling. Payments
+    // invalidate ["subscription"] and the device cache shows it instantly.
+    staleTime: 6 * 60 * 60_000,
+    retry: 1,
     queryFn: async () => {
       // subscriptions predates type regeneration for paid_store_limit — read via any-cast
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +37,13 @@ export function useSubscription(businessId?: string, storeCount = 0) {
     () => subscriptionAccess(query.data ?? null, storeCount),
     [query.data, storeCount],
   );
-  return { ...query, data: access };
+  // Re-evaluate expiry locally once a minute so a lapse is noticed without a fetch.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return { ...query, data: access, hasRow: query.data !== undefined };
 }
 
 let scriptP: Promise<void> | null = null;

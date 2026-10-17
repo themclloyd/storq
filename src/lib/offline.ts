@@ -8,9 +8,27 @@ const CACHE_VERSION = 1;
 
 // Reference data the register needs to open instantly. Never persist role-gated
 // data (buying costs, reports) — only what every staff role can already read.
-const PERSIST = new Set(["business", "stores", "products", "collections", "stock", "staff-names"]);
+const PERSIST = new Set([
+  "business",
+  "stores",
+  "products",
+  "collections",
+  "stock",
+  "staff-names",
+  "subscription",
+]);
 const persistable = (key: readonly unknown[]) =>
-  PERSIST.has(String(key[0])) && !(key[0] === "products" && key[2] === true);
+  PERSIST.has(String(key[0])) &&
+  !(key[0] === "products" && key[2] === true) &&
+  !(key[0] === "subscription" && key[1] === "history");
+
+/**
+ * Role-neutral reference data every staff role may read. It survives PIN
+ * lock/unlock so the till stays warm; everything else (costs, reports, staff
+ * lists, history) is dropped on lock and refetched for the next person.
+ */
+export const isSharedReference = (key: readonly unknown[]) => persistable(key);
+export const isRoleScoped = (key: readonly unknown[]) => !persistable(key);
 
 export function hydrateCache(qc: QueryClient, userId: string) {
   try {
