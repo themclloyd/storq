@@ -9,6 +9,13 @@
 - [app.sales_.$id.tsx](file://src/routes/_authenticated/app.sales_.$id.tsx)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Added documentation for new thermal receipt PDF generator supporting 80mm roll-formatted receipts
+- Updated status labeling functionality with enhanced `statusLabel()` function
+- Simplified ReceiptModal component architecture using new `downloadReceiptPdf()` function
+- Enhanced thermal receipt rendering capabilities and print formatting options
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -24,35 +31,35 @@
 This document explains the receipt generation system used by the point-of-sale flow. It covers:
 - Receipt data structure and how transaction details, items, taxes, discounts, payments, and customer information are represented.
 - Template rendering for thermal-printer previews and print output.
-- PDF generation for branded documents and archival.
+- PDF generation for branded documents and archival, including new thermal receipt PDF support.
 - The receipt modal interface for previewing, printing, and downloading receipts.
 - Localization support and multi-currency formatting via a currency formatter passed into the receipt builders.
 - Receipt numbering and duplicate prevention mechanisms as implemented in the backend.
 
 ## Project Structure
 The receipt feature spans three main areas:
-- UI layer: A dialog that previews the receipt and provides actions to download a PDF or print it.
+- UI layer: A dialog that previews the receipt and provides actions to download a thermal PDF or print it.
 - Receipt rendering: Functions that build plain text, HTML, and print styles for an 80mm thermal roll.
-- PDF export: A client-side PDF generator that produces branded A4 documents with tables, totals, and footers.
+- PDF export: A client-side PDF generator that produces both branded A4 documents and thermal 80mm roll-formatted receipts.
 
 ```mermaid
 graph TB
 UI["POS Receipt Modal<br/>Preview + Actions"] --> Render["Receipt Builders<br/>HTML / Text / Print"]
-UI --> Pdf["PDF Generator<br/>Branded A4 Documents"]
+UI --> Pdf["PDF Generator<br/>Branded A4 + Thermal 80mm"]
 Render --> I18n["Localization<br/>t() function"]
 Pdf --> I18n
 ```
 
 **Diagram sources**
-- [ReceiptModal.tsx:37-148](file://src/components/pos/ReceiptModal.tsx#L37-L148)
-- [receipts.ts:83-240](file://src/lib/receipts.ts#L83-L240)
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [ReceiptModal.tsx:36-109](file://src/components/pos/ReceiptModal.tsx#L36-L109)
+- [receipts.ts:89-246](file://src/lib/receipts.ts#L89-L246)
+- [pdf.ts:58-381](file://src/lib/pdf.ts#L58-L381)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 **Section sources**
-- [ReceiptModal.tsx:37-148](file://src/components/pos/ReceiptModal.tsx#L37-L148)
-- [receipts.ts:83-240](file://src/lib/receipts.ts#L83-L240)
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [ReceiptModal.tsx:36-109](file://src/components/pos/ReceiptModal.tsx#L36-L109)
+- [receipts.ts:89-246](file://src/lib/receipts.ts#L89-L246)
+- [pdf.ts:58-381](file://src/lib/pdf.ts#L58-L381)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 ## Core Components
@@ -61,23 +68,26 @@ Pdf --> I18n
   - Plain-text builder suitable for SMS/WhatsApp sharing or simple downloads.
   - Thermal HTML builder optimized for 80mm printers and on-screen preview.
   - Print helper that opens a thermal-sized window and triggers the browser print dialog.
-- PDF generator: Builds branded A4 PDFs with header, badge, meta grid, KPI cards, sections (tables/pairs/text), totals, and page footers.
-- Receipt modal: Presents the thermal preview and offers “Download PDF” and “Print” actions.
+- PDF generators:
+  - Branded A4 PDF generator for professional documents and archival.
+  - **New**: Thermal receipt PDF generator specifically designed for 80mm roll-formatted receipts.
+- Receipt modal: Presents the thermal preview and offers "Download PDF" (thermal format) and "Print" actions.
 
 Key responsibilities:
 - Rendering: `receiptText`, `receiptHtml`, `printReceipt`
 - Data shaping: `Receipt`, `ReceiptLine`, `ReceiptTender`, `MoneyFmt`
-- PDF export: `downloadPdf`
+- PDF export: `downloadPdf`, **new** `downloadReceiptPdf`
+- Status handling: **enhanced** `statusLabel` function
 - UI orchestration: `ReceiptModal`
 
 **Section sources**
 - [receipts.ts:5-34](file://src/lib/receipts.ts#L5-L34)
-- [receipts.ts:83-240](file://src/lib/receipts.ts#L83-L240)
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
-- [ReceiptModal.tsx:37-148](file://src/components/pos/ReceiptModal.tsx#L37-L148)
+- [receipts.ts:89-246](file://src/lib/receipts.ts#L89-L246)
+- [pdf.ts:58-381](file://src/lib/pdf.ts#L58-L381)
+- [ReceiptModal.tsx:36-109](file://src/components/pos/ReceiptModal.tsx#L36-L109)
 
 ## Architecture Overview
-The receipt workflow connects the POS UI to rendering utilities and PDF export.
+The receipt workflow connects the POS UI to rendering utilities and dual-format PDF export.
 
 ```mermaid
 sequenceDiagram
@@ -91,17 +101,17 @@ Modal->>Receipts : receiptHtml(receipt, money)
 Receipts-->>Modal : HTML string
 Modal->>Modal : Render thermal preview
 User->>Modal : Click "Download PDF"
-Modal->>Pdf : downloadPdf({ filename, title, business, subtitle, badge, meta, sections, totals, footerNote })
-Pdf->>Browser : Save .pdf file
+Modal->>Pdf : downloadReceiptPdf(receipt, money)
+Pdf->>Browser : Save 80mm thermal .pdf file
 User->>Modal : Click "Print"
 Modal->>Receipts : printReceipt(receipt, money)
 Receipts->>Browser : Open thermal window + trigger print
 ```
 
 **Diagram sources**
-- [ReceiptModal.tsx:77-138](file://src/components/pos/ReceiptModal.tsx#L77-L138)
-- [receipts.ts:127-227](file://src/lib/receipts.ts#L127-L227)
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [ReceiptModal.tsx:76-99](file://src/components/pos/ReceiptModal.tsx#L76-L99)
+- [receipts.ts:133-232](file://src/lib/receipts.ts#L133-L232)
+- [pdf.ts:286-381](file://src/lib/pdf.ts#L286-L381)
 
 ## Detailed Component Analysis
 
@@ -175,17 +185,20 @@ BuildText --> DownloadTxt["downloadReceipt()<br/>Save .txt"]
 ```
 
 **Diagram sources**
-- [receipts.ts:83-125](file://src/lib/receipts.ts#L83-L125)
-- [receipts.ts:127-202](file://src/lib/receipts.ts#L127-L202)
-- [receipts.ts:217-240](file://src/lib/receipts.ts#L217-L240)
+- [receipts.ts:89-131](file://src/lib/receipts.ts#L89-L131)
+- [receipts.ts:133-207](file://src/lib/receipts.ts#L133-L207)
+- [receipts.ts:222-246](file://src/lib/receipts.ts#L222-L246)
 
 **Section sources**
-- [receipts.ts:83-125](file://src/lib/receipts.ts#L83-L125)
-- [receipts.ts:127-202](file://src/lib/receipts.ts#L127-L202)
-- [receipts.ts:217-240](file://src/lib/receipts.ts#L217-L240)
+- [receipts.ts:89-131](file://src/lib/receipts.ts#L89-L131)
+- [receipts.ts:133-207](file://src/lib/receipts.ts#L133-L207)
+- [receipts.ts:222-246](file://src/lib/receipts.ts#L222-L246)
 
 ### PDF Generation and Archival
-The PDF generator creates branded A4 documents with:
+The PDF system now supports two distinct formats:
+
+#### Branded A4 PDF Generator
+Creates professional A4 documents with:
 - Header with business name and optional badge
 - Meta grid for key-value pairs (e.g., date, served by, payment method, customer)
 - Optional KPI cards
@@ -193,39 +206,44 @@ The PDF generator creates branded A4 documents with:
 - Totals block with highlighted final row
 - Footer with generated timestamp and page numbers
 
+#### **New**: Thermal Receipt PDF Generator
+Generates authentic 80mm roll-formatted receipts that match thermal printer output:
+- Exact 80mm width matching thermal printer specifications
+- Courier font for authentic monospace appearance
+- Dynamic height calculation based on content
+- Proper margin handling (4mm sides)
+- Optimized for direct thermal printer compatibility
+
 ```mermaid
 flowchart TD
-Input["PdfDoc input"] --> Init["Create jsPDF instance"]
-Init --> Header["Draw brand header + badge"]
-Header --> Meta["Render meta grid"]
-Meta --> Kpis["Optional KPI cards"]
-Kpis --> Sections["Render sections (table/pairs/text)"]
-Sections --> Totals["Render totals block"]
-Totals --> Footer["Add page footers"]
-Footer --> Save["Save .pdf file"]
+Input["Receipt Data"] --> ThermalPdf["downloadReceiptPdf()<br/>80mm Roll PDF"]
+Input --> BrandedPdf["downloadPdf()<br/>A4 Branded PDF"]
+ThermalPdf --> ThermalLayout["80mm Layout Engine<br/>Courier Font<br/>Dynamic Height"]
+BrandedPdf --> BrandedLayout["A4 Layout Engine<br/>Professional Design"]
+ThermalLayout --> Save["Save .pdf File"]
+BrandedLayout --> Save
 ```
 
 **Diagram sources**
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [pdf.ts:286-381](file://src/lib/pdf.ts#L286-L381)
+- [pdf.ts:58-273](file://src/lib/pdf.ts#L58-L273)
 
-Practical example: generating a receipt PDF from the modal
-- The modal constructs a `PdfDoc` with:
-  - filename, title, business, subtitle, badge
-  - meta rows for date, cashier, payment method, and customer
-  - a table section for line items
-  - totals for subtotal, VAT (if any), paid, change, and total
-  - a footer note including optional customer note and thank-you message
+Practical example: generating a thermal receipt PDF from the modal
+- The modal calls `downloadReceiptPdf(receipt, money)` which creates an exact 80mm roll-formatted PDF
+- Uses the same layout engine as thermal printing for consistency
+- Automatically calculates optimal height based on content
 
 **Section sources**
-- [ReceiptModal.tsx:82-124](file://src/components/pos/ReceiptModal.tsx#L82-L124)
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [ReceiptModal.tsx:81-86](file://src/components/pos/ReceiptModal.tsx#L81-L86)
+- [pdf.ts:286-381](file://src/lib/pdf.ts#L286-L381)
+- [pdf.ts:58-273](file://src/lib/pdf.ts#L58-L273)
 
 ### Receipt Modal Interface
-The modal provides:
+The modal has been simplified and now provides:
 - A thermal-style preview using the same HTML produced for printing
-- A “Download PDF” action that builds a branded PDF and saves it
-- A “Print” action that opens a thermal-sized window and triggers printing
-- A “New Sale” action to return to the till flow
+- A "Download PDF" action that generates an 80mm thermal-formatted PDF using `downloadReceiptPdf()`
+- A "Print" action that opens a thermal-sized window and triggers printing
+- A "New Sale" action to return to the till flow
 
 ```mermaid
 sequenceDiagram
@@ -238,24 +256,46 @@ Modal->>Receipts : receiptHtml(receipt, money)
 Receipts-->>Modal : HTML
 Modal->>Modal : Render thermal preview
 User->>Modal : Click "Download PDF"
-Modal->>Pdf : downloadPdf(PdfDoc)
-Pdf-->>Modal : File saved
+Modal->>Pdf : downloadReceiptPdf(receipt, money)
+Pdf-->>Modal : 80mm thermal PDF saved
 User->>Modal : Click "Print"
 Modal->>Receipts : printReceipt(receipt, money)
 Receipts-->>Modal : true/false
 ```
 
 **Diagram sources**
-- [ReceiptModal.tsx:54-148](file://src/components/pos/ReceiptModal.tsx#L54-L148)
-- [receipts.ts:127-227](file://src/lib/receipts.ts#L127-L227)
-- [pdf.ts:51-266](file://src/lib/pdf.ts#L51-L266)
+- [ReceiptModal.tsx:53-109](file://src/components/pos/ReceiptModal.tsx#L53-L109)
+- [receipts.ts:133-232](file://src/lib/receipts.ts#L133-L232)
+- [pdf.ts:286-381](file://src/lib/pdf.ts#L286-L381)
 
 **Section sources**
-- [ReceiptModal.tsx:54-148](file://src/components/pos/ReceiptModal.tsx#L54-L148)
+- [ReceiptModal.tsx:53-109](file://src/components/pos/ReceiptModal.tsx#L53-L109)
+
+### Enhanced Status Labeling
+The status labeling system has been improved with a dedicated `statusLabel()` function:
+- Provides localized status chip labels for different receipt states
+- Supports multiple statuses: completed, layby_open, layby_completed
+- Returns empty string when no status chip is needed
+- Integrates seamlessly with both thermal HTML and PDF generation
+
+```mermaid
+flowchart TD
+Status["Receipt Status"] --> Check["statusLabel() Function"]
+Check --> Completed["completed → 'Paid'"]
+Check --> LaybyOpen["layby_open → 'Layby Open'"]
+Check --> LaybyCompleted["layby_completed → 'Layby Paid'"]
+Check --> Other["Other → '' (no chip)"]
+```
+
+**Diagram sources**
+- [receipts.ts:54-64](file://src/lib/receipts.ts#L54-L64)
+
+**Section sources**
+- [receipts.ts:54-64](file://src/lib/receipts.ts#L54-L64)
 
 ### Localization and Multi-Currency Formatting
 - Localization: All user-facing labels come from a translation function that resolves keys against the active locale and falls back to English if missing. This ensures receipt titles, badges, and labels are localized consistently across templates and PDFs.
-- Multi-currency: Amounts are formatted by a `MoneyFmt` function provided by the caller (typically the POS hook). This keeps amounts in the store’s currency without hardcoding symbols or locales inside the receipt builders.
+- Multi-currency: Amounts are formatted by a `MoneyFmt` function provided by the caller (typically the POS hook). This keeps amounts in the store's currency without hardcoding symbols or locales inside the receipt builders.
 
 ```mermaid
 graph LR
@@ -265,16 +305,17 @@ I18n --> Pdf
 Receipts --> Html["Thermal HTML"]
 Receipts --> Txt["Plain text"]
 Pdf --> PdfDoc["Branded PDF"]
+Pdf --> ThermalPdf["Thermal 80mm PDF"]
 ```
 
 **Diagram sources**
 - [receipts.ts:1-4](file://src/lib/receipts.ts#L1-L4)
-- [receipts.ts:43-52](file://src/lib/receipts.ts#L43-L52)
+- [receipts.ts:43-64](file://src/lib/receipts.ts#L43-L64)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 **Section sources**
 - [receipts.ts:1-4](file://src/lib/receipts.ts#L1-L4)
-- [receipts.ts:43-52](file://src/lib/receipts.ts#L43-L52)
+- [receipts.ts:43-64](file://src/lib/receipts.ts#L43-L64)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 ### Receipt Numbering and Duplicate Prevention
@@ -306,59 +347,62 @@ SalesDetail["app.sales_.$id.tsx"] --> PdfMod
 ```
 
 **Diagram sources**
-- [ReceiptModal.tsx:14-23](file://src/components/pos/ReceiptModal.tsx#L14-L23)
+- [ReceiptModal.tsx:14-22](file://src/components/pos/ReceiptModal.tsx#L14-L22)
 - [receipts.ts:1-4](file://src/lib/receipts.ts#L1-L4)
-- [pdf.ts:1-6](file://src/lib/pdf.ts#L1-L6)
+- [pdf.ts:1-12](file://src/lib/pdf.ts#L1-L12)
 - [app.sales_.$id.tsx:601-623](file://src/routes/_authenticated/app.sales_.$id.tsx#L601-L623)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 **Section sources**
-- [ReceiptModal.tsx:14-23](file://src/components/pos/ReceiptModal.tsx#L14-L23)
+- [ReceiptModal.tsx:14-22](file://src/components/pos/ReceiptModal.tsx#L14-L22)
 - [receipts.ts:1-4](file://src/lib/receipts.ts#L1-L4)
-- [pdf.ts:1-6](file://src/lib/pdf.ts#L1-L6)
+- [pdf.ts:1-12](file://src/lib/pdf.ts#L1-L12)
 - [app.sales_.$id.tsx:601-623](file://src/routes/_authenticated/app.sales_.$id.tsx#L601-L623)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 ## Performance Considerations
-- Lazy loading of PDF libraries: The PDF generator dynamically imports jsPDF and autoTable only when needed, avoiding SSR bundle bloat.
+- Lazy loading of PDF libraries: Both PDF generators dynamically import jsPDF only when needed, avoiding SSR bundle bloat.
 - Efficient HTML construction: Receipt HTML is built via string concatenation; values are escaped once to prevent XSS and ensure safe innerHTML insertion.
 - Thermal print optimization: Print CSS targets 80mm paper size and uses minimal DOM to reduce layout work during printing.
+- **New**: Thermal PDF optimization: The thermal receipt PDF generator uses a two-pass approach - first measuring content height, then creating optimally-sized PDFs to minimize file size.
 - Avoid redundant re-renders: The modal receives pre-formatted amounts via `MoneyFmt`, so currency formatting is not repeated unnecessarily.
-
-[No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 Common issues and resolutions:
 - PDF generation fails or hangs:
-  - Ensure jsPDF and jspdf-autotable can be imported at runtime. The generator loads them lazily; network issues may delay availability.
+  - Ensure jsPDF can be imported at runtime. The generators load them lazily; network issues may delay availability.
   - Check that the browser allows saving files and that popups are not blocked.
 - Print dialog does not open:
   - Some browsers block automatic prints from newly opened windows. Verify popup permissions and try triggering print manually.
 - Incorrect currency symbol or formatting:
-  - Confirm that the `MoneyFmt` function passed to receipt builders formats amounts according to the store’s currency settings.
+  - Confirm that the `MoneyFmt` function passed to receipt builders formats amounts according to the store's currency settings.
 - Missing localization labels:
   - Verify that translation keys exist in the active locale; missing keys fall back to English but will show raw paths if entirely absent.
 - Garbled characters in PDFs:
-  - The PDF generator normalizes certain typographic glyphs and strips unsupported characters. If custom fonts are added later, ensure they cover the required character sets.
+  - The PDF generators normalize certain typographic glyphs and strip unsupported characters. If custom fonts are added later, ensure they cover the required character sets.
+- **New**: Thermal PDF formatting issues:
+  - Ensure the thermal PDF generator is called with proper receipt data. The 80mm format requires specific layout calculations that differ from standard A4 PDFs.
+  - Check that the receipt contains all required fields for proper thermal layout rendering.
 
 **Section sources**
-- [pdf.ts:51-56](file://src/lib/pdf.ts#L51-L56)
-- [receipts.ts:60-74](file://src/lib/receipts.ts#L60-L74)
-- [receipts.ts:217-227](file://src/lib/receipts.ts#L217-L227)
+- [pdf.ts:58-62](file://src/lib/pdf.ts#L58-L62)
+- [pdf.ts:286-287](file://src/lib/pdf.ts#L286-L287)
+- [receipts.ts:60-80](file://src/lib/receipts.ts#L60-L80)
+- [receipts.ts:222-232](file://src/lib/receipts.ts#L222-L232)
 - [i18n/index.tsx:101-109](file://src/lib/i18n/index.tsx#L101-L109)
 
 ## Conclusion
 The receipt system provides a robust, localized, and multi-currency-capable pipeline for generating receipts in multiple formats:
 - Thermal HTML for accurate on-screen preview and printer output
 - Plain text for sharing and lightweight archival
-- Branded PDFs for professional documentation and recordkeeping
+- **Enhanced**: Branded A4 PDFs for professional documentation and recordkeeping
+- **New**: Thermal 80mm roll-formatted PDFs that exactly match thermal printer output
 
 The design separates concerns cleanly:
-- The modal orchestrates user actions
+- The modal orchestrates user actions with simplified PDF generation
 - Receipt builders focus on rendering and escaping
-- The PDF generator handles complex layouts and branding
+- **Dual PDF generators** handle different use cases: professional A4 documents and authentic thermal receipts
+- Enhanced status labeling provides consistent status chip display
 - Localization and currency formatting are injected where appropriate
 
-Receipt numbering is handled server-side to guarantee uniqueness and consistency. For further customization, extend the PDF document schema or add new receipt templates while preserving the existing data contract.
-
-[No sources needed since this section summarizes without analyzing specific files]
+Receipt numbering is handled server-side to guarantee uniqueness and consistency. For further customization, extend the PDF document schema or add new receipt templates while preserving the existing data contract. The new thermal receipt PDF generator ensures perfect fidelity between digital receipts and physical thermal printer output.

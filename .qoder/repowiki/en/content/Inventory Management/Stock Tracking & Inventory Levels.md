@@ -10,8 +10,17 @@
 - [transfers.ts](file://src/lib/transfers.ts)
 - [app.inventory.tsx](file://src/routes/_authenticated/app.inventory.tsx)
 - [app.stocktake.tsx](file://src/routes/_authenticated/app.stocktake.tsx)
+- [app.stocktake_.$id.tsx](file://src/routes/_authenticated/app.stocktake_.$id.tsx)
 - [app.dashboard.tsx](file://src/routes/_authenticated/app.dashboard.tsx)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated stock take workflow section to reflect the new two-view architecture
+- Added detailed documentation for the list page with filtering and pagination
+- Added comprehensive coverage of the detail page with inventory counting and variance tracking
+- Updated diagrams to show the new navigation flow between list and detail views
+- Enhanced stock take procedures section with advanced filtering options and role-based features
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -32,13 +41,15 @@ Stock-related functionality spans database migrations, client hooks, and UI rout
 
 - Database layer defines store-level stock, movement ledger, validation, and RPCs.
 - Client layer provides product catalog, stock map, low-stock alerts, and stock take workflows.
-- UI routes expose inventory management, stock taking, and dashboard alerts.
+- UI routes expose inventory management, stock taking (now split into list and detail views), and dashboard alerts.
 
 ```mermaid
 graph TB
 subgraph "Database"
 SS["store_stock"]
 SM["stock_movements"]
+STK["stock_takes"]
+STKL["stock_take_lines"]
 PR["products"]
 ST["stores"]
 SA["sales / sale_items"]
@@ -50,28 +61,32 @@ UL["useLowStock"]
 end
 subgraph "UI Routes"
 INV["Inventory page"]
-STK["Stock take page"]
+STK_LIST["Stock Take List Page"]
+STK_DETAIL["Stock Take Detail Page"]
 DSH["Dashboard"]
 end
 PR --> SS
 ST --> SS
 SA --> SS
 SS --> SM
+STK --> STKL
 UP --> INV
 US --> INV
 UL --> DSH
 INV --> SS
-STK --> SS
+STK_LIST --> STK
+STK_DETAIL --> STKL
 DSH --> UL
 ```
 
 **Diagram sources**
 - [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:43-48](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L43-L48)
-- [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:10-27](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L10-L27)
+- [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:83-100](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L83-L100)
 - [products.ts:82-106](file://src/lib/products.ts#L82-L106)
 - [transfers.ts:92-115](file://src/lib/transfers.ts#L92-L115)
 - [app.inventory.tsx:110-185](file://src/routes/_authenticated/app.inventory.tsx#L110-L185)
 - [app.stocktake.tsx:34-109](file://src/routes/_authenticated/app.stocktake.tsx#L34-L109)
+- [app.stocktake_.$id.tsx:28-45](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L28-L45)
 - [app.dashboard.tsx:262-301](file://src/routes/_authenticated/app.dashboard.tsx#L262-L301)
 
 **Section sources**
@@ -82,14 +97,16 @@ DSH --> UL
 ## Core Components
 - `store_stock`: Per-store per-product quantity storage.
 - `stock_movements`: Immutable audit trail of every stock change.
+- `stock_takes` and `stock_take_lines`: Stock take session management with line-by-line counting.
 - `useStock`: React Query hook that fetches current stock quantities for a store, with optional live polling for POS environments.
 - Manual adjustment RPCs: Safe, validated server functions for adding/removing stock with reasons and notes.
 - Sales-driven stock deduction: Automatic stock reduction on completed sales, with concurrency-safe checks.
-- Stock take workflow: Start, count, reconcile, and close a stock take to update stock levels.
+- Stock take workflow: Two-view system - list page for session management and detail page for inventory counting.
 - Low-stock and reorder point alerts: Product-level thresholds surfaced in dashboards and inventory views.
 
 **Section sources**
 - [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:43-48](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L43-L48)
+- [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:83-100](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L83-L100)
 - [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:10-27](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L10-L27)
 - [products.ts:82-106](file://src/lib/products.ts#L82-L106)
 - [20261011130000_stock_absolute_set.sql:32-62](file://supabase/migrations/20261011130000_stock_absolute_set.sql#L32-L62)
@@ -246,37 +263,56 @@ end
 - [20261011130000_stock_absolute_set.sql:75-107](file://supabase/migrations/20261011130000_stock_absolute_set.sql#L75-L107)
 
 #### Stock Take Procedures
-Stock takes allow teams to count physical inventory and reconcile it with system records.
+Stock takes now use a two-view architecture for improved usability and collaboration:
 
-Workflow:
-- Start a stock take for a store.
-- System populates expected quantities based on current `store_stock`.
-- Staff enter counted quantities per product.
-- Closing the stock take replaces system quantities with counted values and records the movement with reason `stocktake`.
+**List View (`app.stocktake.tsx`)**:
+- Displays all stock take sessions with status filtering (all/open/closed)
+- Shows session metadata including start/close times and responsible staff
+- Provides quick access to resume open sessions or start new ones
+- Implements pagination for large numbers of sessions
+- Supports filtering by status with visual indicators
+
+**Detail View (`app.stocktake_.$id.tsx`)**:
+- Comprehensive inventory counting interface with real-time updates
+- Advanced filtering options: all items, items with differences, uncounted items
+- Live team counting with 15-second polling during active sessions
+- Variance tracking showing expected vs counted quantities
+- Role-based features: managers see system quantities and variances, cashiers count blind
+- Search functionality with debounced input for large inventories
+- Progress tracking with summary cards showing total items, counted items, and net variance
 
 ```mermaid
 flowchart TD
-S["Start stock take"] --> E["Populate expected counts"]
-E --> C["Staff enter counted quantities"]
-C --> X{"Close stock take?"}
-X --> |Yes| A["Apply counted quantities to store_stock"]
-A --> R["Record movement (reason = stocktake)"]
-R --> Done["Stock take closed"]
-X --> |No| C
+A["Stock Take List View"] --> B["Filter by status (all/open/closed)"]
+A --> C["View session history"]
+A --> D["Start new session"]
+A --> E["Resume open session"]
+E --> F["Stock Take Detail View"]
+F --> G["Count inventory items"]
+F --> H["Track variances"]
+F --> I["Apply filters (all/diff/left)"]
+F --> J["Search items"]
+F --> K["Close session (managers only)"]
 ```
 
 **Diagram sources**
-- [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:339-375](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L339-L375)
-- [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:102-116](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L102-L116)
+- [app.stocktake.tsx:34-109](file://src/routes/_authenticated/app.stocktake.tsx#L34-L109)
+- [app.stocktake_.$id.tsx:28-45](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L28-L45)
+- [app.stocktake_.$id.tsx:112-131](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L112-L131)
+
+**Updated** The stock take workflow has been restructured from a single-page application into two distinct views with enhanced functionality.
 
 **Section sources**
-- [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:339-375](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L339-L375)
 - [app.stocktake.tsx:34-109](file://src/routes/_authenticated/app.stocktake.tsx#L34-L109)
+- [app.stocktake_.$id.tsx:28-45](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L28-L45)
+- [app.stocktake_.$id.tsx:112-131](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L112-L131)
+- [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:339-375](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L339-L375)
+- [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:102-116](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L102-L116)
 
 ### Checking Stock Levels
 In the inventory page:
 - Products are listed with their current stock.
-- Low stock badges appear when stock is at or below the product’s reorder point.
+- Low stock badges appear when stock is at or below the product's reorder point.
 - Users can sort by stock level and filter by low stock.
 
 ```mermaid
@@ -368,14 +404,27 @@ Reorder points are stored per product and used to surface low-stock alerts:
 - [transfers.ts:92-115](file://src/lib/transfers.ts#L92-L115)
 
 ### Inventory Reconciliation Processes
-Reconciliation happens primarily through stock takes:
-- Opening a stock take captures expected quantities.
-- Counting updates per-product counts.
-- Closing reconciles system stock with physical counts and logs movements.
+Reconciliation happens primarily through stock takes with the new two-view architecture:
+
+**List View Features**:
+- Session management with status filtering
+- Quick access to resume or start new stock takes
+- Historical tracking of completed sessions
+
+**Detail View Features**:
+- Real-time collaborative counting with 15-second polling
+- Advanced filtering: all items, items with differences, uncounted items
+- Variance tracking with color-coded indicators
+- Role-based visibility: managers see full details, cashiers count blind
+- Search functionality for large inventories
+- Progress tracking with summary statistics
 
 Additionally, CSV imports and item edits use absolute quantity setting to ensure correctness even when concurrent changes occur.
 
 **Section sources**
+- [app.stocktake.tsx:34-109](file://src/routes/_authenticated/app.stocktake.tsx#L34-L109)
+- [app.stocktake_.$id.tsx:28-45](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L28-L45)
+- [app.stocktake_.$id.tsx:112-131](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L112-L131)
 - [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:339-375](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L339-L375)
 - [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:102-116](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L102-L116)
 - [20261011130000_stock_absolute_set.sql:32-62](file://supabase/migrations/20261011130000_stock_absolute_set.sql#L32-L62)
@@ -387,10 +436,12 @@ Stock flows depend on several components:
 graph TB
 UI_INV["Inventory UI"] --> H_STOCK["useStock"]
 UI_DASH["Dashboard UI"] --> H_LOW["useLowStock"]
-UI_STK["Stock Take UI"] --> RPC_TAKE["Stock take RPCs"]
+UI_STK_LIST["Stock Take List UI"] --> RPC_TAKE["Stock take RPCs"]
+UI_STK_DETAIL["Stock Take Detail UI"] --> RPC_COUNT["count_stock RPC"]
 H_STOCK --> DB_SS["store_stock"]
 H_LOW --> DB_PR["products"]
-RPC_TAKE --> DB_SS
+RPC_TAKE --> DB_STK["stock_takes"]
+RPC_COUNT --> DB_STKL["stock_take_lines"]
 DB_SS --> TRIG["store_stock_ledger"]
 TRIG --> DB_SM["stock_movements"]
 ```
@@ -399,12 +450,14 @@ TRIG --> DB_SM["stock_movements"]
 - [products.ts:82-106](file://src/lib/products.ts#L82-L106)
 - [transfers.ts:92-115](file://src/lib/transfers.ts#L92-L115)
 - [app.stocktake.tsx:34-109](file://src/routes/_authenticated/app.stocktake.tsx#L34-L109)
+- [app.stocktake_.$id.tsx:28-45](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L28-L45)
 - [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:29-46](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L29-L46)
 
 **Section sources**
 - [products.ts:82-106](file://src/lib/products.ts#L82-L106)
 - [transfers.ts:92-115](file://src/lib/transfers.ts#L92-L115)
 - [app.stocktake.tsx:34-109](file://src/routes/_authenticated/app.stocktake.tsx#L34-L109)
+- [app.stocktake_.$id.tsx:28-45](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L28-L45)
 - [20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql:29-46](file://supabase/migrations/20261007102244_c10153f5-18b7-409c-8196-9d27-f70876506db1.sql#L29-L46)
 
 ## Performance Considerations
@@ -412,9 +465,9 @@ TRIG --> DB_SM["stock_movements"]
 - Live polling is enabled only in POS contexts to keep badges accurate across tills.
 - Background refetching is disabled to avoid unnecessary traffic.
 - Inventory list computations are memoized and paginated for responsiveness.
-- Stock take lines are polled at a moderate interval during active counting.
-
-[No sources needed since this section provides general guidance]
+- Stock take lines are polled at a moderate interval (15 seconds) during active counting.
+- Stock take list queries use longer stale times (5 minutes) since sessions change infrequently.
+- Debounced search in stock take detail view reduces filtering overhead.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -422,12 +475,15 @@ Common issues and resolutions:
 - Stale stock display: Enable live polling in POS screens or refresh the cache after external changes.
 - Low stock not showing: Ensure reorder points are set and the low-stock RPC is called.
 - Stock take discrepancies: Verify counted values and close the stock take to reconcile.
+- Stock take session not appearing: Check permissions and ensure the session belongs to your business.
+- Counting not updating: Verify the session is still open and you have appropriate permissions.
 
 **Section sources**
 - [20261011130000_stock_absolute_set.sql:75-107](file://supabase/migrations/20261011130000_stock_absolute_set.sql#L75-L107)
 - [products.ts:82-106](file://src/lib/products.ts#L82-L106)
 - [20261009210500_retail_operations.sql:9-12](file://supabase/migrations/20261009210500_retail_operations.sql#L9-L12)
 - [app.stocktake.tsx:151-169](file://src/routes/_authenticated/app.stocktake.tsx#L151-L169)
+- [app.stocktake_.$id.tsx:133-159](file://src/routes/_authenticated/app.stocktake_.$id.tsx#L133-L159)
 
 ## Conclusion
 Stock tracking in this system is built around a robust, auditable design:
@@ -435,7 +491,9 @@ Stock tracking in this system is built around a robust, auditable design:
 - All changes are recorded in `stock_movements`.
 - `useStock` provides efficient, optionally live stock access.
 - Manual adjustments and sales are validated and concurrency-safe.
-- Stock takes enable reliable reconciliation.
+- Stock takes now feature a two-view architecture with enhanced collaboration capabilities.
 - Reorder points power actionable low-stock alerts.
 
-This architecture ensures accuracy, traceability, and usability across single and multi-store environments.
+The restructured stock take system improves usability with dedicated list and detail views, advanced filtering options, real-time collaboration features, and role-based functionality that supports both managers and cashiers working together on inventory reconciliation.
+
+This architecture ensures accuracy, traceability, and usability across single and multi-store environments while providing a modern, responsive user experience.
