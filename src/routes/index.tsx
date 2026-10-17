@@ -332,7 +332,7 @@ function Landing() {
           <Eyebrow>{t("marketing.heroEyebrow")}</Eyebrow>
         </Rise>
         <Rise delay={80}>
-          <h1 className="font-display mx-auto mt-4 max-w-4xl text-5xl leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+          <h1 className="font-hero mx-auto mt-4 max-w-4xl text-5xl leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
             {t("marketing.heroH1")}
           </h1>
         </Rise>

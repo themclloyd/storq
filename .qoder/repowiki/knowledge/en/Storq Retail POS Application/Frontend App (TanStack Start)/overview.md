@@ -1,0 +1,1 @@
+TanStack Start application wiring routes, Supabase auth, UI primitives, and domain features into a single React-based POS/retail dashboard.

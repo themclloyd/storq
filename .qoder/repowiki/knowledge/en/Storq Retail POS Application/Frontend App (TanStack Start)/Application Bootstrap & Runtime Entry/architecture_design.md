@@ -1,0 +1,6 @@
+Three cooperating entry points form the runtime bootstrap:
+- `src/start.ts` is the TanStack Start dev/SSR entry; it defines a global error middleware that catches non-HTTP errors and renders `lib/error-page`, plus a CSRF middleware scoped to `serverFn` handlers (re-added explicitly because defining `start.ts` opts out of the default).
+- `src/server.ts` is the production fetch handler exported for the edge runtime. It lazily imports `@tanstack/react-start/server-entry` once, intercepts `/robots.txt` and `/sitemap.xml` to return origin-aware SEO files, applies a hardened CSP + security header set via `applySecurityHeaders`, and detects h3-swallowed SSR 500 JSON bodies (`{"unhandled":true,"message":"HTTPError"}`) to render the HTML error page instead.
+- `src/router.tsx` constructs the client-side router with a per-app `QueryClient` tuned for a POS terminal: stale reads are preferred over refetch-on-focus, retries are limited to one, mutations never retry, and scroll restoration is enabled.
+
+Dependency direction is one-way: `start.ts` and `server.ts` both depend on shared UI helpers in `lib/error-page` and `lib/error-capture`; `router.tsx` depends only on TanStack packages and the generated route tree — no cross-import between the three files.

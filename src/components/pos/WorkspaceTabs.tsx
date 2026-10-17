@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
+  menuNavigationGroups,
   visibleWorkspacePages,
   workspacePageAt,
   type WorkspaceGroup,
@@ -28,11 +29,13 @@ export function WorkspaceTabs({
 }) {
   const { t } = useI18n();
   const current = workspacePageAt(path);
+  const group = current?.group ?? "sales";
   const pages = visibleWorkspacePages(role, storeType).filter(
     (page) => page.group === current?.group,
   );
-  if (pages.length < 2) return null;
-  const group = current?.group ?? "sales";
+  // Some groups move their sibling pages into the page's own actions menu; the
+  // shell tab row would only repeat the menu there.
+  if (pages.length < 2 || menuNavigationGroups.includes(group)) return null;
   // Segmented-control look (spec §3) rendered over the existing group URLs, so
   // the switcher replaces the old tab row without introducing new routes.
   return (

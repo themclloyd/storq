@@ -1,0 +1,1 @@
+TanStack Start (React 19 + Vite 8 + Nitro), Supabase JS client, Tailwind CSS v4, Radix UI primitives, Zod schemas, Bun package manager with supply-chain guard, TypeScript, Vitest for tests.

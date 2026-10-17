@@ -9,8 +9,18 @@ import { useTransferMutations, useTransfers, type Transfer } from "@/lib/transfe
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, NativeSelect, PageHeader, fmtDate } from "@/components/pos/bits";
+import {
+  BackLink,
+  Empty,
+  Field,
+  NativeSelect,
+  PageHeader,
+  Pager,
+  fmtDate,
+} from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { pageSlice } from "@/lib/paging";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/transfers")({
@@ -45,9 +55,11 @@ function Transfers() {
   const { store, stores, can } = usePos();
   const { t } = useI18n();
   const [creating, setCreating] = useState(false);
+  const [page, setPage] = useState(0);
   const transfers = useTransfers(store?.id);
   const muts = useTransferMutations();
   if (!can("admin", "manager")) return <Empty>{t("trf.onlyAdmins")}</Empty>;
+  const { pageCount, page: curPage, rows: pageRows } = pageSlice(transfers.data ?? [], page);
   const storeName = (id: string) => stores.find((s) => s.id === id)?.name ?? t("trf.storeWord");
   const acting = muts.isPending;
 
@@ -65,7 +77,9 @@ function Transfers() {
 
   return (
     <>
+      <BackLink to="/app/inventory" label={t("nav.items")} />
       <PageHeader
+        breadcrumb={`${t("nav.inventory")} / ${t("nav.transfers")}`}
         title={t("trf.title")}
         sub={t("trf.sub", { store: store?.name ?? t("trf.yourStore") })}
         actions={
@@ -82,19 +96,27 @@ function Transfers() {
       ) : (transfers.data?.length ?? 0) === 0 ? (
         <Empty>{t("trf.none")}</Empty>
       ) : (
-        <div className="space-y-2">
-          {transfers.data!.map((tr) => (
-            <TransferRow
-              key={tr.id}
-              transfer={tr}
-              storeName={storeName}
-              canReceive={store?.id === tr.to_store}
-              busy={acting}
-              onReceive={() => void act("receive_transfer", tr.id)}
-              onCancel={() => void act("cancel_transfer", tr.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-2">
+            {pageRows.map((tr) => (
+              <TransferRow
+                key={tr.id}
+                transfer={tr}
+                storeName={storeName}
+                canReceive={store?.id === tr.to_store}
+                busy={acting}
+                onReceive={() => void act("receive_transfer", tr.id)}
+                onCancel={() => void act("cancel_transfer", tr.id)}
+              />
+            ))}
+          </div>
+          <Pager
+            page={curPage}
+            pageCount={pageCount}
+            total={transfers.data?.length ?? 0}
+            onPage={setPage}
+          />
+        </>
       )}
       {creating && store && <CreateDialog onClose={() => setCreating(false)} />}
     </>
@@ -182,6 +204,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   const [to, setTo] = useState(others[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [q, setQ] = useState("");
+  const dq = useDebouncedValue(q);
   const [draft, setDraft] = useState<Draft[]>([]);
   const stock = useStock(from || undefined);
   const muts = useTransferMutations(onClose);
@@ -189,13 +212,13 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   const fromName = (id: string) => stores.find((s) => s.id === id)?.name ?? t("trf.storeWord");
   const list = (products.data ?? []).filter((p) => p.active);
   const shown = useMemo(() => {
-    const needle = q.trim().toLowerCase();
+    const needle = dq.trim().toLowerCase();
     return needle
       ? list.filter(
           (p) => p.name.toLowerCase().includes(needle) || p.sku?.toLowerCase().includes(needle),
         )
       : list.slice(0, 20);
-  }, [list, q]);
+  }, [list, dq]);
 
   const inDraft = (id: string) => draft.some((d) => d.product_id === id);
   const add = (id: string, name: string) =>

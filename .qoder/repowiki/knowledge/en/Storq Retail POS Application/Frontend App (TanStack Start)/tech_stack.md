@@ -1,0 +1,1 @@
+TanStack Start + React Router v7 file-based routing, Supabase for auth/data, shadcn/ui primitives, React Query for data fetching.

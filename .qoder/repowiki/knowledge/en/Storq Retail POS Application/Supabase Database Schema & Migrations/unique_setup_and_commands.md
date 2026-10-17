@@ -1,0 +1,1 @@
+Migrations are applied with the Supabase CLI against the project `gtkfczmudhzhbdooftsa` declared in `supabase/config.toml`; each migration ends with `NOTIFY pgrst, 'reload schema'` so PostgREST picks up new RPCs without a restart.

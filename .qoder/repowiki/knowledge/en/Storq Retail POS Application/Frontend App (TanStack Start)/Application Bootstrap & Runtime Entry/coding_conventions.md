@@ -1,0 +1,3 @@
+- Server-side error paths funnel through `renderErrorPage()` from `./lib/error-page` rather than returning raw JSON or stack traces.
+- Security-sensitive response headers are applied uniformly via a single `applySecurityHeaders` wrapper so every outgoing Response carries the same policy set.
+- Runtime configuration is centralized in factory functions (`getRouter`, `createStart`) that return configured instances instead of mutating globals.

@@ -1,17 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useCallback, useDeferredValue } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffNames } from "@/lib/sales";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  BarChartIcon,
+  FilterIcon,
+  MoreHorizontalIcon,
   PackageIcon,
   PlusSignIcon,
   QrCode01Icon,
   Refresh01Icon,
   Search01Icon,
+  Settings01Icon,
 } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { invalidateKeys } from "@/lib/cache-invalidation";
@@ -38,8 +40,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/pos/bits";
-import { ExportMenu } from "@/components/pos/ExportMenu";
+import { PageHeader, Pager } from "@/components/pos/bits";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ItemCodeCard, ItemQrDialog } from "@/components/pos/ItemQr";
 import {
   Dialog,
@@ -66,8 +81,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { DashboardSection, ValueSplitBar } from "@/components/dashboard";
 import { useCollections } from "@/lib/collections";
+import { pageSlice } from "@/lib/paging";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { visibleWorkspacePages } from "@/lib/workspace-navigation";
 import { downloadCsv, downloadLabelSheet, downloadPdf, fileStamp, parseCsv } from "@/lib/pdf";
 import { t as tt, useI18n } from "@/lib/i18n";
 import { useScannerWedge } from "@/components/pos/use-scanner";
@@ -105,11 +122,17 @@ const initialsOf = (name: string) => {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 };
-const PAGE_SIZE = 50;
 
 function Inventory() {
-  const { store, money, can, business } = usePos();
+  const { store, money, can, business, staff } = usePos();
   const { t } = useI18n();
+  // The shell no longer renders an inventory tab row, so the actions menu is the
+  // switcher between this page and Transfers / Collections / Stock takes.
+  const siblingPages = staff
+    ? visibleWorkspacePages(staff.role, store?.store_type).filter(
+        (p) => p.group === "inventory" && p.to !== "/app/inventory",
+      )
+    : [];
   const [imp, setImp] = useState<ImportRow[] | null>(null);
   const products = useProducts({ withCost: true });
   const stock = useStock(store?.id);
@@ -133,6 +156,7 @@ function Inventory() {
   const [colFilter, setColFilter] = useState("all");
   const [sort, setSort] = useState<"name" | "price" | "stock">("name");
   const [page, setPage] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
   const low = useLowStock(store?.id);
   // A hardware scanner on the inventory page jumps to the matching item in the
   // table (by setting the search field) or opens a pre-filled New Item dialog
@@ -157,10 +181,10 @@ function Inventory() {
   );
   // The filter, sort and stock-value total scan the whole cached catalog, so
   // memoize them (unrelated re-renders no longer re-scan every product) and
-  // defer the search term to keep typing responsive on large stores. These
+  // debounce the search term so a large store filters once typing pauses. These
   // derive from hooks, so they stay above the role guard to keep hook order
   // unconditional.
-  const dq = useDeferredValue(q);
+  const dq = useDebouncedValue(q);
   const rows = useMemo(() => {
     const needle = dq.trim().toLowerCase();
     const lowIds = new Set((low.data ?? []).map((r) => r.product_id));
@@ -191,26 +215,6 @@ function Inventory() {
     () => rows.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost), 0),
     [rows, stock.data],
   );
-  // Where the money is tied up, as a share of the store's stock value. Grouped
-  // over the whole catalog rather than the filtered `rows`, so searching the
-  // table never redraws the store's split. An item in k collections hands 1/k of
-  // its value to each, so the slices still add up to the total instead of
-  // double-counting.
-  const valueByCollection = useMemo(() => {
-    const s = stock.data ?? {};
-    const names = new Map((cols.data?.list ?? []).map((c) => [c.id, c.name]));
-    const acc: Record<string, number> = {};
-    for (const p of products.data ?? []) {
-      const v = (s[p.id] ?? 0) * Number(p.cost);
-      if (v <= 0) continue;
-      const groups = [
-        ...new Set((cols.data?.byProduct[p.id] ?? []).map((id) => names.get(id))),
-      ].filter((n): n is string => !!n);
-      const keys = groups.length > 0 ? groups : [t("inv.noCollection")];
-      for (const k of keys) acc[k] = (acc[k] ?? 0) + v / keys.length;
-    }
-    return Object.entries(acc).map(([name, value]) => ({ name, value }));
-  }, [products.data, stock.data, cols.data, t]);
   const lowCount = low.data?.length ?? 0;
   const pickedRows = useMemo(
     () => (products.data ?? []).filter((p) => picked[p.id]),
@@ -243,10 +247,75 @@ function Inventory() {
       toast.error(t("code.renderFailed"));
     }
   }
-  // Paginate beyond PAGE_SIZE rows (spec §4). Clamp when filters shrink `rows`.
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const curPage = Math.min(page, pageCount - 1);
-  const pageRows = rows.slice(curPage * PAGE_SIZE, curPage * PAGE_SIZE + PAGE_SIZE);
+  // CSV rows and the printable PDF report come out of the same actions menu as
+  // the CSV import, so the toolbar is one icon button plus New item.
+  function exportInventory(kind: "csv" | "pdf") {
+    const all = products.data ?? [];
+    if (kind === "csv") {
+      downloadCsv(`storq-inventory-${fileStamp()}.csv`, [
+        ["name", "sku", "cost", "price", "quantity", "collections", "active"],
+        ...all.map((p) => [
+          p.name,
+          p.sku ?? "",
+          p.cost,
+          p.price,
+          stock.data?.[p.id] ?? 0,
+          colName(p.id),
+          p.active ? "yes" : "no",
+        ]),
+      ]);
+      return;
+    }
+    const u = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0), 0);
+    const retail = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.price), 0);
+    const atCost = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost), 0);
+    void downloadPdf({
+      filename: `storq-inventory-${fileStamp()}`,
+      title: t("inv.reportTitle"),
+      business: business?.name,
+      subtitle: `${store?.name ?? ""} · ${t("inv.reportSubtitle")}`,
+      badge: t("inv.reportBadge"),
+      kpis: [
+        [t("inv.kpiItems"), String(all.length)],
+        [t("inv.kpiUnits"), String(u)],
+        [t("inv.kpiValueCost"), money(atCost)],
+        [t("inv.kpiValueRetail"), money(retail)],
+      ],
+      orientation: "landscape",
+      sections: [
+        {
+          type: "table",
+          head: [
+            t("doc.item"),
+            "SKU",
+            t("inv.thCollections"),
+            t("inv.cost"),
+            t("inv.price"),
+            t("inv.inStock"),
+            t("inv.thStockValue"),
+          ],
+          align: ["left", "left", "left", "right", "right", "right", "right"],
+          body: all.map((p) => {
+            const qty = stock.data?.[p.id] ?? 0;
+            return [
+              p.name + (p.active ? "" : t("inv.hiddenSuffix")),
+              p.sku ?? "",
+              colName(p.id),
+              money(p.cost),
+              money(p.price),
+              qty,
+              money(qty * Number(p.cost)),
+            ];
+          }),
+          foot: [t("common.total"), "", "", "", "", u, money(atCost)],
+        },
+      ],
+    });
+  }
+  // Ten rows per page (spec §4). Clamp when filters shrink `rows`.
+  const { pageCount, page: curPage, rows: pageRows } = pageSlice(rows, page);
+  // Filters that narrow the list (sorting is excluded) drive the trigger badge.
+  const activeFilters = (lowOnly ? 1 : 0) + (colFilter !== "all" ? 1 : 0);
   if (!can("admin", "manager"))
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">{t("inv.noAccess")}</Card>
@@ -265,170 +334,151 @@ function Inventory() {
         }
         actions={
           <>
-            <label className="inline-flex">
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (!f) return;
-                  try {
-                    setImp(readImport(await f.text(), products.data ?? []));
-                  } catch (err) {
-                    toast.error((err as Error).message);
-                  }
-                }}
-              />
-              <span className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-input bg-card px-3 text-sm font-semibold hover:bg-muted">
-                {t("inv.importCsv")}
-              </span>
-            </label>
-            <Button
-              variant="outline"
-              onClick={() =>
-                downloadCsv(`storq-inventory-template.csv`, [
-                  ["name", "sku", "cost", "price", "quantity", "active"],
-                  ["Example Item", "ABC-001", "10.00", "25.00", "50", "yes"],
-                ])
-              }
-            >
-              {t("inv.downloadTemplate")}
-            </Button>
-            <ExportMenu
-              onExport={(kind) => {
-                const all = products.data ?? [];
-                if (kind === "csv") {
-                  downloadCsv(`storq-inventory-${fileStamp()}.csv`, [
-                    ["name", "sku", "cost", "price", "quantity", "collections", "active"],
-                    ...all.map((p) => [
-                      p.name,
-                      p.sku ?? "",
-                      p.cost,
-                      p.price,
-                      stock.data?.[p.id] ?? 0,
-                      colName(p.id),
-                      p.active ? "yes" : "no",
-                    ]),
-                  ]);
-                  return;
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                try {
+                  setImp(readImport(await f.text(), products.data ?? []));
+                } catch (err) {
+                  toast.error((err as Error).message);
                 }
-                const u = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0), 0);
-                const retail = all.reduce(
-                  (a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.price),
-                  0,
-                );
-                const atCost = all.reduce(
-                  (a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost),
-                  0,
-                );
-                void downloadPdf({
-                  filename: `storq-inventory-${fileStamp()}`,
-                  title: t("inv.reportTitle"),
-                  business: business?.name,
-                  subtitle: `${store?.name ?? ""} · ${t("inv.reportSubtitle")}`,
-                  badge: t("inv.reportBadge"),
-                  kpis: [
-                    [t("inv.kpiItems"), String(all.length)],
-                    [t("inv.kpiUnits"), String(u)],
-                    [t("inv.kpiValueCost"), money(atCost)],
-                    [t("inv.kpiValueRetail"), money(retail)],
-                  ],
-                  orientation: "landscape",
-                  sections: [
-                    {
-                      type: "table",
-                      head: [
-                        t("doc.item"),
-                        "SKU",
-                        t("inv.thCollections"),
-                        t("inv.cost"),
-                        t("inv.price"),
-                        t("inv.inStock"),
-                        t("inv.thStockValue"),
-                      ],
-                      align: ["left", "left", "left", "right", "right", "right", "right"],
-                      body: all.map((p) => {
-                        const qty = stock.data?.[p.id] ?? 0;
-                        return [
-                          p.name + (p.active ? "" : t("inv.hiddenSuffix")),
-                          p.sku ?? "",
-                          colName(p.id),
-                          money(p.cost),
-                          money(p.price),
-                          qty,
-                          money(qty * Number(p.cost)),
-                        ];
-                      }),
-                      foot: [t("common.total"), "", "", "", "", u, money(atCost)],
-                    },
-                  ],
-                });
               }}
             />
+            <div className="relative w-full sm:w-56">
+              <HugeiconsIcon
+                icon={Search01Icon}
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                className="w-full bg-card pl-9"
+                placeholder={t("inv.searchPlaceholder")}
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9 bg-card">
+                  <HugeiconsIcon icon={FilterIcon} /> {t("inv.filter")}
+                  {activeFilters > 0 && (
+                    <Badge variant="secondary" className="ml-0.5 rounded-full px-1.5">
+                      {activeFilters}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuCheckboxItem
+                  checked={lowOnly}
+                  onCheckedChange={() => {
+                    setLowOnly((v) => !v);
+                    setPage(0);
+                  }}
+                >
+                  {t("inv.lowStock")}
+                  {lowCount > 0 ? ` · ${lowCount}` : ""}
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>{t("inv.thCollections")}</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-64 w-52 overflow-y-auto">
+                    <DropdownMenuRadioGroup
+                      value={colFilter}
+                      onValueChange={(v) => {
+                        setColFilter(v);
+                        setPage(0);
+                      }}
+                    >
+                      <DropdownMenuRadioItem value="all">
+                        {t("inv.allCollections")}
+                      </DropdownMenuRadioItem>
+                      {(cols.data?.list ?? []).map((c) => (
+                        <DropdownMenuRadioItem key={c.id} value={c.id}>
+                          {c.name}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>{t("inv.sort")}</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-40">
+                    <DropdownMenuRadioGroup
+                      value={sort}
+                      onValueChange={(v) => {
+                        setSort(v as "name" | "price" | "stock");
+                        setPage(0);
+                      }}
+                    >
+                      <DropdownMenuRadioItem value="name">
+                        {t("inv.sortName")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="price">
+                        {t("inv.sortPrice")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="stock">
+                        {t("inv.sortStock")}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label={t("common.actions")}>
+                  <HugeiconsIcon icon={MoreHorizontalIcon} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
+                  {t("inv.importCsv")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    downloadCsv(`storq-inventory-template.csv`, [
+                      ["name", "sku", "cost", "price", "quantity", "active"],
+                      ["Example Item", "ABC-001", "10.00", "25.00", "50", "yes"],
+                    ])
+                  }
+                >
+                  {t("inv.downloadTemplate")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => exportInventory("csv")}>
+                  {t("inv.exportCsv")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => exportInventory("pdf")}>
+                  {t("inv.exportPdf")}
+                </DropdownMenuItem>
+                {siblingPages.length > 0 && <DropdownMenuSeparator />}
+                {siblingPages.map((p) => (
+                  <DropdownMenuItem key={p.to} asChild>
+                    <Link to={p.to}>{t(p.labelKey)}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
               <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
             </Button>
           </>
         }
       />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <HugeiconsIcon
-            icon={Search01Icon}
-            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            className="w-56 bg-card pl-9"
-            placeholder={t("inv.searchPlaceholder")}
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setPage(0); }}
-          />
-        </div>
-        <button
-          type="button"
-          aria-label={t("inv.lowStockToggle")}
-          onClick={() => { setLowOnly((v) => !v); setPage(0); }}
-          className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
-            lowOnly
-              ? "border-transparent bg-destructive-soft text-destructive"
-              : "border-input bg-card hover:bg-muted",
-          )}
-        >
-          {t("inv.lowStock")}
-          {lowCount > 0 ? ` · ${lowCount}` : ""}
-        </button>
-        <Select value={colFilter} onValueChange={(v) => { setColFilter(v); setPage(0); }}>
-          <SelectTrigger className="h-9 w-auto bg-card text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("inv.allCollections")}</SelectItem>
-            {(cols.data?.list ?? []).map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sort} onValueChange={(v) => { setSort(v as "name" | "price" | "stock"); setPage(0); }}>
-          <SelectTrigger className="h-9 w-auto bg-card text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">{t("inv.sortName")}</SelectItem>
-            <SelectItem value="price">{t("inv.sortPrice")}</SelectItem>
-            <SelectItem value="stock">{t("inv.sortStock")}</SelectItem>
-          </SelectContent>
-        </Select>
-        {pickedRows.length > 0 && (
+      {pickedRows.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setSheet(pickedRows)}>
             <HugeiconsIcon icon={QrCode01Icon} /> {t("code.printLabelSheet")} · {pickedRows.length}
           </Button>
-        )}
-        {pickedRows.length > 0 && (
           <Button
             size="sm"
             variant="ghost"
@@ -437,8 +487,8 @@ function Inventory() {
           >
             {t("code.clearSelection")}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">{t("inv.totalItems")}</p>
@@ -452,11 +502,15 @@ function Inventory() {
           className={cn("p-4", lowOnly && "ring-2 ring-primary/30")}
           role="button"
           tabIndex={0}
-          onClick={() => setLowOnly(true)}
+          onClick={() => {
+            setLowOnly((v) => !v);
+            setPage(0);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setLowOnly(true);
+              setLowOnly((v) => !v);
+              setPage(0);
             }
           }}
         >
@@ -464,20 +518,6 @@ function Inventory() {
           <p className="font-display tabular mt-1 text-2xl text-destructive">{lowCount}</p>
         </Card>
       </div>
-      {valueByCollection.length > 1 && (
-        <DashboardSection
-          className="mb-4"
-          title={t("inv.valueByGroup")}
-          note={t("inv.valueByGroupNote")}
-          icon={BarChartIcon}
-        >
-          <ValueSplitBar
-            data={valueByCollection}
-            money={money}
-            loading={products.isPending || stock.isPending}
-          />
-        </DashboardSection>
-      )}
       {rows.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -513,11 +553,9 @@ function Inventory() {
                   </TableHead>
                   <TableHead className="pl-4">{t("doc.item")}</TableHead>
                   <TableHead>{t("inv.codeColumn")}</TableHead>
-                  <TableHead>{t("inv.thCollections")}</TableHead>
-                  <TableHead className="text-right">{t("inv.cost")}</TableHead>
-                  <TableHead className="text-right">{t("inv.price")}</TableHead>
-                  <TableHead className="text-right">{t("inv.inStock")}</TableHead>
-                  <TableHead className="pr-4" />
+                  <TableHead>{t("inv.price")}</TableHead>
+                  <TableHead>{t("inv.inStock")}</TableHead>
+                  <TableHead className="w-10 pr-4" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -561,42 +599,52 @@ function Inventory() {
                       <TableCell className="tabular text-muted-foreground">
                         {normalizeCode(p.sku) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell className="max-w-40">
-                        {colName(p.id) ? (
-                          <Badge variant="secondary" className="max-w-full truncate">
-                            {colName(p.id)}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">{t("common.none")}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="tabular text-right">{money(p.cost)}</TableCell>
-                      <TableCell className="tabular text-right font-medium">
-                        {money(p.price)}
-                      </TableCell>
-                      <TableCell className="tabular py-3 text-right">
-                        <span className="inline-flex items-center justify-end gap-1.5">
+                      <TableCell className="tabular font-medium">{money(p.price)}</TableCell>
+                      <TableCell className="tabular py-3">
+                        <span className="inline-flex items-center gap-1.5">
                           <span className={cn(s <= 0 && "text-destructive")}>{s}</span>
                           {isLow && <Badge variant="destructive">{t("inv.lowBadge")}</Badge>}
                         </span>
                       </TableCell>
-                      <TableCell className="space-x-1 whitespace-nowrap py-3 pr-4 text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-muted-foreground hover:text-accent"
-                          aria-label={t("code.showAria", { name: p.name })}
-                          title={t("code.showTitle")}
-                          onClick={() => setQr(p)}
-                        >
-                          <HugeiconsIcon icon={QrCode01Icon} />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setAdj(p)}>
-                          {t("inv.btnStock")}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEdit(p)}>
-                          {t("common.edit")}
-                        </Button>
+                      <TableCell className="py-3 pr-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" aria-label={t("common.actions")}>
+                              <HugeiconsIcon icon={MoreHorizontalIcon} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-60">
+                            <DropdownMenuLabel className="space-y-1 font-normal">
+                              <span className="flex items-baseline justify-between gap-3 text-xs">
+                                <span className="text-muted-foreground">{t("inv.cost")}</span>
+                                <span className="tabular font-medium text-foreground">
+                                  {money(p.cost)}
+                                </span>
+                              </span>
+                              <span className="flex items-baseline justify-between gap-3 text-xs">
+                                <span className="text-muted-foreground">
+                                  {t("inv.thCollections")}
+                                </span>
+                                <span className="max-w-36 truncate font-medium text-foreground">
+                                  {colName(p.id) || t("common.none")}
+                                </span>
+                              </span>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => setQr(p)}>
+                              <HugeiconsIcon icon={QrCode01Icon} className="size-4" />
+                              {t("code.showTitle")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setAdj(p)}>
+                              <HugeiconsIcon icon={PackageIcon} className="size-4" />
+                              {t("inv.btnStock")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setEdit(p)}>
+                              <HugeiconsIcon icon={Settings01Icon} className="size-4" />
+                              {t("common.edit")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -604,34 +652,7 @@ function Inventory() {
               </TableBody>
             </Table>
           </Card>
-          {rows.length > PAGE_SIZE && (
-            <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                {t("common.of")} {rows.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={curPage === 0}
-                  onClick={() => setPage(curPage - 1)}
-                >
-                  {t("common.prev")}
-                </Button>
-                <span className="tabular text-xs text-muted-foreground">
-                  {curPage + 1} / {pageCount}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={curPage >= pageCount - 1}
-                  onClick={() => setPage(curPage + 1)}
-                >
-                  {t("common.next")}
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pager page={curPage} pageCount={pageCount} total={rows.length} onPage={setPage} />
         </>
       )}
       {edit && (
@@ -1300,8 +1321,7 @@ function readImport(text: string, products: Product[]): ImportRow[] {
     // Flag when a code match found a different display name — the item will be
     // renamed. This is intentional (e.g. correcting a typo) but we surface it
     // in the preview so the user isn't surprised.
-    const renamed =
-      !!sku && !!existing && existing.name.toLowerCase() !== name.toLowerCase();
+    const renamed = !!sku && !!existing && existing.name.toLowerCase() !== name.toLowerCase();
     const cost = ci.cost >= 0 && r[ci.cost]?.trim() ? num(r[ci.cost]) : Number(existing?.cost ?? 0);
     const price =
       ci.price >= 0 && r[ci.price]?.trim() ? num(r[ci.price]) : Number(existing?.price ?? 0);
@@ -1426,8 +1446,8 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
                   <TableCell className="tabular text-right">{money(r.price)}</TableCell>
                   <TableCell className="tabular text-right">{r.qty ?? "—"}</TableCell>
                   <TableCell className="px-3 text-xs">
-                    {r.error ?? (
-                      r.existing ? (
+                    {r.error ??
+                      (r.existing ? (
                         r.renamed ? (
                           <span>
                             {t("inv.renameTag")}{" "}
@@ -1438,8 +1458,7 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
                         )
                       ) : (
                         t("inv.newTag")
-                      )
-                    )}
+                      ))}
                   </TableCell>
                 </TableRow>
               ))}

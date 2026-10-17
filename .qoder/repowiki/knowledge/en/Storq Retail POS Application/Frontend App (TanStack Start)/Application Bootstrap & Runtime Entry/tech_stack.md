@@ -1,0 +1,1 @@
+TanStack Start (`createStart`, `createCsrfMiddleware`) as the framework, with a custom Hono/h3-compatible fetch handler for production; security enforced via Content-Security-Policy, X-Frame-Options, Permissions-Policy, and HSTS (only when `x-forwarded-proto=https`).

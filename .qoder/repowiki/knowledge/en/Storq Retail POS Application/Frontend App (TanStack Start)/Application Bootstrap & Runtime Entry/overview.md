@@ -1,0 +1,1 @@
+Bootstraps the TanStack Start app by wiring request middleware, server entry, security headers, SEO responses, and the React Router with React Query defaults.

@@ -1,0 +1,1 @@
+`bun dev` starts the Vite dev server (SSR via Nitro); `bun build` produces the production bundle; `bun lint`, `bun format`, `bun test` run the shared ESLint/Prettier/Vitest toolchain.

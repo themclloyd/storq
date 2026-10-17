@@ -127,6 +127,12 @@ export function visibleWorkspacePages(role: Role, type?: Store["store_type"]) {
   );
 }
 
+/**
+ * Groups whose sibling pages are reached from each page's own actions menu
+ * instead of the shell tab row, so the workspace keeps one compact switcher.
+ */
+export const menuNavigationGroups: WorkspaceGroup[] = ["inventory"];
+
 export function workspacePageAt(path: string) {
   const normalized = path.replace(/\/$/, "");
   return workspacePages.find(

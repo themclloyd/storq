@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: frontend_app/app_bootstrap
+title: Application Bootstrap & Runtime Entry
+scope:
+    - src/router.tsx
+    - src/server.ts
+    - src/start.ts
+source_files: []
+depends_on: []
+related_to: []

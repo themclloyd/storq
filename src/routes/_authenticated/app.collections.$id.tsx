@@ -1,16 +1,17 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useMemo, useDeferredValue } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft01Icon, Delete02Icon, Share01Icon, Cancel01Icon } from "@/lib/icons";
+import { Delete02Icon, Share01Icon, Cancel01Icon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useProducts } from "@/lib/products";
 import { useCollections, shareUrl } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Empty, Field, PageHeader } from "@/components/pos/bits";
+import { BackLink, Empty, Field, PageHeader } from "@/components/pos/bits";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/collections/$id")({
@@ -64,9 +65,10 @@ function CollectionPage() {
     setLoaded(true);
   }, [cols.data, c, loaded]);
 
-  // Memoized and driven by a deferred term so filtering a large catalog stays
-  // responsive. Derived above the role/existence guards to keep hook order.
-  const dq = useDeferredValue(q);
+  // Memoized and driven by the debounced search term so filtering a large
+  // catalog stays responsive. Derived above the role/existence guards to keep
+  // hook order.
+  const dq = useDebouncedValue(q);
   const inCol = useMemo(
     () => (products.data ?? []).filter((p) => sel.has(p.id)),
     [products.data, sel],
@@ -135,13 +137,11 @@ function CollectionPage() {
 
   return (
     <>
-      <Link
-        to="/app/collections"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} /> {t("col.title")}
-      </Link>
+      <BackLink to="/app/collections" label={t("col.title")} />
       <PageHeader
+        breadcrumb={`${t("nav.inventory")} / ${t("nav.collections")} / ${
+          isNew ? t("col.newCollection") : f.name || t("col.collectionWord")
+        }`}
         title={isNew ? t("col.newCollection") : f.name || t("col.collectionWord")}
         sub={
           t("col.itemsCount", { count: sel.size }) +

@@ -1,0 +1,2 @@
+- Feature code lives in `components/<feature>/` while shared utilities live in `lib/<domain>.ts`, keeping UI composition separate from pure business logic.
+- Protected routes are placed under `routes/_authenticated/` and gated via the Supabase auth middleware rather than ad-hoc checks.

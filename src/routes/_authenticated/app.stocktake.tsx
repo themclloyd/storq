@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useDeferredValue } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +8,10 @@ import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useProducts } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Empty, PageHeader, Status, fmtDate } from "@/components/pos/bits";
+import { BackLink, Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
+import { pageSlice } from "@/lib/paging";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/stocktake")({
@@ -34,6 +36,7 @@ type LineRow = { product_id: string; expected: number; counted: number | null };
 function StockTake() {
   const { store, can, rpc } = usePos();
   const { t } = useI18n();
+  const [page, setPage] = useState(0);
   const qc = useQueryClient();
   const takes = useQuery({
     queryKey: ["takes", store?.id],
@@ -53,6 +56,8 @@ function StockTake() {
     },
   });
   const open = takes.data?.find((tk) => tk.status === "open");
+  const closed = (takes.data ?? []).filter((tk) => tk.status === "closed");
+  const { pageCount, page: curPage, rows: pageRows } = pageSlice(closed, page);
 
   async function start() {
     try {
@@ -66,7 +71,9 @@ function StockTake() {
 
   return (
     <>
+      <BackLink to="/app/inventory" label={t("nav.items")} />
       <PageHeader
+        breadcrumb={`${t("nav.inventory")} / ${t("nav.stocktakes")}`}
         title={t("stk.title")}
         sub={
           open
@@ -85,23 +92,22 @@ function StockTake() {
         <>
           {!can("admin", "manager") && <Empty>{t("stk.noneOpen")}</Empty>}
           <div className="pos-card mt-4 divide-y text-[13px]">
-            {takes.data
-              ?.filter((tk) => tk.status === "closed")
-              .map((tk) => (
-                <div key={tk.id} className="flex flex-wrap items-center gap-3 px-4 py-2">
-                  <Status s={tk.status} />
-                  <span>
-                    {t("stk.startedWord")} {fmtDate(tk.created_at)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {t("stk.closedWord")} {tk.closed_at && fmtDate(tk.closed_at)}
-                  </span>
-                </div>
-              ))}
-            {!takes.data?.some((tk) => tk.status === "closed") && (
+            {pageRows.map((tk) => (
+              <div key={tk.id} className="flex flex-wrap items-center gap-3 px-4 py-2">
+                <Status s={tk.status} />
+                <span>
+                  {t("stk.startedWord")} {fmtDate(tk.created_at)}
+                </span>
+                <span className="text-muted-foreground">
+                  {t("stk.closedWord")} {tk.closed_at && fmtDate(tk.closed_at)}
+                </span>
+              </div>
+            ))}
+            {closed.length === 0 && (
               <p className="p-4 text-center text-sm text-muted-foreground">{t("stk.noPast")}</p>
             )}
           </div>
+          <Pager page={curPage} pageCount={pageCount} total={closed.length} onPage={setPage} />
         </>
       )}
     </>
@@ -135,7 +141,7 @@ function Counting({ take }: { take: Take }) {
     return m;
   }, [products.data]);
   const name = (id: string) => names[id] ?? "…";
-  const dq = useDeferredValue(q);
+  const dq = useDebouncedValue(q);
   const rows = useMemo(() => {
     const needle = dq.trim().toLowerCase();
     return (lines.data ?? [])

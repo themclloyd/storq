@@ -425,10 +425,8 @@ export const ny = {
   inv: {
     noAccess: "Oyang'anira ndi oyang'anira masitolo (manejala) okha angathe kusamalira katundu.",
     title: "Katundu",
+    filter: "Sefa",
     stockValueCost: "mtengo wa katundu pa mtengo wogula",
-    valueByGroup: "Mtengo wa katundu m'magulu",
-    valueByGroupNote: "Sitolo yonse · pamtengo wogula",
-    noCollection: "Palibe gulu",
     importCsv: "Lowetsani CSV",
     exportCsv: "Tulutsani CSV",
     exportPdf: "Tulutsani PDF",
@@ -487,7 +485,8 @@ export const ny = {
     noMovements: "Palibe kusuntha pakadali pano.",
     stockUpdated: "Katundu wasinthidwa",
     errNoRows: "Fayiloyi ilibe mizere ya zinthu.",
-    errNeedName: 'Fayilo ifunika kholamu ya "name". Tsitsani chitsanzo kuti mulandire matolamu olondola.',
+    errNeedName:
+      'Fayilo ifunika kholamu ya "name". Tsitsani chitsanzo kuti mulandire matolamu olondola.',
     errName: "Dzina likusowa kapena ndi lolakwika",
     errSku: "Khodi yolakwika",
     errNumber: "Nambala yolakwika",

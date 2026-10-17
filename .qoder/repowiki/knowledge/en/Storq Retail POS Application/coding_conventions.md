@@ -1,0 +1,2 @@
+- Shared tooling (ESLint config, Prettier rules, Vitest config, tsconfig paths) lives at the repo root and is inherited by all child modules rather than redefined per feature.
+- Environment variables are declared in `.env.example` and consumed through Vite's `import.meta.env` / TanStack Start env injection, never hard-coded.

@@ -1,0 +1,22 @@
+schema_version: 1
+module_path: ""
+title: Storq Retail POS Application
+scope:
+    - README.md
+    - AGENTS.md
+    - roadmap.md
+    - .gitignore
+    - .prettierrc
+    - .prettierignore
+    - eslint.config.js
+    - package.json
+    - bunfig.toml
+    - tsconfig.json
+    - vite.config.ts
+    - vitest.config.ts
+    - components.json
+    - bun.lock
+    - .env.example
+source_files: []
+depends_on: []
+related_to: []

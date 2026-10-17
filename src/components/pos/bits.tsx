@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft01Icon } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import type { WorkspacePath } from "@/lib/workspace-navigation";
 import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,6 +36,61 @@ export function PageHeader({
         {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+/**
+ * Parent-page link for screens whose group no longer renders a shell tab row
+ * (Transfers, Collections, Stock takes). Sits above the PageHeader, mirroring
+ * the trail shown in its breadcrumb.
+ */
+export function BackLink({ to, label }: { to: WorkspacePath; label: ReactNode }) {
+  return (
+    <Link
+      to={to}
+      className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <HugeiconsIcon icon={ArrowLeft01Icon} size={16} /> {label}
+    </Link>
+  );
+}
+
+/** Prev/Next pager shared by the inventory lists (ten rows per page). */
+export function Pager({
+  page,
+  pageCount,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
+  const { t } = useI18n();
+  if (pageCount < 2) return null;
+  return (
+    <div className="mt-3 flex items-center justify-between">
+      <p className="text-xs text-muted-foreground">
+        {t("common.of")} {total}
+      </p>
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onPage(page - 1)}>
+          {t("common.prev")}
+        </Button>
+        <span className="tabular text-xs text-muted-foreground">
+          {page + 1} / {pageCount}
+        </span>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={page >= pageCount - 1}
+          onClick={() => onPage(page + 1)}
+        >
+          {t("common.next")}
+        </Button>
+      </div>
     </div>
   );
 }

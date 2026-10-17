@@ -414,10 +414,8 @@ export const en = {
   inv: {
     noAccess: "Only admins and managers can manage inventory.",
     title: "Inventory",
+    filter: "Filter",
     stockValueCost: "stock value at cost",
-    valueByGroup: "Stock value by collection",
-    valueByGroupNote: "Whole store · at cost",
-    noCollection: "No collection",
     importCsv: "Import CSV",
     exportCsv: "Export CSV",
     exportPdf: "Export PDF",
@@ -474,7 +472,8 @@ export const en = {
     noMovements: "No movements yet.",
     stockUpdated: "Stock updated",
     errNoRows: "The file has no item rows.",
-    errNeedName: 'The file needs a "name" column. Use "Download Template" to get the correct headers.',
+    errNeedName:
+      'The file needs a "name" column. Use "Download Template" to get the correct headers.',
     errName: "Missing or unsafe name",
     errSku: "Invalid item code",
     errNumber: "Invalid number",

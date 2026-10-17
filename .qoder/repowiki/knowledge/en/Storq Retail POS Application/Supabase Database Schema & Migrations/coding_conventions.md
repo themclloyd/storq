@@ -1,0 +1,6 @@
+- Client-facing mutations follow a two-layer pattern: a thin `public.<fn>` wrapper defined with `SECURITY INVOKER` that simply calls the real `app.<fn>` implementation defined with `SECURITY DEFINER SET search_path = public`.
+- Every mutating function starts by calling `public.require_staff(p_token, array[...roles])` to resolve and authorize the staff session before touching data, raising 'Locked: enter your PIN again' when the token is invalid.
+- Tenancy is enforced by filtering on `business_id = me.business_id` (or `app.my_business_id()`) rather than trusting client-supplied IDs, and sensitive tables are granted SELECT only to `authenticated` with INSERT/UPDATE/DELETE revoked.
+- Input validation uses paired CHECK constraints on columns plus explicit `RAISE EXCEPTION` guards in PL/pgSQL for domain rules (e.g. PIN regex `^[0-9]{4,8}$`, bounded numeric ranges, allowed enum values).
+- Sensitive or internal-only functions are explicitly revoked from `public, anon, authenticated` and granted only to `service_role`, with an allowlist loop used to lock down the entire RPC surface per migration.
+- Migration filenames use a `YYYYMMDDHHMMSS_<uuid>.sql` timestamp+UUID scheme, and idempotent DDL uses `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, and `DROP FUNCTION IF EXISTS`.
