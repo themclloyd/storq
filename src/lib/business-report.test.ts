@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { buildBusinessReport } from "./business-report";
 
-const sale = (id: string, total: number, items: { id: string; qty: number; price: number }[], method = "cash") => ({
+const sale = (
+  id: string,
+  total: number,
+  items: { id: string; qty: number; price: number }[],
+  method = "cash",
+) => ({
   id,
   store_id: "s1",
   status: "completed",
@@ -39,7 +44,10 @@ describe("business report", () => {
   });
 
   it("pending approval sales are not counted", () => {
-    const s = { ...sale("a", 1000, [{ id: "i1", qty: 1, price: 1000 }]), status: "pending_approval" };
+    const s = {
+      ...sale("a", 1000, [{ id: "i1", qty: 1, price: 1000 }]),
+      status: "pending_approval",
+    };
     const r = buildBusinessReport({ sales: [s], refunds: [], expenses: [], costs: {} });
     expect(r.moneyCollected).toBe(0);
   });
@@ -52,5 +60,17 @@ describe("business report", () => {
       costs: {},
     });
     expect(r.byMethod).toEqual({ cash: 100, mobile: 250 });
+  });
+
+  it("flags items sold below cost as money losers", () => {
+    const r = buildBusinessReport({
+      sales: [sale("a", 500, [{ id: "i1", qty: 1, price: 500 }])],
+      refunds: [],
+      expenses: [],
+      costs: { i1: 800 },
+    });
+    expect(r.belowCost).toHaveLength(1);
+    expect(r.belowCost[0]?.profit).toBe(-300);
+    expect(r.belowCostLoss).toBe(-300);
   });
 });

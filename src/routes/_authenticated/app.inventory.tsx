@@ -730,6 +730,11 @@ function ProductDialog({
         max: 1_000_000_000,
       }),
       validateAmount(f.cost, { label: t("inv.buyingCost"), min: 0, max: 1_000_000_000 }),
+      // An item bought at or above its selling price loses money on every unit —
+      // mirror the save_product SQL guard so the sheet never produces one.
+      Number(f.cost) > 0 && Number(f.cost) >= Number(f.price || 0)
+        ? t("inv.errCostAbovePrice")
+        : null,
       f.qty === ""
         ? null
         : validateAmount(f.qty, { label: t("inv.quantity"), min: 0, max: 1_200_000 }),
@@ -1337,7 +1342,9 @@ function readImport(text: string, products: Product[]): ImportRow[] {
           : [cost, price].some((v) => Number.isNaN(v) || v < 0 || v > 1_000_000_000) ||
               (qty !== null && (Number.isNaN(qty) || qty < 0 || qty > 1_200_000))
             ? tt("inv.errNumber")
-            : undefined;
+            : cost > 0 && price <= cost
+              ? tt("inv.errCostAbovePrice")
+              : undefined;
     return { name, sku, cost, price, qty, active, existing, renamed, error };
   });
 }

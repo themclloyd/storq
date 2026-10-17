@@ -16,11 +16,29 @@ export type ReportRefund = {
   amount: number | string;
   cost: number | string;
   tax: number | string;
-  refund_items: { product_id: string | null; name: string; qty: number | string; amount: number | string; cost: number | string }[];
+  refund_items: {
+    product_id: string | null;
+    name: string;
+    qty: number | string;
+    amount: number | string;
+    cost: number | string;
+  }[];
 };
-export type ReportExpense = { store_id: string; amount: number | string; category: string; source: string };
+export type ReportExpense = {
+  store_id: string;
+  amount: number | string;
+  category: string;
+  source: string;
+};
 
-export type ItemLine = { key: string; name: string; qty: number; revenue: number; cost: number; profit: number };
+export type ItemLine = {
+  key: string;
+  name: string;
+  qty: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+};
 
 const COUNTED = ["completed", "layby_completed", "partially_refunded", "refunded"];
 
@@ -97,6 +115,9 @@ export function buildBusinessReport(input: {
   const realProfit = productProfit - expenses;
   const orders = done.length;
   const itemList = Object.values(items);
+  const belowCost = itemList
+    .filter((i) => i.qty > 0 && i.profit < 0)
+    .sort((a, b) => a.profit - b.profit);
   return {
     grossSales,
     refunds,
@@ -118,6 +139,8 @@ export function buildBusinessReport(input: {
     topProfit: [...itemList].sort((a, b) => b.profit - a.profit),
     lowMargin: itemList.filter((i) => i.revenue > 0 && i.profit / i.revenue < 0.1),
     soldKeys: new Set(itemList.filter((i) => i.qty > 0).map((i) => i.key)),
+    belowCost,
+    belowCostLoss: belowCost.reduce((a, i) => a + i.profit, 0),
   };
 }
 export type BusinessReport = ReturnType<typeof buildBusinessReport>;

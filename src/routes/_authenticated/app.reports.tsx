@@ -67,14 +67,19 @@ function Reports() {
     if (all || !stock.data) return [];
     return (products.data ?? [])
       .filter((p) => p.active && (stock.data[p.id] ?? 0) > 0 && !r.soldKeys.has(p.id))
-      .map((p) => ({ name: p.name, qty: stock.data[p.id] ?? 0, value: (stock.data[p.id] ?? 0) * p.price }))
+      .map((p) => ({
+        name: p.name,
+        qty: stock.data[p.id] ?? 0,
+        value: (stock.data[p.id] ?? 0) * p.price,
+      }))
       .sort((a, b) => b.value - a.value);
   }, [all, stock.data, products.data, r]);
 
   const methods = Object.entries(r.byMethod).sort((a, b) => b[1] - a[1]);
-  const cashSales = r.byMethod.cash ?? 0;
+  const cashSales = r.byMethod["cash"] ?? 0;
   const cats = Object.entries(r.byCategory).sort((a, b) => b[1] - a[1]);
   const top = r.topProfit.filter((i) => i.qty > 0).slice(0, 10);
+  const thin = r.lowMargin.filter((i) => i.profit >= 0);
   const scope = all ? t("reports.allStores") : (store?.name ?? "");
   const rangeLabel = t(RANGE_LABEL_KEY[range]);
   const pct = (n: number) => `${n.toFixed(1)}%`;
@@ -83,7 +88,9 @@ function Reports() {
 
   if (!can("admin", "manager"))
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">{t("reports.onlyAdmins")}</Card>
+      <Card className="p-6 text-center text-sm text-muted-foreground">
+        {t("reports.onlyAdmins")}
+      </Card>
     );
   const loading = sales.isLoading || expenses.isLoading || refundsQ.isLoading;
 
@@ -93,7 +100,7 @@ function Reports() {
       title: t("bizReport.pdfTitle"),
       business: business?.name,
       subtitle: t("reports.subtitle", { scope, range: rangeLabel }),
-      badge: profitable ? "PROFIT" : "LOSS",
+      badge: profitable ? t("bizReport.badgeProfit") : t("bizReport.badgeLoss"),
       meta: [
         [t("bizReport.pdfPeriod"), rangeLabel],
         [t("bizReport.pdfScope"), scope],
@@ -115,11 +122,38 @@ function Reports() {
             [`  - ${t("bizReport.refunds")}`, `-${money(r.refunds)}`],
             [`= ${t("bizReport.collected")}`, money(r.moneyCollected)],
             [`  - ${t("bizReport.stockCost")}`, `-${money(r.stockCost)}`],
-            [`= ${t("bizReport.productProfit").replace(/\s*\(.*$/, "")} (${pct(r.productMargin)})`, money(r.productProfit)],
+            [
+              `= ${t("bizReport.productProfit").replace(/\s*\(.*$/, "")} (${pct(r.productMargin)})`,
+              money(r.productProfit),
+            ],
             [`  - ${t("bizReport.expenses")}`, `-${money(r.expenses)}`],
             [`= ${t("bizReport.realProfit")} (${pct(r.realMargin)})`, money(r.realProfit)],
           ],
         },
+        ...(r.belowCost.length
+          ? [
+              {
+                type: "table" as const,
+                heading: t("bizReport.belowCost"),
+                head: [
+                  t("bizReport.thItem"),
+                  t("bizReport.thSold"),
+                  t("bizReport.thSales"),
+                  t("bizReport.stockCost"),
+                  t("bizReport.moneyLost"),
+                ],
+                align: ["left", "right", "right", "right", "right"] as ("left" | "right")[],
+                body: r.belowCost.map((i) => [
+                  i.name,
+                  i.qty,
+                  money(i.revenue),
+                  money(i.cost),
+                  money(i.profit),
+                ]),
+                foot: [t("bizReport.belowCostTotal"), "", "", "", money(r.belowCostLoss)],
+              },
+            ]
+          : []),
         {
           type: "table",
           heading: t("bizReport.pdfMoney"),
@@ -141,9 +175,21 @@ function Reports() {
         {
           type: "table",
           heading: t("bizReport.profitMakers"),
-          head: [t("bizReport.thItem"), t("bizReport.thSold"), t("bizReport.thSales"), t("bizReport.thProfit"), t("bizReport.thMargin")],
+          head: [
+            t("bizReport.thItem"),
+            t("bizReport.thSold"),
+            t("bizReport.thSales"),
+            t("bizReport.thProfit"),
+            t("bizReport.thMargin"),
+          ],
           align: ["left", "right", "right", "right", "right"],
-          body: top.map((i) => [i.name, i.qty, money(i.revenue), money(i.profit), i.revenue ? pct((i.profit / i.revenue) * 100) : "-"]),
+          body: top.map((i) => [
+            i.name,
+            i.qty,
+            money(i.revenue),
+            money(i.profit),
+            i.revenue ? pct((i.profit / i.revenue) * 100) : "-",
+          ]),
         },
         ...(cats.length
           ? [
@@ -161,11 +207,23 @@ function Reports() {
               {
                 type: "table" as const,
                 heading: t("bizReport.storesTitle"),
-                head: [t("bizReport.thStore"), t("bizReport.collected"), t("bizReport.stockCost"), t("bizReport.expenses"), t("bizReport.realProfit")],
+                head: [
+                  t("bizReport.thStore"),
+                  t("bizReport.collected"),
+                  t("bizReport.stockCost"),
+                  t("bizReport.expenses"),
+                  t("bizReport.realProfit"),
+                ],
                 align: ["left", "right", "right", "right", "right"] as ("left" | "right")[],
                 body: stores.map((s) => {
                   const v = r.byStore[s.id] ?? { sales: 0, stockCost: 0, expenses: 0 };
-                  return [s.name, money(v.sales), money(v.stockCost), money(v.expenses), money(v.sales - v.stockCost - v.expenses)];
+                  return [
+                    s.name,
+                    money(v.sales),
+                    money(v.stockCost),
+                    money(v.expenses),
+                    money(v.sales - v.stockCost - v.expenses),
+                  ];
                 }),
               },
             ]
@@ -176,13 +234,34 @@ function Reports() {
     });
 
   const steps: { k: string; hint: string; v: number; sign: "" | "-" | "="; strong?: boolean }[] = [
-    { k: t("bizReport.totalSales"), hint: t("bizReport.totalSalesHint", { count: r.orders }), v: r.grossSales, sign: "" },
+    {
+      k: t("bizReport.totalSales"),
+      hint: t("bizReport.totalSalesHint", { count: r.orders }),
+      v: r.grossSales,
+      sign: "",
+    },
     { k: t("bizReport.refunds"), hint: t("bizReport.refundsHint"), v: r.refunds, sign: "-" },
-    { k: t("bizReport.collected"), hint: t("bizReport.collectedHint"), v: r.moneyCollected, sign: "=" },
+    {
+      k: t("bizReport.collected"),
+      hint: t("bizReport.collectedHint"),
+      v: r.moneyCollected,
+      sign: "=",
+    },
     { k: t("bizReport.stockCost"), hint: t("bizReport.stockCostHint"), v: r.stockCost, sign: "-" },
-    { k: t("bizReport.productProfit"), hint: t("bizReport.productProfitHint", { margin: r.productMargin.toFixed(0) }), v: r.productProfit, sign: "=" },
+    {
+      k: t("bizReport.productProfit"),
+      hint: t("bizReport.productProfitHint", { margin: r.productMargin.toFixed(0) }),
+      v: r.productProfit,
+      sign: "=",
+    },
     { k: t("bizReport.expenses"), hint: t("bizReport.expensesHint"), v: r.expenses, sign: "-" },
-    { k: t("bizReport.realProfit"), hint: t("bizReport.realProfitHint", { margin: r.realMargin.toFixed(0) }), v: r.realProfit, sign: "=", strong: true },
+    {
+      k: t("bizReport.realProfit"),
+      hint: t("bizReport.realProfitHint", { margin: r.realMargin.toFixed(0) }),
+      v: r.realProfit,
+      sign: "=",
+      strong: true,
+    },
   ];
   const base = Math.max(r.grossSales, 1);
 
@@ -205,7 +284,12 @@ function Reports() {
               }))}
             />
             {stores.length > 1 && (
-              <Button size="sm" variant={all ? "secondary" : "outline"} aria-pressed={all} onClick={() => setAll(!all)}>
+              <Button
+                size="sm"
+                variant={all ? "secondary" : "outline"}
+                aria-pressed={all}
+                onClick={() => setAll(!all)}
+              >
                 {t("reports.allStores")}
               </Button>
             )}
@@ -216,7 +300,9 @@ function Reports() {
         }
       />
       {loading ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">{t("reports.loading")}</Card>
+        <Card className="p-6 text-center text-sm text-muted-foreground">
+          {t("reports.loading")}
+        </Card>
       ) : (
         <div className="space-y-4">
           {/* Verdict */}
@@ -224,7 +310,12 @@ function Reports() {
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {profitable ? t("bizReport.profitTitle") : t("bizReport.lossTitle")}
             </div>
-            <div className={cn("font-display tabular mt-1 text-4xl font-medium", !profitable && "text-destructive")}>
+            <div
+              className={cn(
+                "font-display tabular mt-1 text-4xl font-medium",
+                !profitable && "text-destructive",
+              )}
+            >
               {money(r.realProfit)}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -237,25 +328,75 @@ function Reports() {
             </p>
           </Card>
 
+          {r.belowCost.length > 0 && (
+            <Card className="border-destructive/40 bg-destructive-soft p-5">
+              <div className="text-xs font-medium uppercase tracking-wide text-destructive">
+                {t("bizReport.belowCost")}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{t("bizReport.belowCostSub")}</p>
+              <div className="mt-3">
+                <Table
+                  head={[
+                    t("bizReport.thItem"),
+                    t("bizReport.thSold"),
+                    t("bizReport.thSales"),
+                    t("bizReport.stockCost"),
+                    t("bizReport.moneyLost"),
+                  ]}
+                  rows={r.belowCost.map((i) => [
+                    i.name,
+                    String(i.qty),
+                    money(i.revenue),
+                    money(i.cost),
+                    money(i.profit),
+                  ])}
+                />
+              </div>
+              <Row k={t("bizReport.belowCostTotal")} v={money(r.belowCostLoss)} bold />
+            </Card>
+          )}
+
           <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             {/* Bottom line statement */}
-            <Panel title={t("bizReport.bottomLine")} sub={t("bizReport.bottomLineSub", { money: money(100) })}>
+            <Panel
+              title={t("bizReport.bottomLine")}
+              sub={t("bizReport.bottomLineSub", { money: money(100) })}
+            >
               <div className="divide-y">
                 {steps.map((s) => (
-                  <div key={s.k} className={cn("py-2.5", s.strong && "rounded-md bg-primary/20 px-3")}>
+                  <div
+                    key={s.k}
+                    className={cn("py-2.5", s.strong && "rounded-md bg-primary/20 px-3")}
+                  >
                     <div className="flex items-baseline justify-between gap-3">
                       <div className="min-w-0">
-                        <div className={cn("text-sm", s.sign === "=" ? "font-semibold" : "text-foreground")}>
-                          <span className="mr-2 inline-block w-3 text-muted-foreground">{s.sign === "" ? "" : s.sign === "-" ? "−" : "="}</span>
+                        <div
+                          className={cn(
+                            "text-sm",
+                            s.sign === "=" ? "font-semibold" : "text-foreground",
+                          )}
+                        >
+                          <span className="mr-2 inline-block w-3 text-muted-foreground">
+                            {s.sign === "" ? "" : s.sign === "-" ? "−" : "="}
+                          </span>
                           {s.k}
                         </div>
                         <div className="ml-5 text-xs text-muted-foreground">{s.hint}</div>
                       </div>
-                      <div className={cn("tabular shrink-0 whitespace-nowrap", s.sign === "=" ? "text-base font-semibold" : "text-sm", s.strong && s.v < 0 && "text-destructive")}>
+                      <div
+                        className={cn(
+                          "tabular shrink-0 whitespace-nowrap",
+                          s.sign === "=" ? "text-base font-semibold" : "text-sm",
+                          s.strong && s.v < 0 && "text-destructive",
+                        )}
+                      >
                         {s.sign === "-" ? `− ${money(s.v)}` : money(s.v)}
                       </div>
                     </div>
-                    <Progress value={Math.max(0, Math.min(100, (s.v / base) * 100))} className="ml-5 mt-1.5 h-1" />
+                    <Progress
+                      value={Math.max(0, Math.min(100, (s.v / base) * 100))}
+                      className="ml-5 mt-1.5 h-1"
+                    />
                   </div>
                 ))}
               </div>
@@ -286,8 +427,18 @@ function Reports() {
                 <p className="text-sm text-muted-foreground">{t("reports.noItemsSold")}</p>
               ) : (
                 <Table
-                  head={[t("bizReport.thItem"), t("bizReport.thSold"), t("bizReport.thProfit"), t("bizReport.thMargin")]}
-                  rows={top.map((i) => [i.name, String(i.qty), money(i.profit), i.revenue ? pct((i.profit / i.revenue) * 100) : "-"])}
+                  head={[
+                    t("bizReport.thItem"),
+                    t("bizReport.thSold"),
+                    t("bizReport.thProfit"),
+                    t("bizReport.thMargin"),
+                  ]}
+                  rows={top.map((i) => [
+                    i.name,
+                    String(i.qty),
+                    money(i.profit),
+                    i.revenue ? pct((i.profit / i.revenue) * 100) : "-",
+                  ])}
                 />
               )}
             </Panel>
@@ -313,9 +464,9 @@ function Reports() {
                 cats.map(([c, v]) => <Row key={c} k={c} v={money(v)} />)
               )}
             </Panel>
-            {r.lowMargin.length > 0 && (
+            {thin.length > 0 && (
               <Panel title={t("bizReport.lowMargin")} sub={t("bizReport.lowMarginSub")}>
-                {r.lowMargin.map((i) => (
+                {thin.map((i) => (
                   <Row key={i.key} k={i.name} v={pct((i.profit / i.revenue) * 100)} />
                 ))}
               </Panel>
@@ -325,10 +476,20 @@ function Reports() {
           {all && stores.length > 1 && (
             <Panel title={t("bizReport.storesTitle")}>
               <Table
-                head={[t("bizReport.thStore"), t("bizReport.collected"), t("bizReport.expenses"), t("bizReport.realProfit")]}
+                head={[
+                  t("bizReport.thStore"),
+                  t("bizReport.collected"),
+                  t("bizReport.expenses"),
+                  t("bizReport.realProfit"),
+                ]}
                 rows={stores.map((s) => {
                   const v = r.byStore[s.id] ?? { sales: 0, stockCost: 0, expenses: 0 };
-                  return [s.name, money(v.sales), money(v.expenses), money(v.sales - v.stockCost - v.expenses)];
+                  return [
+                    s.name,
+                    money(v.sales),
+                    money(v.expenses),
+                    money(v.sales - v.stockCost - v.expenses),
+                  ];
                 })}
               />
             </Panel>
@@ -340,7 +501,15 @@ function Reports() {
   );
 }
 
-function Panel({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  sub,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  children: React.ReactNode;
+}) {
   return (
     <Card className="min-w-0">
       <CardHeader className="pb-2">
@@ -353,7 +522,12 @@ function Panel({ title, sub, children }: { title: string; sub?: string; children
 }
 function Row({ k, v, bold }: { k: React.ReactNode; v: string; bold?: boolean }) {
   return (
-    <div className={cn("flex justify-between gap-3 text-[13px]", bold && "border-t pt-2 font-semibold")}>
+    <div
+      className={cn(
+        "flex justify-between gap-3 text-[13px]",
+        bold && "border-t pt-2 font-semibold",
+      )}
+    >
       <span className="min-w-0 truncate text-muted-foreground">{k}</span>
       <span className="tabular shrink-0 whitespace-nowrap">{v}</span>
     </div>
@@ -365,7 +539,9 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
       <thead>
         <tr className="text-xs text-muted-foreground">
           {head.map((h, i) => (
-            <th key={h} className={cn("pb-1.5 font-medium", i === 0 ? "text-left" : "text-right")}>{h}</th>
+            <th key={h} className={cn("pb-1.5 font-medium", i === 0 ? "text-left" : "text-right")}>
+              {h}
+            </th>
           ))}
         </tr>
       </thead>
@@ -373,7 +549,15 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
         {rows.map((r, ri) => (
           <tr key={ri}>
             {r.map((c, i) => (
-              <td key={i} className={cn("py-1.5", i === 0 ? "max-w-0 truncate text-left" : "tabular text-right whitespace-nowrap")}>{c}</td>
+              <td
+                key={i}
+                className={cn(
+                  "py-1.5",
+                  i === 0 ? "max-w-0 truncate text-left" : "tabular text-right whitespace-nowrap",
+                )}
+              >
+                {c}
+              </td>
             ))}
           </tr>
         ))}
