@@ -70,6 +70,13 @@ export const en = {
     signOut: "Sign out",
     language: "Language",
   },
+  drawer: {
+    status: "Cash drawer",
+    open: "Drawer open",
+    closed: "Drawer closed",
+    stale: "Count & close",
+    short: "Drawer",
+  },
   roles: {
     admin: "Admin",
     manager: "Manager / Approver",
@@ -767,10 +774,11 @@ export const en = {
   shift: {
     title: "Cash drawer",
     openedToast: "Shift opened",
-    openTitle: "Open a shift",
-    openHint: "Count the cash in the drawer before you start selling.",
+    openTitle: "Drawer not open yet",
+    openHint:
+      "It opens by itself with the first sale, signed in with the seller's PIN. Starting cash is optional.",
     startingFloat: "Starting cash (float)",
-    openBtn: "Open shift",
+    openBtn: "Start drawer now",
     openLabel: "Shift open",
     sinceWord: "Since",
     cashExpected: "Cash expected in drawer",
@@ -783,6 +791,11 @@ export const en = {
     expectedWord: "Expected",
     countedWord: "Counted",
     managerNote: "Managers see all shift history and variances.",
+    staleNote: "Open since {date}. Count the cash and close it so today starts clean.",
+    editFloat: "Change starting cash",
+    floatHint:
+      "Cash that was already in the drawer before the first sale. It moves the expected amount, not the sales.",
+    floatSaved: "Starting cash updated",
     balanced: "Balanced",
     over: "Over {amount}",
     short: "Short {amount}",

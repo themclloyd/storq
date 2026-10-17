@@ -77,6 +77,13 @@ export const ny = {
     signOut: "Tulukani",
     language: "Chinenero",
   },
+  drawer: {
+    status: "Bokosi la ndalama",
+    open: "Bokosi latseguka",
+    closed: "Bokosi latsekedwa",
+    stale: "Werengani ndi kutseka",
+    short: "Bokosi",
+  },
   roles: {
     admin: "Woyang'anira (Admin)",
     manager: "Manejala / Wovomereza",
@@ -784,10 +791,11 @@ export const ny = {
   shift: {
     title: "Bokosi la ndalama",
     openedToast: "Shifiti yatsegulidwa",
-    openTitle: "Tsegulani shifiti",
-    openHint: "Werengani ndalama zomwe zili m'bokosi musanayambe kugulitsa.",
+    openTitle: "Bokosi silinatsegulidwe",
+    openHint:
+      "Limatseguka lokha ndi malonda oyamba, molingana ndi PIN ya wogulitsa. Ndalama zoyambira ndi zosakakamiza.",
     startingFloat: "Ndalama zoyambira (float)",
-    openBtn: "Tsegulani shifiti",
+    openBtn: "Tsegulani bokosi tsopano",
     openLabel: "Shifiti yotseguka",
     sinceWord: "Kuyambira",
     cashExpected: "Ndalama zoyembekezeka m'bokosi",
@@ -800,6 +808,12 @@ export const ny = {
     expectedWord: "Zoyembekezeka",
     countedWord: "Zowerengedwa",
     managerNote: "Manejala amaona mbiri ya ma shifiti onse ndi kusiyana kwake.",
+    staleNote:
+      "Latseguka kuyambira {date}. Werengani ndalama ndi kutseka kuti tsikulo liyambe bwino.",
+    editFloat: "Sinthani ndalama zoyambira",
+    floatHint:
+      "Ndalama zomwe zinali m'bokosi malonda oyamba asanayambe. Zimasintha zoyembekezeka, osati malonda.",
+    floatSaved: "Ndalama zoyambira zasinthidwa",
     balanced: "Zikugwirizana",
     over: "Zapitirira ndi {amount}",
     short: "Zachepa ndi {amount}",

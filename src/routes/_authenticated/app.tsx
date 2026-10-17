@@ -26,6 +26,7 @@ import {
   type WorkspaceGroup,
 } from "@/lib/workspace-navigation";
 import { WorkspaceTabs } from "@/components/pos/WorkspaceTabs";
+import { DrawerChip } from "@/components/pos/DrawerChip";
 import { useSubscription } from "@/lib/billing";
 import { Billing } from "@/components/pos/Billing";
 import { Button } from "@/components/ui/button";
@@ -557,6 +558,10 @@ function Shell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="hidden h-12 items-center border-b px-3 md:flex lg:px-4">
           <SidebarTrigger />
+          {/* The drawer runs itself, so the shell only has to keep it visible. */}
+          <div className="ml-auto">
+            <DrawerChip storeId={store?.id} />
+          </div>
         </header>
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
           <NativeSelect
@@ -566,6 +571,7 @@ function Shell() {
             onChange={setStoreId}
             options={stores.map((s) => ({ value: s.id, label: s.name }))}
           />
+          <DrawerChip storeId={store?.id} compact />
           <UserMenu variant="icon" settingsTo={settingsEntry?.to} />
         </header>
         <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">

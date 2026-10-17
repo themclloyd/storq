@@ -16,6 +16,10 @@ export const SALE_TOUCHED: readonly QueryKey[] = [
   ["sale-item-costs"],
   ["stock"],
   ["movements"],
+  // A sale can open the drawer server-side (app.attach_drawer) and always
+  // changes its expected cash, so both drawer views have to re-read.
+  ["drawer"],
+  ["shifts"],
   ["shift-summary"],
   ["dash-alerts"],
 ];

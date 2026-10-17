@@ -60,7 +60,7 @@ type Summary = {
 };
 
 function Shifts() {
-  const { store, rpc, money, can } = usePos();
+  const { store, rpc, money, can, staff } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const names = useStaffNames();
@@ -92,6 +92,7 @@ function Shifts() {
   const [float, setFloat] = useState("");
   const [move, setMove] = useState<null | "in" | "out">(null);
   const [closing, setClosing] = useState(false);
+  const [floatOpen, setFloatOpen] = useState(false);
   const [report, setReport] = useState<Shift | null>(null);
 
   async function openShift() {
@@ -99,11 +100,19 @@ function Shifts() {
       await rpc("open_shift", { p_store: store!.id, p_float: Number(float || 0), p_notes: null });
       toast.success(t("shift.openedToast"));
       setFloat("");
-      invalidateKeys(qc, [["shifts"], ["shift-summary"]]);
+      invalidateKeys(qc, [["shifts"], ["drawer"], ["shift-summary"]]);
     } catch (e) {
       toast.error((e as Error).message);
     }
   }
+
+  // The drawer opens itself on the first sale, so the only state worth
+  // shouting about is one that has been left open since before today — that is
+  // yesterday's cash sitting in today's expected amount.
+  const stale = !!open && new Date(open.opened_at).toDateString() !== new Date().toDateString();
+  // The seller who opened the drawer (or a manager) may correct the float that
+  // was in the till before the first sale.
+  const canSetFloat = !!open && (can("admin", "manager") || open.opened_by === staff?.id);
 
   return (
     <>
@@ -141,6 +150,11 @@ function Shifts() {
               </div>
               <Status s="open" />
             </div>
+            {stale && (
+              <p className="mt-2 rounded-lg bg-warning-soft px-2.5 py-1.5 text-[12px] font-medium text-warning-foreground">
+                {t("shift.staleNote", { date: fmtDate(open.opened_at) })}
+              </p>
+            )}
             <div className="mt-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("shift.cashExpected")}
             </div>
@@ -164,6 +178,16 @@ function Shifts() {
             <Button variant="default" className="w-full" onClick={() => setClosing(true)}>
               {t("shift.closeCount")}
             </Button>
+            {canSetFloat && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => setFloatOpen(true)}
+              >
+                {t("shift.editFloat")}
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -195,6 +219,13 @@ function Shifts() {
         </div>
       )}
       {move && open && <MoveDialog kind={move} shift={open.id} onClose={() => setMove(null)} />}
+      {floatOpen && open && (
+        <FloatDialog
+          shift={open.id}
+          current={open.opening_float}
+          onClose={() => setFloatOpen(false)}
+        />
+      )}
       {closing && open && (
         <CloseDialog
           shift={open}
@@ -296,7 +327,7 @@ function MoveDialog({
         p_reason: reason,
       });
       toast.success(t("shift.recorded"));
-      invalidateKeys(qc, [["shifts"], ["shift-summary"]]);
+      invalidateKeys(qc, [["shifts"], ["drawer"], ["shift-summary"]]);
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -319,6 +350,55 @@ function MoveDialog({
           />
         </Field>
         <Button disabled={!Number(amt) || !reason.trim()} onClick={save}>
+          {t("common.save")}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FloatDialog({
+  shift,
+  current,
+  onClose,
+}: {
+  shift: string;
+  current: number;
+  onClose: () => void;
+}) {
+  const { rpc } = usePos();
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const [amt, setAmt] = useState(String(current ?? ""));
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    setBusy(true);
+    try {
+      await rpc("set_shift_float", { p_shift: shift, p_float: Number(amt || 0) });
+      toast.success(t("shift.floatSaved"));
+      invalidateKeys(qc, [["shifts"], ["drawer"], ["shift-summary"]]);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("shift.editFloat")}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t("shift.floatHint")}</p>
+        <Field label={t("shift.startingFloat")}>
+          <Input
+            autoFocus
+            inputMode="decimal"
+            value={amt}
+            onChange={(e) => setAmt(e.target.value)}
+          />
+        </Field>
+        <Button disabled={busy || amt === ""} onClick={save}>
           {t("common.save")}
         </Button>
       </DialogContent>
@@ -351,7 +431,7 @@ function CloseDialog({
         p_counted: Number(counted),
         p_notes: notes,
       });
-      invalidateKeys(qc, [["shifts"], ["shift-summary"]]);
+      invalidateKeys(qc, [["shifts"], ["drawer"], ["shift-summary"]]);
       onDone({
         ...shift,
         status: "closed",
