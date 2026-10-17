@@ -20,6 +20,7 @@ import {
   persistCache,
   saveQueue,
   type QueuedSale,
+  isRoleScoped,
 } from "@/lib/offline";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
