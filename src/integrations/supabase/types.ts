@@ -1151,25 +1151,43 @@ export type Database = {
       }
       stores: {
         Row: {
+          address: string | null
           business_id: string
           created_at: string
+          email: string | null
           id: string
           name: string
+          phone: string | null
           store_type: string
+          tax_inclusive: boolean
+          tax_number: string | null
+          tax_rate: number
         }
         Insert: {
+          address?: string | null
           business_id: string
           created_at?: string
+          email?: string | null
           id?: string
           name: string
+          phone?: string | null
           store_type?: string
+          tax_inclusive?: boolean
+          tax_number?: string | null
+          tax_rate?: number
         }
         Update: {
+          address?: string | null
           business_id?: string
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
+          phone?: string | null
           store_type?: string
+          tax_inclusive?: boolean
+          tax_number?: string | null
+          tax_rate?: number
         }
         Relationships: [
           {
@@ -1535,7 +1553,18 @@ export type Database = {
         Returns: string
       }
       save_store: {
-        Args: { p_id: string; p_name: string; p_token: string; p_type: string }
+        Args: {
+          p_address?: string | null
+          p_email?: string | null
+          p_id: string | null
+          p_name: string
+          p_phone?: string | null
+          p_tax_inclusive?: boolean | null
+          p_tax_number?: string | null
+          p_tax_rate?: number | null
+          p_token: string
+          p_type: string
+        }
         Returns: string
       }
       save_tax_settings: {

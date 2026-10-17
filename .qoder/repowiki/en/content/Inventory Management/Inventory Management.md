@@ -10,15 +10,18 @@
 - [pdf.ts](file://src/lib/pdf.ts)
 - [validate.ts](file://src/lib/validate.ts)
 - [paging.ts](file://src/lib/paging.ts)
+- [20261017174810_cost_below_price_validation.sql](file://supabase/migrations/20261017174810_cost_below_price_validation.sql)
+- [20261011221132_move_stock_floor_guard.sql](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql)
+- [20261011221117_drop_store_stock_bounds_enforce_in_sql.sql](file://supabase/migrations/20261011221117_drop_store_stock_bounds_enforce_in_sql.sql)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated advanced filtering system documentation with low stock, collection, and sorting filters
-- Added comprehensive pagination controls documentation with responsive design
-- Enhanced export functionality section covering CSV and PDF exports with templates
-- Expanded search integration details with debounced search implementation
-- Updated responsive design improvements across all inventory screens
+- Added comprehensive below-cost sales detection with client-side and server-side validation
+- Enhanced database constraints ensuring product costs cannot exceed prices
+- Improved stock floor enforcement with better error handling and user-friendly messages
+- Updated validation logic to prevent negative profit scenarios across all entry points
+- Enhanced error messaging for concurrent stock operations and race conditions
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -26,23 +29,26 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Advanced Filtering System](#advanced-filtering-system)
-7. [Pagination Controls](#pagination-controls)
-8. [Export Functionality](#export-functionality)
-9. [Search Integration](#search-integration)
-10. [Responsive Design Improvements](#responsive-design-improvements)
-11. [Dependency Analysis](#dependency-analysis)
-12. [Performance Considerations](#performance-considerations)
-13. [Troubleshooting Guide](#troubleshooting-guide)
-14. [Conclusion](#conclusion)
+6. [Enhanced Validation System](#enhanced-validation-system)
+7. [Below-Cost Sales Detection](#below-cost-sales-detection)
+8. [Stock Floor Enforcement](#stock-floor-enforcement)
+9. [Advanced Filtering System](#advanced-filtering-system)
+10. [Pagination Controls](#pagination-controls)
+11. [Export Functionality](#export-functionality)
+12. [Search Integration](#search-integration)
+13. [Responsive Design Improvements](#responsive-design-improvements)
+14. [Dependency Analysis](#dependency-analysis)
+15. [Performance Considerations](#performance-considerations)
+16. [Troubleshooting Guide](#troubleshooting-guide)
+17. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the inventory management system for a multi-store point-of-sale application. It covers how products are organized into categories and collections, how stock is tracked per store with near real-time updates, how barcode integration works for both manual entry and scanner input, how item codes are generated and managed, and how bulk import/export supports product data management. The system now features an enhanced interface with advanced filtering, pagination controls, comprehensive export capabilities, integrated search functionality, and responsive design improvements across collections, inventory, transfers, and stock take screens.
+This document explains the inventory management system for a multi-store point-of-sale application. It covers how products are organized into categories and collections, how stock is tracked per store with near real-time updates, how barcode integration works for both manual entry and scanner input, how item codes are generated and managed, and how bulk import/export supports product data management. The system now features enhanced validation with below-cost sales detection, improved database constraints ensuring product costs cannot exceed prices, and better error handling for stock floor enforcement. The interface includes advanced filtering, pagination controls, comprehensive export capabilities, integrated search functionality, and responsive design improvements across collections, inventory, transfers, and stock take screens.
 
 ## Project Structure
 The inventory feature spans an authenticated route that renders the inventory UI and several library modules that provide data access, code handling, collection membership, transfer operations, and pagination utilities:
 
-- `src/routes/_authenticated/app.inventory.tsx` — Inventory page UI with advanced filtering, pagination, dialogs, CSV import/export, label printing, and stock adjustments.
+- `src/routes/_authenticated/app.inventory.tsx` — Inventory page UI with advanced filtering, pagination, dialogs, CSV import/export, label printing, stock adjustments, and enhanced validation.
 - `src/lib/products.ts` — Product catalog query hook, barcode lookup helper, and per-store stock query hook.
 - `src/lib/collections.ts` — Collection definitions, product-to-collection mapping, discount calculation helpers.
 - `src/lib/item-codes.ts` — Code normalization, auto-code generation, clash detection, and QR payload formatting.
@@ -63,6 +69,8 @@ INV --> PAGING["Pagination Utility<br/>paging.ts"]
 PROD --> DB["Database Tables<br/>products / store_stock"]
 COL --> DB
 TRANS --> DB
+DB --> VALIDATION["Enhanced Validation<br/>Cost Below Price Checks"]
+DB --> STOCK_GUARD["Stock Floor Guard<br/>Error Handling"]
 ```
 
 **Diagram sources**
@@ -87,12 +95,14 @@ TRANS --> DB
 - Product Catalog
   - Products are fetched via a long-lived cached query. Buying costs are loaded only when needed by admin/manager roles.
   - SKU is the single identifier used for search, scanning, and QR payloads.
+  - **Updated**: Enhanced validation prevents products from being created with costs that meet or exceed selling prices.
 - Collections
   - Products can belong to multiple collections; the best discount among them applies at sale time.
   - The UI shows collection membership and allows grouping inventory value by collection.
 - Stock Tracking
   - Per-store stock is read from a store-scoped table and exposed as a map of product ID to quantity.
   - Live mode refreshes periodically on the till to reflect changes made elsewhere.
+  - **Updated**: Improved stock floor enforcement with better error handling for concurrent operations.
 - Item Codes
   - Auto-generated codes use a safe alphabet and prefix. Normalization ensures consistent matching.
   - Clash detection prevents duplicate SKUs across the catalog.
@@ -107,29 +117,32 @@ TRANS --> DB
 - [transfers.ts:1-140](file://src/lib/transfers.ts#L1-L140)
 
 ## Architecture Overview
-The inventory system combines a React-based UI with TanStack Query-backed hooks and Supabase database tables. Data flows from the UI through hooks to the database, with explicit cache invalidation after writes.
+The inventory system combines a React-based UI with TanStack Query-backed hooks and Supabase database tables. Data flows from the UI through hooks to the database, with explicit cache invalidation after writes. Enhanced validation layers ensure data integrity at both client and server levels.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
 participant UI as "Inventory Page"
+participant ClientValidation as "Client-Side Validation"
 participant Hooks as "React Query Hooks"
 participant RPC as "Supabase RPCs"
+participant ServerValidation as "Server-Side Validation"
 participant DB as "Database"
 User->>UI : Open Inventory
 UI->>Hooks : useProducts()
 Hooks->>DB : SELECT products
 DB-->>Hooks : Product list
-UI->>Hooks : useStock(storeId)
-Hooks->>DB : SELECT store_stock WHERE store_id
-DB-->>Hooks : Stock map
 User->>UI : Add/Edit Product
+UI->>ClientValidation : Validate cost vs price
+ClientValidation->>UI : Show error if cost >= price
 UI->>RPC : save_product(...)
-RPC->>DB : INSERT/UPDATE products
+RPC->>ServerValidation : Validate cost below price
+ServerValidation->>DB : INSERT/UPDATE products
 UI->>RPC : set_product_collections(...)
 RPC->>DB : INSERT product_collections
 UI->>RPC : set_stock_qty(...)
-RPC->>DB : UPDATE store_stock
+RPC->>ServerValidation : Check stock floor
+ServerValidation->>DB : UPDATE store_stock
 UI->>Hooks : invalidate(["products","stock",...])
 Hooks->>DB : Re-fetch changed data
 ```
@@ -138,6 +151,7 @@ Hooks->>DB : Re-fetch changed data
 - [app.inventory.tsx:698-769](file://src/routes/_authenticated/app.inventory.tsx#L698-L769)
 - [products.ts:22-53](file://src/lib/products.ts#L22-L53)
 - [products.ts:82-106](file://src/lib/products.ts#L82-L106)
+- [20261017174810_cost_below_price_validation.sql:18-22](file://supabase/migrations/20261017174810_cost_below_price_validation.sql#L18-L22)
 
 ## Detailed Component Analysis
 
@@ -150,6 +164,7 @@ Key behaviors:
 - Filtering by collection and searching by name/SKU/collection names.
 - Displaying collection badges next to each product row.
 - Computing total retail and cost values for inventory reporting.
+- **Updated**: Enhanced validation prevents products with costs meeting or exceeding selling prices.
 
 **Section sources**
 - [app.inventory.tsx:110-213](file://src/routes/_authenticated/app.inventory.tsx#L110-L213)
@@ -235,32 +250,45 @@ B --> |Export PDF| G["Generate Inventory Report PDF"]
 ### Adding Products and Updating Stock Levels
 - Adding a Product
   - The product dialog collects name, SKU, selling price, buying cost, initial quantity, reorder point, and active flag.
+  - **Updated**: Enhanced validation checks that buying cost is below selling price both client-side and server-side.
   - On save, it calls an RPC to create/update the product, assigns collections, and optionally sets absolute stock for the current store.
 - Updating Stock
   - The stock adjustment dialog sends an absolute quantity update with a reason and note.
+  - **Updated**: Improved stock floor enforcement prevents negative quantities with user-friendly error messages.
   - After successful mutation, the UI invalidates relevant caches to refresh stock, movements, and alerts.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
 participant Dialog as "Product/Stock Dialog"
+participant ClientValidation as "Client Validation"
 participant RPC as "Supabase RPCs"
+participant ServerValidation as "Server Validation"
 participant Cache as "React Query Cache"
 User->>Dialog : Save Product
+Dialog->>ClientValidation : Validate cost < price
+alt Cost >= Price
+ClientValidation->>Dialog : Show error message
+else Valid
 Dialog->>RPC : save_product(...)
-RPC-->>Dialog : product id
+RPC->>ServerValidation : Validate cost below price
+ServerValidation->>Cache : Success
+end
 Dialog->>RPC : set_product_collections(...)
 alt Initial Quantity Provided
 Dialog->>RPC : set_stock_qty(...)
+RPC->>ServerValidation : Check stock floor
+ServerValidation->>Cache : Success
 end
 Dialog->>Cache : invalidate(["products","stock","movements","collections","dash-alerts"])
 ```
 
 **Diagram sources**
-- [app.inventory.tsx:698-769](file://src/routes/_authenticated/app.inventory.tsx#L698-L769)
+- [app.inventory.tsx:720-796](file://src/routes/_authenticated/app.inventory.tsx#L720-L796)
+- [20261017174810_cost_below_price_validation.sql:18-22](file://supabase/migrations/20261017174810_cost_below_price_validation.sql#L18-L22)
 
 **Section sources**
-- [app.inventory.tsx:698-769](file://src/routes/_authenticated/app.inventory.tsx#L698-L769)
+- [app.inventory.tsx:720-796](file://src/routes/_authenticated/app.inventory.tsx#L720-L796)
 - [validate.ts:1-147](file://src/lib/validate.ts#L1-L147)
 
 ### Multi-Store Inventory Allocation and Transfer Processes
@@ -339,9 +367,110 @@ PRODUCTS ||--o{ STORE_STOCK : "has stock per store"
 - [collections.ts:22-38](file://src/lib/collections.ts#L22-L38)
 - [products.ts:94-104](file://src/lib/products.ts#L94-L104)
 
-## Advanced Filtering System
+## Enhanced Validation System
 
-The inventory interface now provides a comprehensive filtering system that allows users to narrow down product lists efficiently:
+The inventory system now implements comprehensive validation across multiple layers to ensure data integrity and prevent business logic violations:
+
+### Validation Layers
+- **Client-Side Validation**: Immediate feedback for users with readable error messages
+- **Server-Side Validation**: Database-level constraints and RPC validation
+- **Business Logic Validation**: Prevention of negative profit scenarios and stock violations
+
+### Key Validation Rules
+- Product costs must be below selling prices (when cost is set)
+- Stock quantities cannot go negative during concurrent operations
+- All monetary values must be within acceptable bounds
+- SKU formats must conform to expected patterns
+
+```mermaid
+flowchart TD
+Input["User Input"] --> ClientValidate["Client-Side Validation"]
+ClientValidate --> BusinessRules["Business Rule Checks"]
+BusinessRules --> ServerValidate["Server-Side Validation"]
+ServerValidate --> DatabaseConstraints["Database Constraints"]
+DatabaseConstraints --> Success["Data Saved"]
+ClientValidate --> Error["Show User-Friendly Error"]
+BusinessRules --> Error
+ServerValidate --> Error
+```
+
+**Diagram sources**
+- [app.inventory.tsx:720-749](file://src/routes/_authenticated/app.inventory.tsx#L720-L749)
+- [20261017174810_cost_below_price_validation.sql:18-22](file://supabase/migrations/20261017174810_cost_below_price_validation.sql#L18-L22)
+
+**Section sources**
+- [app.inventory.tsx:720-749](file://src/routes/_authenticated/app.inventory.tsx#L720-L749)
+- [validate.ts:98-116](file://src/lib/validate.ts#L98-L116)
+
+## Below-Cost Sales Detection
+
+The system now includes robust below-cost sales detection to prevent products from being sold at a loss:
+
+### Implementation Details
+- **Client-Side Detection**: Real-time validation in the product form prevents saving products where cost meets or exceeds price
+- **Server-Side Enforcement**: Database function validation ensures no product can be created or updated with problematic cost-price relationships
+- **Error Messaging**: User-friendly messages explain why the operation failed and guide users to correct the issue
+
+### Validation Logic
+- When a product's buying cost is greater than zero and meets or exceeds its selling price, the system rejects the operation
+- The validation occurs both in the UI before submission and in the database function as a final safeguard
+- Error messages clearly indicate that "Buying cost must be below the selling price"
+
+```mermaid
+flowchart TD
+ProductForm["Product Form"] --> CostCheck{"Cost > 0 AND Cost >= Price?"}
+CostCheck --> |Yes| ValidationError["Show Error: 'Buying cost must be below selling price'"]
+CostCheck --> |No| SaveProduct["Save Product"]
+SaveProduct --> ServerValidation["Database Function Validation"]
+ServerValidation --> |Fails| ValidationError
+ServerValidation --> |Success| Success["Product Saved Successfully"]
+```
+
+**Diagram sources**
+- [app.inventory.tsx:733-737](file://src/routes/_authenticated/app.inventory.tsx#L733-L737)
+- [20261017174810_cost_below_price_validation.sql:18-22](file://supabase/migrations/20261017174810_cost_below_price_validation.sql#L18-L22)
+
+**Section sources**
+- [app.inventory.tsx:733-737](file://src/routes/_authenticated/app.inventory.tsx#L733-L737)
+- [20261017174810_cost_below_price_validation.sql:18-22](file://supabase/migrations/20261017174810_cost_below_price_validation.sql#L18-L22)
+
+## Stock Floor Enforcement
+
+The stock floor enforcement system has been significantly improved to handle concurrent operations and provide better error handling:
+
+### Enhanced Stock Protection
+- **Advisory Locking**: Uses PostgreSQL advisory locks to serialize concurrent stock operations on the same product/store combination
+- **Row-Level Locking**: Employs FOR UPDATE clauses to ensure atomic reads and writes
+- **Floor Enforcement**: Guarantees stock quantities never go negative, even under concurrent access
+- **User-Friendly Errors**: Provides clear error messages instead of cryptic constraint violations
+
+### Race Condition Handling
+- **Concurrent Sale Protection**: Prevents multiple simultaneous sales from depleting the same stock below zero
+- **Graceful Degradation**: Uses GREATEST(qty + delta, 0) to ensure minimum zero balance
+- **Clear Error Messages**: Tells users exactly which item has insufficient stock rather than showing generic errors
+
+```mermaid
+flowchart TD
+SaleRequest["Sale Request"] --> AdvisoryLock["Acquire Advisory Lock"]
+AdvisoryLock --> ReadStock["Read Current Stock (FOR UPDATE)"]
+ReadStock --> CheckAvailability{"Available Stock >= Required?"}
+CheckAvailability --> |No| InsufficientStock["RAISE EXCEPTION with item name and available qty"]
+CheckAvailability --> |Yes| UpdateStock["Update Stock with GREATEST(qty + delta, 0)"]
+UpdateStock --> ReleaseLock["Release Advisory Lock"]
+ReleaseLock --> Success["Sale Completed"]
+InsufficientStock --> Error["Show User-Friendly Error"]
+```
+
+**Diagram sources**
+- [20261011221132_move_stock_floor_guard.sql:21-37](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L21-L37)
+
+**Section sources**
+- [20261011221132_move_stock_floor_guard.sql:1-42](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L1-L42)
+- [20261011221117_drop_store_stock_bounds_enforce_in_sql.sql:1-12](file://supabase/migrations/20261011221117_drop_store_stock_bounds_enforce_in_sql.sql#L1-L12)
+
+### Advanced Filtering System
+
+The inventory interface provides a comprehensive filtering system that allows users to narrow down product lists efficiently:
 
 ### Filter Types
 - **Low Stock Filter**: Toggle to show only products at or below their reorder point
@@ -569,12 +698,17 @@ INV --> PG["paging.ts"]
   - Large catalogs paginate rows to keep the UI responsive.
 - Debounced Search
   - Search input is debounced to prevent excessive filtering operations during rapid typing.
+- **Updated**: Enhanced validation reduces unnecessary server calls by catching errors client-side first.
 
 ## Troubleshooting Guide
 - Duplicate SKU Errors
   - If a saved SKU clashes with an existing product, the UI detects the conflict client-side and shows an error message. Ensure the SKU is unique across the catalog.
 - Invalid Amounts
   - Selling price, buying cost, quantity, and reorder point are validated with minimum/maximum bounds. Correct inputs to pass validation.
+- **Updated**: Below-Cost Product Errors
+  - If you see "Buying cost must be below the selling price," check that the product's buying cost is less than its selling price. Products with costs meeting or exceeding prices are rejected to prevent negative profit scenarios.
+- **Updated**: Stock Floor Errors
+  - If you encounter stock-related errors, check that sufficient inventory exists before attempting sales. The system now provides clear error messages indicating which item has insufficient stock.
 - Missing Barcode Match
   - If scanning does not resolve a product, verify that the SKU is present and normalized correctly. Check that the product is active.
 - Stock Not Updating
@@ -587,8 +721,10 @@ INV --> PG["paging.ts"]
   - If pagination appears broken, verify that the pageSlice utility is correctly clamping page numbers and that filter changes reset pagination appropriately.
 
 **Section sources**
-- [app.inventory.tsx:698-769](file://src/routes/_authenticated/app.inventory.tsx#L698-L769)
+- [app.inventory.tsx:720-796](file://src/routes/_authenticated/app.inventory.tsx#L720-L796)
 - [validate.ts:1-147](file://src/lib/validate.ts#L1-L147)
+- [20261017174810_cost_below_price_validation.sql:18-22](file://supabase/migrations/20261017174810_cost_below_price_validation.sql#L18-L22)
+- [20261011221132_move_stock_floor_guard.sql:30-32](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L30-L32)
 
 ## Conclusion
-The inventory management system provides a robust foundation for managing products, organizing them into collections, tracking stock per store, integrating barcodes, generating and validating item codes, and performing bulk import/export. The enhanced interface now includes advanced filtering capabilities, responsive pagination controls, comprehensive export functionality, integrated search with debounced input, and responsive design improvements across all screens. By leveraging cached queries, precise validation, explicit cache invalidation, and modern UI patterns, the system remains performant and reliable across devices and roles while providing an intuitive user experience for inventory management tasks.
+The inventory management system provides a robust foundation for managing products, organizing them into collections, tracking stock per store, integrating barcodes, generating and validating item codes, and performing bulk import/export. The enhanced validation system now includes comprehensive below-cost sales detection with both client-side and server-side safeguards, improved database constraints ensuring product costs cannot exceed prices, and better error handling for stock floor enforcement. The interface includes advanced filtering capabilities, responsive pagination controls, comprehensive export functionality, integrated search with debounced input, and responsive design improvements across all screens. By leveraging cached queries, precise validation, explicit cache invalidation, modern UI patterns, and enhanced business rule enforcement, the system remains performant and reliable across devices and roles while providing an intuitive user experience for inventory management tasks.

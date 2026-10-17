@@ -13,6 +13,11 @@ export type Receipt = {
   status: string;
   bizName: string;
   storeName: string;
+  /** Contact details of the location that issued the receipt (small print). */
+  storeAddress?: string | null;
+  storePhone?: string | null;
+  storeEmail?: string | null;
+  storeTaxNumber?: string | null;
   cashier: string;
   date: string;
   lines: ReceiptLine[];
@@ -86,11 +91,21 @@ const padRow = (l: string, rv: string) => {
 };
 const rule = "-".repeat(W);
 
+/** Contact lines printed in small type under the location name. */
+const storeContact = (r: Receipt) =>
+  [
+    r.storeAddress,
+    r.storePhone,
+    r.storeEmail,
+    r.storeTaxNumber ? `${t("till.vat")} ${r.storeTaxNumber}` : null,
+  ].filter((v): v is string => !!v);
+
 /** Plain-text receipt for downloading or sharing over SMS / WhatsApp. */
 export function receiptText(r: Receipt, money: MoneyFmt) {
   const out: string[] = [];
   out.push(r.bizName.toUpperCase().slice(0, W));
   out.push(r.storeName);
+  for (const line of storeContact(r)) out.push(line);
   out.push(receiptTitle(r));
   out.push(rule);
   out.push(padRow(t("doc.invoice"), `#${r.number}`));
@@ -176,10 +191,14 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
     (r.customerPhone ? row(t("till.phoneLabel"), esc(r.customerPhone)) : "") +
     (r.note ? row(t("doc.noteLabel"), esc(r.note)) : "");
   const metaBlock = meta ? dashed + meta : "";
+  const contactBlock = storeContact(r)
+    .map((line) => '<div class="sm">' + esc(line) + "</div>")
+    .join("");
   const parts = [
     '<div class="rcp">',
     '<div class="hd">' + esc(r.bizName) + "</div>",
     '<div class="sub">' + esc(r.storeName) + "</div>",
+    contactBlock,
     '<div class="ttl">' + esc(receiptTitle(r)) + titleChip + "</div>",
     dashed,
     row(t("doc.invoice"), "#" + r.number),
@@ -212,6 +231,7 @@ const PRINT_CSS =
   ".rcp{width:100%;font-size:12px;line-height:1.45}" +
   ".hd{font-size:16px;font-weight:800;text-align:center;letter-spacing:1px}" +
   ".sub,.ft,.bc{text-align:center}.sub{font-size:11px;margin-top:2px}" +
+  ".sm{text-align:center;font-size:9px;line-height:1.35}" +
   ".ttl{text-align:center;font-weight:700;margin:6px 0 2px}" +
   ".chip{border:1px solid #111;border-radius:3px;padding:0 4px;font-size:9px;vertical-align:middle}" +
   ".dashed{border-top:1px dashed #999;margin:6px 0}" +

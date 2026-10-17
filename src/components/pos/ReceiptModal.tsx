@@ -26,6 +26,7 @@ const THERMAL =
   ".thermal{font-family:'Courier New',ui-monospace,monospace;color:#111;background:#fff;width:288px;margin:0 auto;padding:16px 12px;font-size:12px;line-height:1.5;border-radius:4px}" +
   ".thermal .hd{font-size:16px;font-weight:800;text-align:center;letter-spacing:1px}" +
   ".thermal .sub,.thermal .ft,.thermal .bc{text-align:center}.thermal .sub{font-size:11px;margin-top:2px}" +
+  ".thermal .sm{text-align:center;font-size:9px;line-height:1.35}" +
   ".thermal .ttl{text-align:center;font-weight:700;margin:6px 0 2px}" +
   ".thermal .chip{border:1px solid #111;border-radius:3px;padding:0 4px;font-size:9px;vertical-align:middle}" +
   ".thermal .dashed{border-top:1px dashed #999;margin:6px 0}" +

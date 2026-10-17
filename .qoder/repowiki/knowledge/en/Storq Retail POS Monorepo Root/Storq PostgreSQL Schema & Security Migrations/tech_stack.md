@@ -1,0 +1,1 @@
+PostgreSQL with the `pgcrypto` extension (bcrypt via `extensions.crypt`/`gen_salt('bf', 10)`); managed by the Supabase CLI using the project ID in `config.toml` and triggering PostgREST reloads via `NOTIFY pgrst, 'reload schema'`.

@@ -26,7 +26,9 @@
 - [20261011100000_item_codes.sql](file://supabase/migrations/20261011100000_item_codes.sql)
 - [20261011110000_drop_legacy_save_product_overload.sql](file://supabase/migrations/20261011110000_drop_legacy_save_product_overload.sql)
 - [20261011120000_fix_x_alias_collision.sql](file://supabase/migrations/20261011120000_fix_x_alias_collision.sql)
-- [20261011130000_stock_absolute_set.sql](file://supabase/migrations/202610130000_stock_absolute_set.sql)
+- [20261011130000_stock_absolute_set.sql](file://supabase/migrations/20261011130000_stock_absolute_set.sql)
+- [20261011221117_drop_store_stock_bounds_enforce_in_sql.sql](file://supabase/migrations/20261011221117_drop_store_stock_bounds_enforce_in_sql.sql)
+- [20261011221132_move_stock_floor_guard.sql](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql)
 </cite>
 
 ## Update Summary
@@ -39,6 +41,8 @@
 - Enhanced item code generation with unique SKU management
 - Improved sales summary reporting with server-side aggregation
 - Added absolute stock quantity setting with proper locking mechanisms
+- **Updated**: Removed restrictive `store_stock_bounds` constraint and moved stock floor guard to SQL logic with advisory locks
+- **Updated**: Enhanced data integrity through CHECK constraints and proper error handling
 - Comprehensive performance optimization with strategic indexing
 
 ## Table of Contents
@@ -55,8 +59,10 @@
 ## Introduction
 This document describes the enhanced database schema for a retail point-of-sale system with comprehensive security hardening, multi-tenancy patterns, and advanced retail operations. The system now includes sophisticated authentication with PIN-based staff sessions, granular Row-Level Security policies, split tender payment processing, manual discount controls, inter-store stock transfers, and robust inventory management with reorder point monitoring. All data access is secured through strict RPC boundaries with server-side validation and business logic enforcement.
 
+The latest infrastructure improvements include enhanced stock management with advisory locks, improved error handling for concurrent operations, and refined constraint strategies that provide better user experience while maintaining data integrity.
+
 ## Project Structure
-The database has evolved through 25+ timestamped SQL migrations under the Supabase migrations directory, progressing from basic retail operations to a hardened, enterprise-grade system. The evolution includes core entity creation, security hardening phases, retail operation enhancements, and performance optimizations.
+The database has evolved through 27+ timestamped SQL migrations under the Supabase migrations directory, progressing from basic retail operations to a hardened, enterprise-grade system. The evolution includes core entity creation, security hardening phases, retail operation enhancements, performance optimizations, and recent infrastructure improvements for better concurrency handling.
 
 ```mermaid
 graph TB
@@ -65,8 +71,9 @@ M1["Core entities<br/>businesses, stores, staff,<br/>products, sales"]
 M2["Security hardening<br/>PIN throttle, device binding,<br/>RLS policies, cost segregation"]
 M3["Retail operations<br/>split tenders, discounts,<br/>stock transfers, reorder points"]
 M4["Performance & reliability<br/>sales summary, item codes,<br/>absolute stock setting"]
+M5["Infrastructure improvements<br/>advisory locks, constraint<br/>refinement, error handling"]
 end
-M1 --> M2 --> M3 --> M4
+M1 --> M2 --> M3 --> M4 --> M5
 ```
 
 **Diagram sources**
@@ -74,6 +81,7 @@ M1 --> M2 --> M3 --> M4
 - [20261008090000_security_hardening.sql:1-760](file://supabase/migrations/20261008090000_security_hardening.sql#L1-L760)
 - [20261009210500_retail_operations.sql:1-556](file://supabase/migrations/20261009210500_retail_operations.sql#L1-L556)
 - [20261011090000_sales_summary.sql:1-72](file://supabase/migrations/20261011090000_sales_summary.sql#L1-L72)
+- [20261011221117_drop_store_stock_bounds_enforce_in_sql.sql:1-13](file://supabase/migrations/20261011221117_drop_store_stock_bounds_enforce_in_sql.sql#L1-L13)
 
 **Section sources**
 - [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:1-133](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L1-L133)
@@ -98,11 +106,13 @@ The enhanced system now includes sophisticated security and operational componen
 - **Absolute Stock Setting**: Secure stock quantity updates with proper locking to prevent race conditions
 - **Item Code Generation**: Unique, scannable product identifiers with case-insensitive matching
 - **Low Stock Monitoring**: Real-time alerts for products at or below reorder points
+- **Advisory Locking**: Concurrent stock operations serialized per store-product pair to prevent race conditions
 
 **Section sources**
 - [20261008090000_security_hardening.sql:27-40](file://supabase/migrations/20261008090000_security_hardening.sql#L27-L40)
 - [20261009210500_retail_operations.sql:22-47](file://supabase/migrations/20261009210500_retail_operations.sql#L22-L47)
 - [20261011100000_item_codes.sql:18-39](file://supabase/migrations/20261011100000_item_codes.sql#L18-L39)
+- [20261011221132_move_stock_floor_guard.sql:21-24](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L21-L24)
 
 ## Architecture Overview
 The architecture enforces strict security boundaries with comprehensive Row-Level Security and role-based access control. All write operations must go through SECURITY DEFINER functions that validate inputs and enforce business rules.
@@ -120,12 +130,14 @@ Inventory --> Transfers["Stock Transfers"]
 Transfers --> Audit["Audit Trail"]
 Business --> Reports["Sales Summary<br/>Server-Side Aggregation"]
 Business --> Alerts["Low Stock Alerts"]
+Inventory --> Advisory["Advisory Locks<br/>Concurrent Protection"]
 ```
 
 **Diagram sources**
 - [20261008090000_security_hardening.sql:68-77](file://supabase/migrations/20261008090000_security_hardening.sql#L68-L77)
 - [20261009210500_retail_operations.sql:108-287](file://supabase/migrations/20261009210500_retail_operations.sql#L108-L287)
 - [20261011090000_sales_summary.sql:14-52](file://supabase/migrations/20261011090000_sales_summary.sql#L14-L52)
+- [20261011221132_move_stock_floor_guard.sql:21-24](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L21-L24)
 
 ## Detailed Component Analysis
 
@@ -212,9 +224,44 @@ Unique, scannable product identifiers:
 - Backfill of existing products with generated codes
 - Unique constraints ensure one code per product
 
+#### Updated Stock Floor Guard Implementation
+**New** The stock floor guard has been moved from database constraints to SQL logic with proper locking mechanisms:
+
+- **Advisory Locking**: Uses `pg_advisory_xact_lock` to serialize concurrent operations on the same store-product pair
+- **Row-Level Locking**: `FOR UPDATE` clauses ensure reads see the exact values that writes will use
+- **Explicit Error Handling**: User-friendly error messages replace cryptic constraint violations
+- **Belt-and-Suspenders Approach**: `GREATEST(qty + delta, 0)` ensures zero balance even if races slip past guards
+- **Constraint Refinement**: Only upper bound constraint remains (`qty <= 100000000`), removing restrictive lower bound
+
+```mermaid
+sequenceDiagram
+participant Client as "Client App"
+participant _move_stock as "_move_stock Function"
+participant Advisory as "Advisory Lock"
+participant DB as "Database"
+Client->>_move_stock : Process sale
+_move_stock->>Advisory : Lock (store_id, product_id)
+Advisory->>DB : Serialize concurrent operations
+_move_stock->>DB : SELECT qty FOR UPDATE
+DB-->>_move_stock : Current stock value
+_move_stock->>_move_stock : Check if sufficient stock
+alt Insufficient stock
+_move_stock->>Client : RAISE EXCEPTION 'Only X left in stock'
+else Sufficient stock
+_move_stock->>DB : INSERT/UPDATE with GREATEST(delta, 0)
+DB-->>Client : Success
+end
+```
+
+**Diagram sources**
+- [20261011221132_move_stock_floor_guard.sql:21-37](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L21-L37)
+- [20261011221117_drop_store_stock_bounds_enforce_in_sql.sql:1-13](file://supabase/migrations/20261011221117_drop_store_stock_bounds_enforce_in_sql.sql#L1-L13)
+
 **Section sources**
 - [20261011130000_stock_absolute_set.sql:37-62](file://supabase/migrations/20261011130000_stock_absolute_set.sql#L37-L62)
 - [20261011100000_item_codes.sql:18-39](file://supabase/migrations/20261011100000_item_codes.sql#L18-L39)
+- [20261011221132_move_stock_floor_guard.sql:1-42](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L1-L42)
+- [20261011221117_drop_store_stock_bounds_enforce_in_sql.sql:1-13](file://supabase/migrations/20261011221117_drop_store_stock_bounds_enforce_in_sql.sql#L1-L13)
 
 ### Performance Optimizations
 
@@ -231,9 +278,17 @@ Comprehensive index coverage:
 - Partial indexes for filtered data
 - Performance optimization for reporting queries
 
+#### Advisory Lock Optimization
+Enhanced concurrency control:
+- Fine-grained locking per store-product pair
+- Minimal lock contention across different products
+- Transaction-scoped advisory locks for safety
+- Elimination of table-level locking overhead
+
 **Section sources**
 - [20261011090000_sales_summary.sql:14-52](file://supabase/migrations/20261011090000_sales_summary.sql#L14-L52)
 - [20261009192705_c04f3a80-e05e-498f-ab87-694d79f3fe3f.sql:1-23](file://supabase/migrations/20261009192705_c04f3a80-e05e-498f-ab87-694d79f3fe3f.sql#L1-L23)
+- [20261011221132_move_stock_floor_guard.sql:21-24](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L21-L24)
 
 ## Dependency Analysis
 The enhanced schema maintains clear hierarchical dependencies while adding new operational relationships:
@@ -251,11 +306,14 @@ Sales --> Payments
 Sales --> Refunds
 StockTransfers --> StockTransferLines
 Subscriptions --> SubscriptionPayments
+Sales --> AdvisoryLocks
+StockTransfers --> AdvisoryLocks
 ```
 
 **Diagram sources**
 - [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:3-100](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L3-L100)
 - [20261009210500_retail_operations.sql:22-47](file://supabase/migrations/20261009210500_retail_operations.sql#L22-L47)
+- [20261011221132_move_stock_floor_guard.sql:21-24](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L21-L24)
 
 **Section sources**
 - [20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql:3-100](file://supabase/migrations/20261007084733_2ed95314-f75e-4843-977b-23f9e6359a48.sql#L3-L100)
@@ -279,6 +337,11 @@ The enhanced system includes several performance optimizations:
 - **Optimized RLS policies** minimize row scanning
 - **Batch operations** where possible to reduce round trips
 
+### Concurrency Optimization
+- **Fine-grained advisory locks** minimize contention between unrelated operations
+- **Transaction-scoped locks** ensure consistency without long-term blocking
+- **Optimized lock ordering** prevents deadlocks in multi-product transactions
+
 ## Troubleshooting Guide
 
 ### Security-Related Issues
@@ -295,11 +358,19 @@ The enhanced system includes several performance optimizations:
 - **"Quantity must be between 0 and 100,000,000"**: Invalid stock quantity input
 - **"Only [X] left in stock for [item]"**: Attempting to remove more stock than available
 - **"Another item already uses the code [code]"**: Duplicate product identifier conflict
+- **"Race condition detected"**: Concurrent stock operations; retry the operation
+
+### Updated Error Messages
+**New** The enhanced stock management provides clearer error messages:
+- **"Only X left in stock for [item name]"**: Specific item shortage with current stock level
+- **"Enter an adjustment amount between 1 and 1,000,000"**: Clear bounds for manual adjustments
+- **"Quantity can have at most 2 decimal places"**: Precision validation for stock quantities
 
 **Section sources**
 - [20261008090000_security_hardening.sql:219-256](file://supabase/migrations/20261008090000_security_hardening.sql#L219-L256)
 - [20261009210500_retail_operations.sql:172-185](file://supabase/migrations/20261009210500_retail_operations.sql#L172-L185)
 - [20261011130000_stock_absolute_set.sql:99-102](file://supabase/migrations/20261011130000_stock_absolute_set.sql#L99-L102)
+- [20261011221132_move_stock_floor_guard.sql:30-32](file://supabase/migrations/20261011221132_move_stock_floor_guard.sql#L30-L32)
 
 ## Conclusion
 The enhanced database schema represents a mature, enterprise-grade retail platform with comprehensive security hardening, sophisticated operational capabilities, and robust data integrity measures. The system successfully balances security requirements with operational flexibility, providing cashiers with streamlined workflows while maintaining strict controls over sensitive operations. The migration strategy demonstrates careful evolution from basic retail operations to a fully hardened system with advanced features like split tenders, stock transfers, and proactive inventory management.
@@ -310,5 +381,6 @@ Key achievements include:
 - **Data integrity assurance** through proper locking mechanisms and comprehensive validation
 - **Performance optimization** ensuring responsive user experience even with large datasets
 - **Scalable architecture** supporting multi-tenant operations with granular access controls
+- **Enhanced concurrency control** with advisory locks and refined constraint strategies
 
-By following the documented constraints, functions, and policies, developers can build reliable features that align with the intended business workflows while maintaining the highest standards of security and data integrity.
+The latest infrastructure improvements demonstrate a commitment to both technical excellence and user experience, replacing cryptic database errors with meaningful business messages while maintaining the highest standards of data integrity and security. By following the documented constraints, functions, and policies, developers can build reliable features that align with the intended business workflows while benefiting from the robust concurrency handling and error management systems.

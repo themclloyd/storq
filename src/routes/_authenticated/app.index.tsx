@@ -166,8 +166,8 @@ function Register() {
   const grossSub = round2(cart.reduce((a, l) => a + lineGross(l), 0));
   const discountTotal = round2(cart.reduce((a, l) => a + lineDisc(l), 0));
   const netSub = round2(grossSub - discountTotal);
-  const rate = Number(business?.tax_rate ?? 0);
-  const incl = business?.tax_inclusive ?? true;
+  const rate = Number(store?.tax_rate ?? 0);
+  const incl = store?.tax_inclusive ?? true;
   const tax = rate > 0 ? (incl ? netSub - netSub / (1 + rate / 100) : (netSub * rate) / 100) : 0;
   const total = rate > 0 && !incl ? netSub + tax : netSub;
   const approval = store?.store_type === "approval";
@@ -329,6 +329,10 @@ function Register() {
           status: r.status,
           bizName: business?.name ?? "Storq",
           storeName: store.name,
+          storeAddress: store.address,
+          storePhone: store.phone,
+          storeEmail: store.email,
+          storeTaxNumber: store.tax_number,
           cashier: staff?.name ?? "Staff",
           date: new Date().toISOString(),
           lines,
@@ -792,7 +796,7 @@ function CheckoutDialog({
   onClose: () => void;
   onDone: (f: SaleForm) => Promise<void>;
 }) {
-  const { money, store, business } = usePos();
+  const { money, store } = usePos();
   const { t } = useI18n();
   const methodOpts = payMethods.map((m) => ({ value: m.v, label: t(m.k) }));
   const [method, setMethod] = useState("cash");
@@ -805,7 +809,7 @@ function CheckoutDialog({
   const [busy, setBusy] = useState(false);
   const pay = Number(tendered || 0);
   const splitting = extra.length > 0;
-  const rate = Number(business?.tax_rate ?? 0);
+  const rate = Number(store?.tax_rate ?? 0);
   // Notes a cashier is likely holding: the next round amounts above the total.
   const step = total >= 5000 ? 5000 : total >= 1000 ? 1000 : 100;
   const upTo = (m: number) => Math.ceil(total / m) * m;
@@ -886,7 +890,7 @@ function CheckoutDialog({
             {rate > 0 && (
               <div className="mt-1 text-[11px] text-muted-foreground">
                 {t("till.vat")} {rate}%{" "}
-                {business?.tax_inclusive ? t("till.included") : t("till.added")}
+                {store?.tax_inclusive ? t("till.included") : t("till.added")}
               </div>
             )}
           </div>

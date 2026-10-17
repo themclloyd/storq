@@ -14,6 +14,8 @@ export const LIMITS = {
   sku: 64,
   category: 120,
   note: 500,
+  address: 240,
+  taxId: 40,
   customerName: 120,
   phone: 32,
   currency: 4,
@@ -29,7 +31,7 @@ export const LIMITS = {
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f<>`]|--/;
 const EMAIL_RE =
   /^[^\s@+]+(?:[.+_-][^\s@+]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
-const PHONE_RE = /^[+0-9()-]{6,32}$/;
+const PHONE_RE = /^[+0-9() -]{6,32}$/;
 const PIN_RE = /^[0-9]{4,8}$/;
 const SKU_RE = /^[A-Za-z0-9._\- ]{1,64}$/;
 

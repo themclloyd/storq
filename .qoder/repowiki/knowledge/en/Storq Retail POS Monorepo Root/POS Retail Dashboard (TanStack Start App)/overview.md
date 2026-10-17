@@ -1,1 +1,0 @@
-Orchestrates a TanStack Start POS/retail dashboard by wiring Supabase auth, React Query defaults, file-based routes, and shadcn/ui primitives into feature-split screens.

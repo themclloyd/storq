@@ -1,60 +1,56 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusSignIcon, Tick02Icon } from "@/lib/icons";
+import { ArrowRight01Icon, PlusSignIcon } from "@/lib/icons";
 import { usePos, type Store } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
-import { LIMITS, requireText, sanitizeText, validateAmount } from "@/lib/validate";
+import { LIMITS, firstError, requireText, sanitizeText, validatePhone } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/pos/bits";
+import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import { pluralize } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { useSubscription } from "@/lib/billing";
 
 export const Route = createFileRoute("/_authenticated/app/stores")({
   head: () => ({
     meta: [
       { title: "Locations — Storq" },
-      { name: "description", content: "Manage your Storq locations and tax settings." },
+      { name: "description", content: "Manage your Storq locations, VAT and receipt details." },
       { property: "og:title", content: "Locations — Storq" },
-      { property: "og:description", content: "Manage your Storq locations and tax settings." },
+      {
+        property: "og:description",
+        content: "Manage your Storq locations, VAT and receipt details.",
+      },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: Stores,
 });
 
-const storeTypeStyle: Record<string, string> = {
-  approval: "bg-warning-soft text-warning-foreground",
-  direct: "bg-success-soft text-success",
-};
-
-function StoreTypeTag({ type }: { type: string }) {
-  const { t } = useI18n();
-  return (
-    <Badge
-      className={cn(
-        "rounded-full border-transparent px-2 py-0.5 text-[11px] uppercase tracking-wide",
-        storeTypeStyle[type] ?? "bg-success-soft text-success",
-      )}
-    >
-      {type === "approval" ? t("store.typeApproval") : t("store.typeDirect")}
-    </Badge>
-  );
-}
+const types = [
+  {
+    v: "direct",
+    tKey: "store.typeDirect",
+    dKey: "store.directDesc",
+  },
+  {
+    v: "approval",
+    tKey: "store.approvalTitle",
+    dKey: "store.approvalDesc",
+  },
+] as const;
 
 function Stores() {
   const { stores, can, business } = usePos();
   const { t } = useI18n();
   const subscription = useSubscription(business?.id, stores.length);
-  const [edit, setEdit] = useState<Partial<Store> | null>(null);
+  const [adding, setAdding] = useState(false);
   if (!can("admin"))
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">{t("store.onlyAdmins")}</Card>
@@ -66,10 +62,7 @@ function Stores() {
         title={t("store.title")}
         sub={pluralize(stores.length, t("store.oneLocation"), t("store.manyLocations"))}
         actions={
-          <Button
-            disabled={!subscription.data?.canAddStore}
-            onClick={() => setEdit({ store_type: "direct" })}
-          >
+          <Button disabled={!subscription.data?.canAddStore} onClick={() => setAdding(true)}>
             <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
           </Button>
         }
@@ -91,59 +84,65 @@ function Stores() {
       </div>
       <div className="grid gap-2 md:grid-cols-2">
         {stores.map((s) => (
-          <Card key={s.id} className="flex min-w-0 items-center justify-between gap-3 p-4">
-            <div className="min-w-0">
-              <div className="truncate font-medium">{s.name}</div>
-              <div className="mt-1.5">
-                <StoreTypeTag type={s.store_type} />
+          <Link key={s.id} to="/app/stores/$id" params={{ id: s.id }} className="min-w-0">
+            <Card className="flex min-w-0 items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40">
+              <div className="min-w-0">
+                <div className="truncate font-medium">{s.name}</div>
+                {(s.phone || s.address) && (
+                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {[s.phone, s.address].filter(Boolean).join(" · ")}
+                  </div>
+                )}
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <StoreTypeTag type={s.store_type} />
+                  <span className="text-[11px] text-muted-foreground">
+                    {t("till.vat")} {Number(s.tax_rate ?? 0)}%
+                    {s.tax_inclusive === false ? ` · ${t("till.added")}` : ""}
+                  </span>
+                </div>
               </div>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => setEdit(s)}>
-              {t("common.edit")}
-            </Button>
-          </Card>
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+            </Card>
+          </Link>
         ))}
       </div>
-      <TaxSettings />
-      {edit && <StoreDialog s={edit} onClose={() => setEdit(null)} />}
+      {adding && <StoreDialog onClose={() => setAdding(false)} />}
     </>
   );
 }
 
-const types = [
-  {
-    v: "direct",
-    tKey: "store.typeDirect",
-    dKey: "store.directDesc",
-  },
-  {
-    v: "approval",
-    tKey: "store.approvalTitle",
-    dKey: "store.approvalDesc",
-  },
-] as const;
-
-function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void }) {
+function StoreDialog({ onClose }: { onClose: () => void }) {
   const { rpc } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const [name, setName] = useState(s.name ?? "");
-  const [type, setType] = useState<Store["store_type"]>(s.store_type ?? "direct");
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [type, setType] = useState<Store["store_type"]>("direct");
+  const [phone, setPhone] = useState("");
   async function save() {
-    const err = requireText(name, t("store.locationName"), LIMITS.storeName);
+    const err = firstError(
+      requireText(name, t("store.locationName"), LIMITS.storeName),
+      validatePhone(phone, true),
+    );
     if (err) {
       toast.error(err);
       return;
     }
     try {
-      await rpc("save_store", {
-        p_id: s.id ?? null,
+      const id = await rpc<string>("save_store", {
+        p_id: null,
         p_name: sanitizeText(name, LIMITS.storeName),
         p_type: type,
+        p_phone: phone.trim(),
       });
-      toast.success(t("common.saved"));
-      qc.invalidateQueries();
+      toast.success(t("store.added"));
+      // Wait for the list to carry the new location before opening its page.
+      await qc.invalidateQueries({ queryKey: ["stores"] });
       onClose();
+      if (id) void navigate({ to: "/app/stores/$id", params: { id } });
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -152,7 +151,7 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md rounded-3xl">
         <DialogHeader>
-          <DialogTitle>{s.id ? t("store.editTitle") : t("store.addBtn")}</DialogTitle>
+          <DialogTitle>{t("store.addBtn")}</DialogTitle>
         </DialogHeader>
         <Label className="block space-y-1">
           <span className="text-[11px] font-medium text-muted-foreground">
@@ -162,6 +161,15 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
             maxLength={LIMITS.storeName}
             value={name}
             onChange={(e) => setName(e.target.value.slice(0, LIMITS.storeName))}
+          />
+        </Label>
+        <Label className="block space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">{t("store.phone")}</span>
+          <Input
+            inputMode="tel"
+            maxLength={LIMITS.phone}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
           />
         </Label>
         <div role="radiogroup" aria-label={t("store.locationName")} className="space-y-2">
@@ -180,122 +188,5 @@ function StoreDialog({ s, onClose }: { s: Partial<Store>; onClose: () => void })
         </Button>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function TaxSettings() {
-  const { business, rpc, money } = usePos();
-  const { t } = useI18n();
-  const qc = useQueryClient();
-  const [rate, setRate] = useState(String(business?.tax_rate ?? 0));
-  const [incl, setIncl] = useState(business?.tax_inclusive ?? true);
-  async function save() {
-    const err = validateAmount(rate, { label: t("store.taxRate"), min: 0, max: 50 });
-    if (err) {
-      toast.error(err);
-      return;
-    }
-    try {
-      await rpc("save_tax_settings", { p_rate: Number(rate || 0), p_inclusive: incl });
-      toast.success(t("store.taxSaved"));
-      qc.invalidateQueries();
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }
-  const sample = 1000;
-  const rateNum = Number(rate || 0);
-  const net = incl ? sample / (1 + rateNum / 100) : sample;
-  const vat = incl ? sample - net : (sample * rateNum) / 100;
-  return (
-    <Card className="mt-5 max-w-xl space-y-3 p-5">
-      <div>
-        <h3 className="font-display text-base font-medium">{t("store.taxTitle")}</h3>
-        <p className="text-[13px] text-muted-foreground">{t("store.taxDesc")}</p>
-      </div>
-      <Label className="block space-y-1">
-        <span className="text-[11px] font-medium text-muted-foreground">
-          {t("store.taxRatePct")}
-        </span>
-        <Input
-          inputMode="decimal"
-          maxLength={5}
-          value={rate}
-          onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ""))}
-        />
-      </Label>
-      <div role="radiogroup" aria-label={t("store.taxTitle")} className="space-y-2">
-        {(
-          [
-            [true, "store.inclTitle", "store.inclDesc"],
-            [false, "store.addVatTitle", "store.addVatDesc"],
-          ] as const
-        ).map(([v, ti, di]) => (
-          <RadioCard
-            key={String(v)}
-            checked={incl === v}
-            onSelect={() => setIncl(v)}
-            title={t(ti)}
-            desc={t(di)}
-          />
-        ))}
-      </div>
-      <div className="rounded-2xl bg-secondary/50 p-3 text-[13px]">
-        <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {t("store.taxExample", { amount: money(sample) })}
-        </div>
-        <div className="flex justify-between gap-3">
-          <span className="text-muted-foreground">{t("store.exampleNet")}</span>
-          <span className="tabular font-medium">{money(net)}</span>
-        </div>
-        <div className="flex justify-between gap-3">
-          <span className="text-muted-foreground">{t("store.exampleVat")}</span>
-          <span className="tabular font-medium">{money(vat)}</span>
-        </div>
-        <div className="mt-1 flex justify-between gap-3 border-t pt-1.5">
-          <span className="font-medium">{t("store.exampleTotal")}</span>
-          <span className="tabular font-semibold">{money(net + vat)}</span>
-        </div>
-      </div>
-      <Button onClick={save}>{t("store.saveTaxBtn")}</Button>
-    </Card>
-  );
-}
-
-function RadioCard({
-  checked,
-  onSelect,
-  title,
-  desc,
-}: {
-  checked: boolean;
-  onSelect: () => void;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={checked}
-      onClick={onSelect}
-      className={cn(
-        "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
-        checked ? "border-primary bg-secondary/50" : "border-input bg-card hover:bg-muted",
-      )}
-    >
-      <span
-        className={cn(
-          "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border [&_svg]:size-3",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-input",
-        )}
-      >
-        {checked && <HugeiconsIcon icon={Tick02Icon} />}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-medium">{title}</span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
-      </span>
-    </button>
   );
 }

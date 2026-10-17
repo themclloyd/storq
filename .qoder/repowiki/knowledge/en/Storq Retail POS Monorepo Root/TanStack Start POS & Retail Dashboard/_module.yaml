@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: frontend_app
-title: POS Retail Dashboard (TanStack Start App)
+title: TanStack Start POS & Retail Dashboard
 scope:
     - src/
 source_files: []

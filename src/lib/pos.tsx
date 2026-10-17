@@ -44,7 +44,17 @@ export type StaffSession = {
   store_id: string | null;
   expires_at?: string;
 };
-export type Store = { id: string; name: string; store_type: "direct" | "approval" };
+export type Store = {
+  id: string;
+  name: string;
+  store_type: "direct" | "approval";
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  tax_number: string | null;
+  tax_rate: number;
+  tax_inclusive: boolean;
+};
 export type Business = {
   id: string;
   name: string;
@@ -169,7 +179,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        .select("id,name,store_type")
+        .select("id,name,store_type,phone,email,address,tax_number,tax_rate,tax_inclusive")
         .order("created_at");
       if (error) throw error;
       return data as Store[];

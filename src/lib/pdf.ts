@@ -38,11 +38,15 @@ export type PdfDoc = {
   orientation?: "portrait" | "landscape" | undefined;
 };
 
-const INK: [number, number, number] = [24, 24, 27];
-const MUTED: [number, number, number] = [113, 113, 122];
-const LINE: [number, number, number] = [228, 228, 231];
-const LIME: [number, number, number] = [209, 237, 113];
-const SOFT: [number, number, number] = [247, 247, 245];
+// Brand palette mirrored from the design tokens in src/styles.css (GoDaddy
+// "Everyday Blue": near-black ink text, cool-gray surfaces, one teal accent).
+const INK: [number, number, number] = [17, 17, 17]; // #111 foreground
+const MUTED: [number, number, number] = [118, 118, 118]; // #767676 muted-foreground
+const LINE: [number, number, number] = [212, 219, 224]; // #d4dbe0 border
+const TEAL: [number, number, number] = [0, 164, 166]; // #00a4a6 primary
+const TEAL_DARK: [number, number, number] = [9, 117, 122]; // #09757a secondary-foreground
+const SOFT: [number, number, number] = [241, 251, 250]; // primary-soft oklch(0.94 0.03 196)
+const WHITE: [number, number, number] = [255, 255, 255];
 
 // Standard PDF fonts only cover Latin-1; normalise common typographic glyphs.
 const clean = (v: unknown) =>
@@ -66,13 +70,14 @@ export async function downloadPdf(d: PdfDoc) {
   const M = 40;
   let y = M;
 
-  // Brand header
-  doc.setFillColor(...LIME);
+  // Brand header: teal strip, plus a logo chip echoing the app mark (teal
+  // rounded square, white "S").
+  doc.setFillColor(...TEAL);
   doc.rect(0, 0, W, 6, "F");
-  doc.setFillColor(...INK);
+  doc.setFillColor(...TEAL);
   doc.roundedRect(M, y, 22, 22, 5, 5, "F");
   doc
-    .setTextColor(...LIME)
+    .setTextColor(...WHITE)
     .setFont("helvetica", "bold")
     .setFontSize(13)
     .text("S", M + 7, y + 15.5);
@@ -88,8 +93,9 @@ export async function downloadPdf(d: PdfDoc) {
   if (d.badge) {
     doc.setFont("helvetica", "bold").setFontSize(8);
     const bw = doc.getTextWidth(clean(d.badge)) + 16;
-    doc.setFillColor(...LIME).roundedRect(W - M - bw, y + 3, bw, 16, 8, 8, "F");
-    doc.setTextColor(...INK).text(clean(d.badge), W - M - bw + 8, y + 14);
+    // Soft-teal badge with dark-teal text, like the app's primary-soft badges.
+    doc.setFillColor(...SOFT).roundedRect(W - M - bw, y + 3, bw, 16, 8, 8, "F");
+    doc.setTextColor(...TEAL_DARK).text(clean(d.badge), W - M - bw + 8, y + 14);
   }
   y += 50;
   doc
@@ -147,7 +153,7 @@ export async function downloadPdf(d: PdfDoc) {
       doc
         .setFont("helvetica", "bold")
         .setFontSize(12)
-        .setTextColor(...INK)
+        .setTextColor(...TEAL_DARK)
         .text(clean(v), cx + 10, y + 37, { maxWidth: cw - 16 });
     });
     y += 66;
@@ -202,15 +208,13 @@ export async function downloadPdf(d: PdfDoc) {
       },
       headStyles: {
         fillColor: INK,
-        textColor: [255, 255, 255],
+        textColor: WHITE,
         fontStyle: "bold",
         fontSize: 8,
         lineWidth: 0,
       },
       footStyles: { fillColor: SOFT, textColor: INK, fontStyle: "bold" },
-      ...(isPairs
-        ? {}
-        : { alternateRowStyles: { fillColor: [252, 252, 251] as [number, number, number] } }),
+      ...(isPairs ? {} : { alternateRowStyles: { fillColor: SOFT } }),
       columnStyles: colStyles,
       didParseCell: (c) => {
         if ((c.section === "head" || c.section === "foot") && align?.[c.column.index])
@@ -229,15 +233,15 @@ export async function downloadPdf(d: PdfDoc) {
     d.totals.forEach(([k, v], i) => {
       const bold = i === d.totals!.length - 1;
       if (bold) {
-        doc.setFillColor(...LIME).roundedRect(bx - 8, y - 2, 228, 22, 4, 4, "F");
+        doc.setFillColor(...SOFT).roundedRect(bx - 8, y - 2, 228, 22, 4, 4, "F");
       }
       doc
         .setFont("helvetica", bold ? "bold" : "normal")
         .setFontSize(bold ? 11 : 9.5)
-        .setTextColor(...(bold ? INK : MUTED))
+        .setTextColor(...(bold ? TEAL_DARK : MUTED))
         .text(clean(k), bx, y + 13);
       doc
-        .setTextColor(...INK)
+        .setTextColor(...(bold ? TEAL_DARK : INK))
         .setFont("helvetica", "bold")
         .text(clean(v), W - M, y + 13, { align: "right" });
       y += 22;
@@ -328,6 +332,19 @@ export async function downloadReceiptPdf(r: Receipt, money: MoneyFmt) {
 
     center(r.bizName, 13, "bold");
     center(r.storeName, 8.5);
+    // Location contact details in small print, wrapped to the roll width.
+    for (const detail of [
+      r.storeAddress,
+      r.storePhone,
+      r.storeEmail,
+      r.storeTaxNumber ? `${t("till.vat")} ${r.storeTaxNumber}` : null,
+    ]) {
+      if (!detail) continue;
+      setF("normal", 6.5);
+      const ls = doc.splitTextToSize(clean(detail), R_TEXT) as string[];
+      doc.text(ls, ROLL / 2, y, { align: "center" });
+      y += ls.length * line(6.5);
+    }
     center(receiptTitle(r), 10, "bold");
     const status = statusLabel(r.status);
     if (status) center(status, 8);

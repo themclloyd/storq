@@ -1,0 +1,1 @@
+Wires TanStack Start's bootstrap, Supabase auth middleware, file-based routes, and shadcn/ui primitives into a feature-split POS/retail dashboard.
