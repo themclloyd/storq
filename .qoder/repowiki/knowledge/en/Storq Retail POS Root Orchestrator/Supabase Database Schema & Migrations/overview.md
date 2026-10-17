@@ -1,1 +1,0 @@
-PostgreSQL schema, Row Level Security policies, and stored procedures that back the Storq retail POS application via Supabase migrations.

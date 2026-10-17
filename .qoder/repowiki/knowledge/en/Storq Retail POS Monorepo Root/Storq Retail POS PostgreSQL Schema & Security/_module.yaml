@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: database_schema
-title: Supabase Database Schema & Migrations
+title: Storq Retail POS PostgreSQL Schema & Security
 scope:
     - supabase/
 source_files: []

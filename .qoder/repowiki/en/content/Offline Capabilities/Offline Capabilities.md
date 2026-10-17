@@ -7,8 +7,16 @@
 - [cache-invalidation.ts](file://src/lib/cache-invalidation.ts)
 - [error-capture.ts](file://src/lib/error-capture.ts)
 - [use-idle-lock.ts](file://src/components/pos/use-idle-lock.ts)
-- [en.ts](file://src/lib/i18n/en.ts)
+- [subscription-policy.ts](file://src/lib/subscription-policy.ts)
+- [offline-scope.test.ts](file://src/lib/offline-scope.test.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated local cache layer section to reflect subscription data persistence
+- Added new section documenting cache key categorization utilities
+- Enhanced core components section with subscription caching details
+- Updated architecture diagrams to include subscription data flow
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -22,14 +30,14 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the offline-first architecture that keeps the point-of-sale system fully usable without internet connectivity. It covers local cache persistence, a transaction queue for sales made while offline, background synchronization when connectivity returns, network status monitoring, cache invalidation and consistency rules, conflict handling behavior, error handling strategies, and performance considerations for large datasets and memory management.
+This document explains the offline-first architecture that keeps the point-of-sale system fully usable without internet connectivity. It covers local cache persistence including subscription data, a transaction queue for sales made while offline, background synchronization when connectivity returns, network status monitoring, cache invalidation and consistency rules, conflict handling behavior, error handling strategies, and performance considerations for large datasets and memory management.
 
 The implementation is browser-based: it uses `localStorage` for durable snapshots and queues, TanStack Query for in-memory caching, and Supabase RPC calls for server-side transactions.
 
 ## Project Structure
 The offline capability spans three main areas:
 
-- Local persistence utilities for cache and queue.
+- Local persistence utilities for cache and queue with subscription data support.
 - The POS provider that orchestrates checkout, offline queuing, background sync, and UI feedback.
 - Cache invalidation helpers that keep related data consistent after successful synchronization.
 
@@ -42,6 +50,7 @@ OfflineLib["Offline Utilities<br/>offline.ts"]
 CacheInvalid["Cache Invalidation<br/>cache-invalidation.ts"]
 IdleLock["Idle Lock<br/>use-idle-lock.ts"]
 ErrorCapture["Error Capture<br/>error-capture.ts"]
+SubPolicy["Subscription Policy<br/>subscription-policy.ts"]
 end
 subgraph "Server"
 Supabase["Supabase RPC<br/>checkout_ref"]
@@ -51,33 +60,36 @@ Provider --> OfflineLib
 Provider --> CacheInvalid
 Provider --> IdleLock
 Provider --> ErrorCapture
+Provider --> SubPolicy
 Provider --> Supabase
 ```
 
 **Diagram sources**
 - [pos.tsx:115-440](file://src/lib/pos.tsx#L115-L440)
-- [offline.ts:1-92](file://src/lib/offline.ts#L1-L92)
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [offline.ts:1-110](file://src/lib/offline.ts#L1-L110)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 - [use-idle-lock.ts:1-40](file://src/components/pos/use-idle-lock.ts#L1-L40)
 - [error-capture.ts:1-81](file://src/lib/error-capture.ts#L1-L81)
+- [subscription-policy.ts:1-22](file://src/lib/subscription-policy.ts#L1-L22)
 
 **Section sources**
 - [pos.tsx:115-440](file://src/lib/pos.tsx#L115-L440)
-- [offline.ts:1-92](file://src/lib/offline.ts#L1-L92)
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [offline.ts:1-110](file://src/lib/offline.ts#L1-L110)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 
 ## Core Components
-- **Local cache layer**: Persists reference data such as business configuration, stores, products, collections, stock, and staff names into `localStorage`. On startup, it hydrates the in-memory query cache so the register opens instantly, then refreshes stale data in the background.
+- **Local cache layer**: Persists reference data such as business configuration, stores, products, collections, stock, staff names, and **subscription entitlements** into `localStorage`. On startup, it hydrates the in-memory query cache so the register opens instantly, then refreshes stale data in the background. Subscription data is specifically cached to maintain access control even during PIN lock/unlock cycles.
 - **Transaction queue**: Stores pending sales locally with unique client references. Sales are immediately marked completed on the device even when offline, ensuring uninterrupted till operations.
 - **Background synchronizer**: When online and unlocked, it replays queued sales to the server, removes successfully synced items, marks failures, and invalidates affected queries.
 - **Network monitor**: Subscribes to browser `online`/`offline` events to update state and trigger or pause synchronization.
 - **Cache invalidation policy**: After successful sync, only relevant query keys are invalidated to avoid unnecessary refetching of unrelated data.
+- **Cache key categorization utilities**: Provides explicit functions to determine whether query keys should be shared across users (`isSharedReference`) or scoped to specific roles (`isRoleScoped`).
 - **Error masking and capture**: Server errors are sanitized before reaching the UI; general error capture preserves stack traces for debugging.
 
 **Section sources**
-- [offline.ts:1-92](file://src/lib/offline.ts#L1-L92)
+- [offline.ts:1-110](file://src/lib/offline.ts#L1-L110)
 - [pos.tsx:115-440](file://src/lib/pos.tsx#L115-L440)
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 - [error-capture.ts:1-81](file://src/lib/error-capture.ts#L1-L81)
 
 ## Architecture Overview
@@ -119,18 +131,19 @@ Sync->>Provider : invalidate relevant queries
 
 **Diagram sources**
 - [pos.tsx:275-338](file://src/lib/pos.tsx#L275-L338)
-- [offline.ts:62-91](file://src/lib/offline.ts#L62-L91)
+- [offline.ts:62-110](file://src/lib/offline.ts#L62-L110)
 
 ## Detailed Component Analysis
 
-### Local Cache Persistence
-The cache persists only safe, non-role-gated reference data needed for instant register startup. It writes a versioned snapshot keyed by user ID. Hydration loads this snapshot into the query cache with an “instantly shown but stale” marker, causing background refresh. Persistence debounces saves to reduce `localStorage` writes.
+### Local Cache Persistence with Subscription Support
+The cache persists only safe, non-role-gated reference data needed for instant register startup, **including subscription entitlements**. It writes a versioned snapshot keyed by user ID. Hydration loads this snapshot into the query cache with an "instantly shown but stale" marker, causing background refresh. Persistence debounces saves to reduce `localStorage` writes.
 
 Key behaviors:
-- Only specific query types are persisted.
+- Only specific query types are persisted, including subscription data.
 - Version checking prevents loading incompatible snapshots.
 - Failed JSON parsing clears corrupted cache entries.
 - Storage-full errors are ignored so the app continues working online.
+- Subscription data remains cached across PIN lock/unlock cycles for seamless access control.
 
 ```mermaid
 flowchart TD
@@ -144,13 +157,38 @@ Refresh --> Persist["persistCache(userId)"]
 Persist --> Watch["Subscribe to QueryCache updates"]
 Watch --> Debounce["Debounce save every 1500ms"]
 Debounce --> Save["Write versioned snapshot to localStorage"]
+Save --> IncludeSub["Include subscription data in cache"]
 ```
 
 **Diagram sources**
-- [offline.ts:15-55](file://src/lib/offline.ts#L15-L55)
+- [offline.ts:15-73](file://src/lib/offline.ts#L15-L73)
 
 **Section sources**
-- [offline.ts:1-60](file://src/lib/offline.ts#L1-L60)
+- [offline.ts:1-73](file://src/lib/offline.ts#L1-L73)
+
+### Cache Key Categorization Utilities
+The system provides explicit utility functions for categorizing cache keys based on their scope and sharing requirements:
+
+- **`isSharedReference(key)`**: Returns true for query keys that should be shared across all users and persist through PIN lock/unlock cycles. This includes business data, stores, products, collections, stock, staff names, and subscription entitlements.
+- **`isRoleScoped(key)`**: Returns true for query keys that are specific to individual users or roles and should be cleared when switching between staff sessions.
+
+These utilities ensure proper cache isolation while maintaining performance by keeping shared reference data warm.
+
+```mermaid
+flowchart TD
+QueryKey["Query Key"] --> Categorize{"Categorize Key"}
+Categorize --> Shared{"isSharedReference?"}
+Categorize --> Scoped{"isRoleScoped?"}
+Shared --> |Yes| KeepWarm["Keep cached across users<br/>business, stores, products,<br/>collections, stock, staff-names,<br/>subscription"]
+Scoped --> |Yes| ClearOnLock["Clear on PIN lock/unlock<br/>sales, costs, reports,<br/>billing history"]
+```
+
+**Diagram sources**
+- [offline.ts:20-31](file://src/lib/offline.ts#L20-L31)
+
+**Section sources**
+- [offline.ts:20-31](file://src/lib/offline.ts#L20-L31)
+- [offline-scope.test.ts:1-15](file://src/lib/offline-scope.test.ts#L1-L15)
 
 ### Transaction Queue System
 The queue buffers sales until the device is online and authenticated. Each queued sale has a stable client reference, timestamp, estimated total, store identifier, and original arguments. If a direct server call fails due to a network issue, the sale is enqueued instead of failing the user experience.
@@ -174,14 +212,14 @@ Enqueue --> ReturnOffline["Return offline result"]
 
 **Diagram sources**
 - [pos.tsx:275-307](file://src/lib/pos.tsx#L275-L307)
-- [offline.ts:83-91](file://src/lib/offline.ts#L83-L91)
+- [offline.ts:89-110](file://src/lib/offline.ts#L89-L110)
 
 **Section sources**
 - [pos.tsx:249-307](file://src/lib/pos.tsx#L249-L307)
-- [offline.ts:62-91](file://src/lib/offline.ts#L62-L91)
+- [offline.ts:80-110](file://src/lib/offline.ts#L80-L110)
 
 ### Background Synchronization
-Synchronization runs automatically when the device is online and a staff session is active. It processes pending queue items sequentially. A network error or a “locked” session stops further processing, marking the current item as failed. Successful items are removed from the queue. After any successful sync, relevant queries are invalidated.
+Synchronization runs automatically when the device is online and a staff session is active. It processes pending queue items sequentially. A network error or a "locked" session stops further processing, marking the current item as failed. Successful items are removed from the queue. After any successful sync, relevant queries are invalidated.
 
 ```mermaid
 flowchart TD
@@ -205,11 +243,11 @@ Invalidate --> Done(["Done"])
 
 **Diagram sources**
 - [pos.tsx:309-338](file://src/lib/pos.tsx#L309-L338)
-- [cache-invalidation.ts:23-26](file://src/lib/cache-invalidation.ts#L23-L26)
+- [cache-invalidation.ts:27-30](file://src/lib/cache-invalidation.ts#L27-L30)
 
 **Section sources**
 - [pos.tsx:309-345](file://src/lib/pos.tsx#L309-L345)
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 
 ### Network Status Monitoring
 The POS provider listens to browser `online` and `offline` events. When online, it attempts to synchronize the queue immediately and sets up a periodic retry interval. When offline, synchronization pauses.
@@ -244,11 +282,11 @@ Touch --> Queries["Queries refreshed:<br/>sales, sales-page, sales-summary,<br/>
 ```
 
 **Diagram sources**
-- [cache-invalidation.ts:11-26](file://src/lib/cache-invalidation.ts#L11-L26)
+- [cache-invalidation.ts:11-25](file://src/lib/cache-invalidation.ts#L11-L25)
 - [pos.tsx:336-337](file://src/lib/pos.tsx#L336-L337)
 
 **Section sources**
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 - [pos.tsx:336-337](file://src/lib/pos.tsx#L336-L337)
 
 ### Conflict Resolution Strategy
@@ -263,14 +301,14 @@ For robust multi-device conflict handling, consider adding server-side idempoten
 
 **Section sources**
 - [pos.tsx:317-332](file://src/lib/pos.tsx#L317-L332)
-- [offline.ts:83-91](file://src/lib/offline.ts#L83-L91)
+- [offline.ts:89-110](file://src/lib/offline.ts#L89-L110)
 
 ### Error Handling and Data Recovery
 Errors are handled at multiple layers:
 
 - **RPC error masking**: Server errors containing SQL internals or permission details are replaced with generic user-facing messages.
 - **Network error detection**: Network-related failures are recognized and used to decide whether to queue a sale or stop synchronization.
-- **Session lock handling**: A “Locked” response clears the staff session and stops sync.
+- **Session lock handling**: A "Locked" response clears the staff session and stops sync.
 - **Global error capture**: Errors logged by the application are expanded and captured for debugging.
 
 Recovery procedures include:
@@ -295,14 +333,14 @@ Recover --> UserAction["User retries or discards"]
 - [pos.tsx:93-104](file://src/lib/pos.tsx#L93-L104)
 - [pos.tsx:220-228](file://src/lib/pos.tsx#L220-L228)
 - [pos.tsx:324-332](file://src/lib/pos.tsx#L324-L332)
-- [offline.ts:83-84](file://src/lib/offline.ts#L83-L84)
+- [offline.ts:101-110](file://src/lib/offline.ts#L101-L110)
 - [error-capture.ts:18-32](file://src/lib/error-capture.ts#L18-L32)
 
 **Section sources**
 - [pos.tsx:93-104](file://src/lib/pos.tsx#L93-L104)
 - [pos.tsx:220-228](file://src/lib/pos.tsx#L220-L228)
 - [pos.tsx:324-332](file://src/lib/pos.tsx#L324-L332)
-- [offline.ts:83-84](file://src/lib/offline.ts#L83-L84)
+- [offline.ts:101-110](file://src/lib/offline.ts#L101-L110)
 - [error-capture.ts:1-81](file://src/lib/error-capture.ts#L1-L81)
 
 ### Example Workflows
@@ -318,8 +356,8 @@ To implement offline-safe transactions:
 
 Reference paths:
 - [Checkout decision and enqueue logic:275-307](file://src/lib/pos.tsx#L275-L307)
-- [Queue persistence helpers:71-81](file://src/lib/offline.ts#L71-L81)
-- [Network error detection:83-84](file://src/lib/offline.ts#L83-L84)
+- [Queue persistence helpers:89-99](file://src/lib/offline.ts#L89-L99)
+- [Network error detection:101-110](file://src/lib/offline.ts#L101-L110)
 
 #### Implementing Background Synchronization
 To implement background synchronization:
@@ -333,7 +371,7 @@ To implement background synchronization:
 
 Reference paths:
 - [Sync function and periodic retry:309-345](file://src/lib/pos.tsx#L309-L345)
-- [Touched query keys:11-21](file://src/lib/cache-invalidation.ts#L11-L21)
+- [Touched query keys:11-25](file://src/lib/cache-invalidation.ts#L11-L25)
 
 #### Implementing Network Status Monitoring
 To monitor network status:
@@ -350,11 +388,12 @@ Reference paths:
 ## Dependency Analysis
 The offline subsystem depends on several modules:
 
-- `offline.ts` provides cache and queue primitives.
+- `offline.ts` provides cache and queue primitives with subscription support.
 - `pos.tsx` composes checkout, queue, sync, and UI state.
 - `cache-invalidation.ts` defines which queries to refresh after sync.
 - `use-idle-lock.ts` integrates with auto-lock behavior and pauses idle locking during sync.
 - `error-capture.ts` supports broader error diagnostics.
+- `subscription-policy.ts` provides subscription access logic.
 
 ```mermaid
 graph LR
@@ -362,30 +401,33 @@ Pos["pos.tsx"] --> Offline["offline.ts"]
 Pos --> CacheInv["cache-invalidation.ts"]
 Pos --> Idle["use-idle-lock.ts"]
 Pos --> Errors["error-capture.ts"]
+Pos --> SubPolicy["subscription-policy.ts"]
 Offline --> LocalStorage["localStorage"]
 Pos --> Supabase["Supabase RPC"]
 ```
 
 **Diagram sources**
 - [pos.tsx:1-26](file://src/lib/pos.tsx#L1-L26)
-- [offline.ts:1-92](file://src/lib/offline.ts#L1-L92)
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [offline.ts:1-110](file://src/lib/offline.ts#L1-L110)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 - [use-idle-lock.ts:1-40](file://src/components/pos/use-idle-lock.ts#L1-L40)
 - [error-capture.ts:1-81](file://src/lib/error-capture.ts#L1-L81)
+- [subscription-policy.ts:1-22](file://src/lib/subscription-policy.ts#L1-L22)
 
 **Section sources**
 - [pos.tsx:1-26](file://src/lib/pos.tsx#L1-L26)
-- [offline.ts:1-92](file://src/lib/offline.ts#L1-L92)
-- [cache-invalidation.ts:1-27](file://src/lib/cache-invalidation.ts#L1-L27)
+- [offline.ts:1-110](file://src/lib/offline.ts#L1-L110)
+- [cache-invalidation.ts:1-31](file://src/lib/cache-invalidation.ts#L1-L31)
 
 ## Performance Considerations
 - **Instant startup**: Hydrating reference data from `localStorage` reduces perceived latency and allows the register to open quickly.
 - **Debounced persistence**: Cache writes are throttled to avoid excessive `localStorage` operations.
 - **Targeted invalidation**: Only relevant queries are invalidated after sync, reducing unnecessary network requests.
-- **Selective persistence**: Only safe, non-sensitive reference data is persisted to minimize storage growth and privacy risks.
+- **Selective persistence**: Only safe, non-sensitive reference data is persisted to minimize storage growth and privacy risks, including subscription entitlements.
 - **Memory usage**: The queue grows with offline transactions; consider implementing queue size limits, archival, or cleanup policies for long offline periods.
 - **Large datasets**: Reference data such as product catalogs should remain small enough for efficient serialization and hydration. Pagination or lazy loading may be needed for very large catalogs.
 - **Storage capacity**: If `localStorage` becomes full, cache persistence silently fails; ensure critical operations still work online and provide a way to clear device cache.
+- **Subscription caching**: Subscription data remains cached across PIN lock/unlock cycles to maintain seamless access control without repeated network requests.
 
 [No sources needed since this section provides general guidance]
 
@@ -404,7 +446,7 @@ Common issues and resolutions:
   - Discard only after confirming the transaction was already recorded elsewhere.
 
 - **Session lock interrupts sync**:
-  - A “Locked” response clears the staff session.
+  - A "Locked" response clears the staff session.
   - Re-authenticate using the PIN pad.
   - Retry synchronization after unlocking.
 
@@ -412,16 +454,21 @@ Common issues and resolutions:
   - Hydration ignores malformed snapshots.
   - Use the device cache clearing utility to reset cached data.
 
+- **Subscription access issues**:
+  - Subscription data is cached and persists across PIN lock/unlock cycles.
+  - If subscription data appears stale, check network connectivity for refresh.
+  - Clear device cache if subscription cache becomes corrupted.
+
 - **Debugging errors**:
   - Global error capture expands and records error stacks.
   - Review captured errors for root causes.
 
 **Section sources**
 - [pos.tsx:389-433](file://src/lib/pos.tsx#L389-L433)
-- [offline.ts:15-27](file://src/lib/offline.ts#L15-L27)
+- [offline.ts:15-73](file://src/lib/offline.ts#L15-L73)
 - [error-capture.ts:18-32](file://src/lib/error-capture.ts#L18-L32)
 
 ## Conclusion
-The offline-first design ensures continuous retail operations by combining fast local cache hydration, durable transaction queuing, automatic background synchronization, and careful cache invalidation. While the current implementation prioritizes reliability and simplicity, future enhancements could strengthen multi-device conflict resolution, add idempotent server-side handling, and introduce queue lifecycle management for extended offline scenarios.
+The offline-first design ensures continuous retail operations by combining fast local cache hydration including subscription data, durable transaction queuing, automatic background synchronization, and careful cache invalidation. The enhanced cache key categorization utilities provide precise control over data sharing and scoping. While the current implementation prioritizes reliability and simplicity, future enhancements could strengthen multi-device conflict resolution, add idempotent server-side handling, and introduce queue lifecycle management for extended offline scenarios.
 
 [No sources needed since this section summarizes without analyzing specific files]

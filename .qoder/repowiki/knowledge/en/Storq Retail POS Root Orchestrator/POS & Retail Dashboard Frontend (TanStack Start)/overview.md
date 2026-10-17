@@ -1,1 +1,0 @@
-Wires TanStack Start routing, Supabase auth middleware, React Query defaults, and shadcn/ui primitives into a feature-split POS/retail dashboard.

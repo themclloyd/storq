@@ -4,6 +4,8 @@
 **Referenced Files in This Document**
 - [auth-middleware.ts](file://src/integrations/supabase/auth-middleware.ts)
 - [client.server.ts](file://src/integrations/supabase/client.server.ts)
+- [previewAuthStorage.ts](file://src/integrations/supabase/previewAuthStorage.ts)
+- [client.ts](file://src/integrations/supabase/client.ts)
 - [auth.tsx](file://src/routes/auth.tsx)
 - [pos.tsx](file://src/lib/pos.tsx)
 - [use-idle-lock.ts](file://src/components/pos/use-idle-lock.ts)
@@ -12,6 +14,13 @@
 - [workspace-navigation.ts](file://src/lib/workspace-navigation.ts)
 - [20261008090000_security_hardening.sql](file://supabase/migrations/20261008090000_security_hardening.sql)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Enhanced authentication storage with improved error handling for third-party storage blocking
+- Improved logout tombstone handling for better session synchronization
+- Added robust localStorage error handling throughout the authentication flow
+- Updated preview storage broker to handle storage failures gracefully
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -33,6 +42,7 @@ This document explains the authentication and security system for the applicatio
 - Implementation examples for authentication middleware, PIN validation, and permission checks.
 - Security best practices such as secure PIN storage, session timeout handling, and audit logging.
 - Integration with Supabase Auth and custom server-side authentication flows.
+- Enhanced storage resilience with improved error handling for third-party storage blocking and better logout tombstone handling.
 
 ## Project Structure
 The authentication and security logic spans client routes, shared POS context, server-side middleware, and PostgreSQL migrations:
@@ -40,6 +50,7 @@ The authentication and security logic spans client routes, shared POS context, s
 - Staff PIN unlock, session state, idle lock, and role checks live in the POS context.
 - Server-side Supabase middleware validates tokens for protected endpoints.
 - Database security is enforced through RLS policies, stored procedures, and throttling tables.
+- Enhanced storage layer handles third-party storage blocking and logout tombstones.
 
 ```mermaid
 graph TB
@@ -50,18 +61,21 @@ PosContext --> PinPad["PIN Pad<br/>unlock_with_pin RPC"]
 PinPad --> DB["PostgreSQL<br/>RLS + Stored Procedures"]
 ServerMW["Server Auth Middleware<br/>Bearer Token Validation"] --> API["Protected API / RPCs"]
 API --> DB
+EnhancedStorage["Enhanced Storage Layer<br/>Error Handling + Tombstones"] --> SupabaseAuth
 ```
 
 **Diagram sources**
 - [auth.tsx:13-107](file://src/routes/auth.tsx#L13-L107)
 - [pos.tsx:115-228](file://src/lib/pos.tsx#L115-L228)
 - [auth-middleware.ts:34-105](file://src/integrations/supabase/auth-middleware.ts#L34-L105)
+- [previewAuthStorage.ts:59-105](file://src/integrations/supabase/previewAuthStorage.ts#L59-L105)
 - [20261008090000_security_hardening.sql:218-291](file://supabase/migrations/20261008090000_security_hardening.sql#L218-L291)
 
 **Section sources**
 - [auth.tsx:13-107](file://src/routes/auth.tsx#L13-L107)
 - [pos.tsx:115-228](file://src/lib/pos.tsx#L115-L228)
 - [auth-middleware.ts:34-105](file://src/integrations/supabase/auth-middleware.ts#L34-L105)
+- [previewAuthStorage.ts:59-105](file://src/integrations/supabase/previewAuthStorage.ts#L59-L105)
 - [20261008090000_security_hardening.sql:218-291](file://supabase/migrations/20261008090000_security_hardening.sql#L218-L291)
 
 ## Core Components
@@ -71,28 +85,32 @@ API --> DB
 - Session management: Local staff session storage, server-side session binding, idle auto-lock, and sign-out cleanup.
 - Row-Level Security: Policies enforce business isolation and require an active PIN session for sensitive reads.
 - Server middleware: Validates Bearer tokens and injects user claims into request context.
+- Enhanced storage layer: Handles third-party storage blocking and logout tombstones with improved error handling.
 
 **Section sources**
 - [auth.tsx:13-107](file://src/routes/auth.tsx#L13-L107)
 - [pos.tsx:115-228](file://src/lib/pos.tsx#L115-L228)
 - [20261008090000_security_hardening.sql:67-170](file://supabase/migrations/20261008090000_security_hardening.sql#L67-L170)
 - [auth-middleware.ts:34-105](file://src/integrations/supabase/auth-middleware.ts#L34-L105)
+- [previewAuthStorage.ts:59-105](file://src/integrations/supabase/previewAuthStorage.ts#L59-L105)
 
 ## Architecture Overview
 The system uses two authentication layers:
 1. Owner layer: Business owners authenticate with email/password using Supabase Auth.
-2. Staff layer: Staff members unlock a temporary session using a PIN; this session is bound to the owner’s authenticated device and expires after a set time.
+2. Staff layer: Staff members unlock a temporary session using a PIN; this session is bound to the owner's authenticated device and expires after a set time.
 
 Access control is enforced at multiple levels:
 - Frontend role checks hide or disable features based on the current staff role.
 - Database RLS policies restrict row access by business and require an active PIN session.
 - Stored procedures validate inputs, enforce role requirements, and manage sessions securely.
+- Enhanced storage layer provides resilient session persistence with error handling.
 
 ```mermaid
 sequenceDiagram
 participant Owner as "Owner"
 participant AuthUI as "Auth Page"
 participant Supabase as "Supabase Auth"
+participant EnhancedStorage as "Enhanced Storage"
 participant App as "App Routes"
 participant POS as "POS Context"
 participant PinPad as "PIN Pad"
@@ -100,6 +118,8 @@ participant RPC as "unlock_with_pin"
 participant DB as "PostgreSQL"
 Owner->>AuthUI : Enter email/password
 AuthUI->>Supabase : signInWithPassword()
+Supabase->>EnhancedStorage : Store session with error handling
+EnhancedStorage-->>Supabase : Session persisted (with fallbacks)
 Supabase-->>AuthUI : Session established
 AuthUI->>App : Navigate to app
 App->>POS : Initialize provider
@@ -108,13 +128,15 @@ PinPad->>RPC : Submit PIN
 RPC->>DB : Validate PIN, throttle, create session
 DB-->>RPC : Session token + role
 RPC-->>PinPad : Staff session object
-PinPad->>POS : Store session locally
+PinPad->>EnhancedStorage : Store staff session with tombstone handling
+EnhancedStorage->>POS : Store session locally
 POS->>DB : Access data under RLS with session role
 ```
 
 **Diagram sources**
 - [auth.tsx:45-107](file://src/routes/auth.tsx#L45-L107)
 - [pos.tsx:194-228](file://src/lib/pos.tsx#L194-L228)
+- [previewAuthStorage.ts:59-105](file://src/integrations/supabase/previewAuthStorage.ts#L59-L105)
 - [20261008090000_security_hardening.sql:218-291](file://supabase/migrations/20261008090000_security_hardening.sql#L218-L291)
 
 ## Detailed Component Analysis
@@ -131,6 +153,25 @@ Key behaviors:
 
 **Section sources**
 - [auth.tsx:13-107](file://src/routes/auth.tsx#L13-L107)
+
+### Enhanced Authentication Storage
+**Updated** Enhanced storage layer with improved error handling for third-party storage blocking and better logout tombstone handling.
+
+The enhanced storage system provides:
+- **Third-party storage blocking protection**: Graceful handling when localStorage is blocked by browser privacy settings or extensions.
+- **Logout tombstone handling**: Special empty string ('') value indicates logout, ensuring local copies are cleared even if broker communication fails.
+- **Resilient read operations**: Try-catch blocks around localStorage operations prevent storage errors from breaking the authentication flow.
+- **Fallback mechanisms**: When brokered storage fails, falls back to direct localStorage usage.
+
+Implementation highlights:
+- `readLocal` function wraps localStorage.getItem in try-catch to handle storage blocking.
+- Logout tombstone ('') triggers immediate removal of local session data.
+- Seeding mechanism ensures new tabs stay signed in while respecting storage limitations.
+- Error handling prevents storage full conditions from breaking the authentication experience.
+
+**Section sources**
+- [previewAuthStorage.ts:59-105](file://src/integrations/supabase/previewAuthStorage.ts#L59-L105)
+- [client.ts:74-83](file://src/integrations/supabase/client.ts#L74-L83)
 
 ### Staff PIN Authentication
 - After owner login, staff members use a PIN pad to unlock a session.
@@ -317,10 +358,12 @@ The authentication and security components depend on each other as follows:
 - POS context depends on validate utilities, idle lock hook, and Supabase RPCs.
 - Server middleware depends on environment configuration and Supabase client.
 - Database policies depend on session role resolution and business context functions.
+- Enhanced storage layer provides resilient session persistence with error handling.
 
 ```mermaid
 graph LR
 AuthPage["Auth Page"] --> SupabaseClient["Supabase Client"]
+SupabaseClient --> EnhancedStorage["Enhanced Storage Layer"]
 POSContext["POS Context"] --> Validate["Validate Utilities"]
 POSContext --> IdleLock["Idle Lock Hook"]
 POSContext --> RPCs["Supabase RPCs"]
@@ -334,12 +377,14 @@ DBPolicies --> BusinessCtx["Business Context Functions"]
 - [auth.tsx:1-10](file://src/routes/auth.tsx#L1-L10)
 - [pos.tsx:1-27](file://src/lib/pos.tsx#L1-L27)
 - [auth-middleware.ts:1-10](file://src/integrations/supabase/auth-middleware.ts#L1-L10)
+- [previewAuthStorage.ts:1-106](file://src/integrations/supabase/previewAuthStorage.ts#L1-L106)
 - [20261008090000_security_hardening.sql:67-77](file://supabase/migrations/20261008090000_security_hardening.sql#L67-L77)
 
 **Section sources**
 - [auth.tsx:1-10](file://src/routes/auth.tsx#L1-L10)
 - [pos.tsx:1-27](file://src/lib/pos.tsx#L1-L27)
 - [auth-middleware.ts:1-10](file://src/integrations/supabase/auth-middleware.ts#L1-L10)
+- [previewAuthStorage.ts:1-106](file://src/integrations/supabase/previewAuthStorage.ts#L1-L106)
 - [20261008090000_security_hardening.sql:67-77](file://supabase/migrations/20261008090000_security_hardening.sql#L67-L77)
 
 ## Performance Considerations
@@ -347,6 +392,7 @@ DBPolicies --> BusinessCtx["Business Context Functions"]
 - Offline support: Sales can be queued locally and synced when online, minimizing downtime impact.
 - Query invalidation: Explicit cache invalidation ensures fresh data after mutations.
 - Session expiry: Short-lived staff sessions reduce the risk of stale credentials being reused.
+- Storage resilience: Enhanced storage layer prevents storage errors from impacting performance.
 
 [No sources needed since this section provides general guidance]
 
@@ -356,13 +402,16 @@ Common issues and resolutions:
 - Wrong PIN or locked attempts: The server throttles repeated failures; wait for the lockout period to expire.
 - No access to data: Verify that an active PIN session exists and that the role has permission to access the requested data.
 - Stale staff session: If the session lacks an expiration or auth binding, re-enter the PIN to establish a proper session.
+- Storage blocking issues: Enhanced storage layer automatically handles localStorage blocking with fallback mechanisms.
+- Logout not syncing: Logout tombstones ensure local sessions are cleared even if broker communication fails.
 
 **Section sources**
 - [auth-middleware.ts:34-105](file://src/integrations/supabase/auth-middleware.ts#L34-L105)
 - [20261008090000_security_hardening.sql:218-291](file://supabase/migrations/20261008090000_security_hardening.sql#L218-L291)
 - [pos.tsx:125-147](file://src/lib/pos.tsx#L125-L147)
+- [previewAuthStorage.ts:59-105](file://src/integrations/supabase/previewAuthStorage.ts#L59-L105)
 
 ## Conclusion
-The authentication and security system combines owner-level email/password authentication with staff-level PIN authentication, enforcing strict role-based access control and row-level security. Sessions are short-lived and device-bound, with automatic locking to protect against unauthorized access. The architecture leverages Supabase Auth for identity, PostgreSQL RLS for data isolation, and server middleware for token validation. Following the documented best practices ensures secure, compliant, and maintainable operations.
+The authentication and security system combines owner-level email/password authentication with staff-level PIN authentication, enforcing strict role-based access control and row-level security. Sessions are short-lived and device-bound, with automatic locking to protect against unauthorized access. The architecture leverages Supabase Auth for identity, PostgreSQL RLS for data isolation, and server middleware for token validation. Enhanced storage resilience ensures reliable session persistence even when localStorage is blocked or unavailable. Following the documented best practices ensures secure, compliant, and maintainable operations.
 
 [No sources needed since this section summarizes without analyzing specific files]

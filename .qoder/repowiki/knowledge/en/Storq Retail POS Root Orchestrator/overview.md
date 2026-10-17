@@ -1,1 +1,0 @@
-Root of the Storq retail POS that wires a TanStack Start frontend against a Supabase-backed PostgreSQL schema, sharing tooling and environment configuration across children.
