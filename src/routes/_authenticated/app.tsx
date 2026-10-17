@@ -105,13 +105,15 @@ function Gate() {
     );
   if (business === null) return <Setup />;
   if (!staff) return <PinPad />;
-  if (sub.isPending)
+  // Only block on a first-ever check; afterwards the cached entitlement renders
+  // instantly and refreshes silently. The database still rejects expired writes.
+  if (sub.isPending && !sub.hasRow)
     return (
       <div className="grid min-h-screen place-items-center text-muted-foreground">
         {t("setup.checkingSubscription")}
       </div>
     );
-  if (sub.isError)
+  if (sub.isError && !sub.hasRow)
     return (
       <div className="grid min-h-screen place-items-center">
         <div className="space-y-4 text-center">

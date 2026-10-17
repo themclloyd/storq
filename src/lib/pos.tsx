@@ -20,6 +20,7 @@ import {
   persistCache,
   saveQueue,
   type QueuedSale,
+  isRoleScoped,
 } from "@/lib/offline";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
@@ -160,9 +161,10 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       return data as Business | null;
     },
   });
+  // Keyed on the login, not the business id, so it loads in parallel with the
+  // business row instead of waiting for it (RLS already scopes to the tenant).
   const storesQ = useQuery({
-    queryKey: ["stores", businessQ.data?.id],
-    enabled: !!businessQ.data,
+    queryKey: ["stores", userId],
     staleTime: 300_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -185,10 +187,11 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
 
   // Locking, expiry and role changes must never leave the previous user's
   // cached rows readable by the next person on this device.
+  // Shared reference data (catalog, stores, subscription) stays warm.
   const clearStaff = useCallback(() => {
     localStorage.removeItem(staffKey);
     setStaff(null);
-    void qc.invalidateQueries();
+    qc.removeQueries({ predicate: (q) => isRoleScoped(q.queryKey) });
   }, [staffKey, qc]);
 
   const unlock = async (pin: string) => {
@@ -199,7 +202,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     if (error) throw new Error(maskRpcError(error.message));
     localStorage.setItem(staffKey, JSON.stringify(data));
     setStaff(data as StaffSession);
-    void qc.invalidateQueries();
+    void qc.invalidateQueries({ predicate: (q) => isRoleScoped(q.queryKey) });
   };
 
   const lock = async () => {
