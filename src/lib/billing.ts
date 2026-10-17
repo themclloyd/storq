@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscriptionAccess, type Subscription } from "@/lib/subscription-policy";
 export type { Subscription } from "@/lib/subscription-policy";
@@ -33,16 +33,13 @@ export function useSubscription(businessId?: string, storeCount = 0) {
     },
   });
   // Access is derived from the cached row + live store count without refetching.
-  const access = useMemo(
-    () => subscriptionAccess(query.data ?? null, storeCount),
-    [query.data, storeCount],
-  );
   // Re-evaluate expiry locally once a minute so a lapse is noticed without a fetch.
   const [, tick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 60_000);
     return () => clearInterval(id);
   }, []);
+  const access = subscriptionAccess(query.data ?? null, storeCount);
   return { ...query, data: access, hasRow: query.data !== undefined };
 }
 
