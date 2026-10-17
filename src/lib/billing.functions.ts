@@ -8,7 +8,7 @@ export const getPaychanguKey = createServerFn({ method: "GET" }).handler(async (
 // Safe to call publicly: it only marks a payment paid after PayChangu confirms it
 // succeeded for the exact amount and currency we recorded.
 export const verifySubscriptionPayment = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ tx_ref: z.string().min(6).max(80) }).parse(d))
+  .validator((d) => z.object({ tx_ref: z.string().min(6).max(80) }).parse(d))
   .handler(async ({ data }) => {
     const secret = process.env["PAYCHANGU_SECRET_KEY"];
     if (!secret) return { ok: false, message: "Payments are not configured yet." };

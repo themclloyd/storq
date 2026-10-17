@@ -489,9 +489,7 @@ function Shell() {
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2.5 px-1 py-1.5">
-            <span className="font-display grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-secondary text-lg text-secondary-foreground">
-              S
-            </span>
+            <img src="/logo.svg" alt="Storq logo" className="size-[34px] shrink-0 rounded-[10px]" />
             <span className="font-display text-lg group-data-[collapsible=icon]:hidden">Storq</span>
           </div>
           <SidebarMenu>

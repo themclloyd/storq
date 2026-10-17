@@ -424,6 +424,7 @@ export const en = {
     downloadTemplate: "Download Template",
     newItem: "New item",
     lowStock: "Low stock",
+    lowStockToggle: "Toggle low stock filter",
     noItemsYet: "No items yet.",
     cost: "Cost",
     price: "Price",

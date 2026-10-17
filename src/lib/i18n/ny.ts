@@ -435,6 +435,7 @@ export const ny = {
     downloadTemplate: "Tsitsani Chitsanzo",
     newItem: "Chinthu chatsopano",
     lowStock: "Katundu wochepa",
+    lowStockToggle: "Khothamiritsa sili sa katundu wochepa",
     noItemsYet: "Palibe zinthu pakadali pano.",
     cost: "Mtengo wogula",
     price: "Mtengo wogulitsira",

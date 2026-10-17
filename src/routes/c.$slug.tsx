@@ -14,7 +14,7 @@ type Shared = {
 };
 
 const getShared = createServerFn({ method: "GET" })
-  .inputValidator((d) => z.object({ slug: z.string().min(1).max(64) }).parse(d))
+  .validator((d) => z.object({ slug: z.string().min(1).max(64) }).parse(d))
   .handler(async ({ data }) => {
     const sb = createClient(
       process.env["SUPABASE_URL"]!,

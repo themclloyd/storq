@@ -388,6 +388,7 @@ function Inventory() {
         </div>
         <button
           type="button"
+          aria-label={t("inv.lowStockToggle")}
           onClick={() => { setLowOnly((v) => !v); setPage(0); }}
           className={cn(
             "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
@@ -753,6 +754,9 @@ function ProductDialog({
         });
       }
       toast.success(t("common.saved"));
+      onClose();
+      // Refresh data in the background — don't wait for it. The modal closes
+      // immediately so the user sees the updated table as queries resolve.
       invalidateKeys(qc, [
         ["products"],
         ["stock"],
@@ -760,7 +764,6 @@ function ProductDialog({
         ["collections"],
         ["dash-alerts"],
       ]);
-      onClose();
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -1086,8 +1089,8 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
         });
       }
       toast.success(t("inv.stockUpdated"));
-      invalidateKeys(qc, [["stock"], ["movements"], ["dash-alerts"]]);
       onClose();
+      invalidateKeys(qc, [["stock"], ["movements"], ["dash-alerts"]]);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -1374,6 +1377,9 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
     }
     // Every screen that reads a quantity or a price has to re-read the imported
     // numbers, including the till's own long-lived catalog and stock badge.
+    // Close the dialog immediately so the user sees the updated table; refresh
+    // happens in background without blocking the UI.
+    onClose();
     invalidateKeys(qc, [["products"], ["stock"], ["movements"], ["collections"], ["dash-alerts"]]);
     if (failed.length) {
       const more = failed.length > 3 ? ` (+${failed.length - 3})` : "";
@@ -1383,7 +1389,6 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
       });
       toast.error(`${counts} — ${failed.slice(0, 3).join("; ")}${more}`, { duration: 9000 });
     } else toast.success(t("inv.itemsImported", { count: ok.length }));
-    onClose();
   }
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
