@@ -1,4 +1,5 @@
 # Project rules
+
 - Enforce paid store capacity and expiry in SQL; confirmed payment snapshots grant capacity, and store creation serializes on the subscription row. Why: clients and concurrent requests cannot create unpaid stores.
 - Price every payment on the slots it actually buys (`subscription_payments.billed_stores`): an active subscription raising its slot count pays for the new slots only and keeps the expiry it already bought, while renewals and reactivations bill all slots and extend the term. Activation stays service-role-only and idempotent. Why: adding a location must neither re-charge an already-paid store nor silently shorten prepaid time.
 - Keep workspace navigation policy in a client-safe shared module and group existing URLs with shell-level page tabs; filter by staff role and selected store type. Why: fewer sidebar entries without broken deep links or lost staff tools.

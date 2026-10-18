@@ -14,6 +14,7 @@ export const SALE_TOUCHED: readonly QueryKey[] = [
   ["sales-summary"],
   ["sale"],
   ["sale-item-costs"],
+  ["refunds"],
   ["stock"],
   ["movements"],
   // A sale can open the drawer server-side (app.attach_drawer) and always

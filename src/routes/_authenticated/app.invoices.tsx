@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/invoices")({
@@ -54,7 +55,7 @@ function Invoices() {
           : t("invoices.rejectedToast", { number: s.number }),
       );
       setApproving(null);
-      qc.invalidateQueries();
+      invalidateKeys(qc, SALE_TOUCHED);
     } catch (e) {
       toast.error((e as Error).message);
     }

@@ -134,10 +134,7 @@ export async function fetchProductsForExport(storeId: string): Promise<ProductEx
       .order("name"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from as any)("product_costs").select("product_id,cost"),
-    supabase
-      .from("store_stock")
-      .select("product_id,qty")
-      .eq("store_id", storeId),
+    supabase.from("store_stock").select("product_id,qty").eq("store_id", storeId),
   ]);
   if (pe) throw pe;
   if (se) throw se;
@@ -181,24 +178,24 @@ export async function fetchMovementsForExport(filter: {
 }): Promise<StockMovementExportRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from as any)("stock_movements")
-    .select(
-      "created_at,product_id,products(name),delta,balance_after,reason,note,ref_id",
-    )
+    .select("created_at,product_id,products(name),delta,balance_after,reason,note,ref_id")
     .eq("store_id", filter.storeId)
     .gte("created_at", filter.since)
     .order("created_at", { ascending: false })
-    .limit(100_000);
+    .limit(50_000);
   if (error) throw error;
-  return ((data ?? []) as {
-    created_at: string;
-    product_id: string;
-    products: { name: string } | null;
-    delta: number;
-    balance_after: number;
-    reason: string;
-    note: string | null;
-    ref_id: string | null;
-  }[]).map((r) => ({
+  return (
+    (data ?? []) as {
+      created_at: string;
+      product_id: string;
+      products: { name: string } | null;
+      delta: number;
+      balance_after: number;
+      reason: string;
+      note: string | null;
+      ref_id: string | null;
+    }[]
+  ).map((r) => ({
     created_at: r.created_at,
     product_id: r.product_id,
     product_name: r.products?.name ?? "",

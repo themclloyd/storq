@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
 
@@ -99,6 +100,9 @@ export function usePendingApprovals() {
     enabled: !!storeId,
     staleTime: 10_000,
     refetchInterval: 15_000,
+    // A background tab must not keep polling the approval queue — leave the
+    // tab and the poll pauses; the badge re-syncs on visibility change.
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const id = storeId as string; // enabled: gates on this being set
       const { data, error } = await supabase
@@ -118,21 +122,39 @@ export function usePendingApprovals() {
 
 // Sale-item buying costs live in the gated sale_item_costs table (admin/manager
 // only). Cashiers simply get an empty map and every cost fallback is 0.
+// The key is the sorted-unique set of sale_item ids so a fresh `sales.data`
+// array with the same rows still hits the same cache slot; without this the
+// report page spawned a new ~10-chunk read every time a `sale_items` join
+// arrived in a different order. AbortSignal propagates to PostgREST so a
+// filter change mid-flight actually cancels the server read instead of
+// finishing the full chunk-set for a stale key.
 export function useSaleItemCosts(rows?: SaleRow[]) {
+  const ids = useMemo(
+    () =>
+      Array.from(
+        new Set((rows ?? []).flatMap((s) => (s.sale_items ?? []).map((i) => i.id))),
+      ).sort(),
+    [rows],
+  );
   return useQuery({
-    queryKey: ["sale-item-costs", (rows ?? []).flatMap((s) => s.sale_items.map((i) => i.id))],
+    queryKey: ["sale-item-costs", ids],
+    enabled: ids.length > 0,
     // Cost snapshots are immutable once recorded and the key is invalidated on
     // any sale-touching write, so load once and hold rather than re-pull.
     staleTime: 300_000,
-    queryFn: async () => {
-      const ids = (rows ?? []).flatMap((s) => (s.sale_items ?? []).map((i) => i.id));
-      if (!ids.length) return {} as Record<string, number>;
+    queryFn: async ({ signal }) => {
+      const CHUNK = 1_000;
       const map: Record<string, number> = {};
-      for (let i = 0; i < ids.length; i += 500) {
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        if (signal.aborted) throw new DOMException("Aborted", "AbortError");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase.from as any)("sale_item_costs")
+        let q = (supabase.from as any)("sale_item_costs")
           .select("sale_item_id,cost")
-          .in("sale_item_id", ids.slice(i, i + 500));
+          .in("sale_item_id", ids.slice(i, i + CHUNK));
+        // postgrest-js exposes abortSignal(); guard so an older client
+        // degrades to a plain read instead of throwing mid-loop.
+        if (typeof q.abortSignal === "function") q = q.abortSignal(signal);
+        const { data, error } = await q;
         if (error) throw error;
         for (const r of (data ?? []) as { sale_item_id: string; cost: string | number }[])
           map[r.sale_item_id] = Number(r.cost);
@@ -285,7 +307,10 @@ export async function fetchSaleItemsForExport(filter: {
     .select("product_id,name,qty,price,sales!inner(number,created_at,status,store_id)")
     .gte("sales.created_at", filter.since)
     .order("sales.created_at", { ascending: false })
-    .limit(200_000);
+    // Cap kept modest: 50k rows per click is already heavy and matches the
+    // sales-parent cap. A manager wanting more should use the paged CSV from
+    // the Stores page or an accounting export.
+    .limit(50_000);
   if (filter.storeId)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     q = (q as any).eq("sales.store_id", filter.storeId);

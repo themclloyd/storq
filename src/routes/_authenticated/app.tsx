@@ -30,6 +30,7 @@ import {
 import { WorkspaceTabs } from "@/components/pos/WorkspaceTabs";
 import { DrawerChip } from "@/components/pos/DrawerChip";
 import { useSubscription } from "@/lib/billing";
+import { useOnce } from "@/hooks/use-once";
 import { Billing } from "@/components/pos/Billing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +100,9 @@ function Gate() {
   const { t } = useI18n();
   const { business, staff, stores } = usePos();
   const sub = useSubscription(business?.id, stores.length);
+  // Cool the "Try again" click so a session cannot hammer the entitlement
+  // query when Supabase is briefly unreachable.
+  const { run: retrySub, running: retryingSub } = useOnce(() => sub.refetch(), 3_000);
   if (business === undefined)
     return (
       <div className="grid min-h-screen place-items-center text-muted-foreground">
@@ -120,7 +124,9 @@ function Gate() {
       <div className="grid min-h-screen place-items-center">
         <div className="space-y-4 text-center">
           <p>{t("setup.subscriptionError")}</p>
-          <Button onClick={() => sub.refetch()}>{t("common.tryAgain")}</Button>
+          <Button disabled={retryingSub} onClick={() => void retrySub()}>
+            {t("common.tryAgain")}
+          </Button>
         </div>
       </div>
     );

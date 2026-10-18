@@ -446,6 +446,8 @@ export const ny = {
     filter: "Sefa",
     stockValueCost: "mtengo wa katundu pa mtengo wogula",
     importCsv: "Lowetsani CSV",
+    errFileTooLarge: "Fayilo likuli lalikulu kwambiri — kukula kwakukulu kwa kulowetsa ndi {max}.",
+    errTooManyRows: "Fayilo ili ili mizere {count} — yolowetsa yayikulu ndi {max}.",
     exportCsv: "Tulutsani CSV",
     exportPdf: "Tulutsani PDF",
     downloadTemplate: "Tsitsani Chitsanzo",
@@ -1358,9 +1360,11 @@ export const ny = {
     sectionOperations: "Ntchito",
     sectionFullBackup: "Kopa data yonse ya bizinesi",
     salesTitle: "Malonda",
-    salesDesc: "Malonda onse omalizidwa — nambala, tsiku, sitolo, mkhalidwe, njira yolipirira, ndalama.",
+    salesDesc:
+      "Malonda onse omalizidwa — nambala, tsiku, sitolo, mkhalidwe, njira yolipirira, ndalama.",
     saleItemsTitle: "Zinthu za malonda",
-    saleItemsDesc: "Mzere uliwonse wa chinthu pa malonda onse ndi kuchuluka, mtengo, ndi chiwerengero.",
+    saleItemsDesc:
+      "Mzere uliwonse wa chinthu pa malonda onse ndi kuchuluka, mtengo, ndi chiwerengero.",
     refundsTitle: "Zobwezedwa",
     refundsDesc: "Zobwezedwa ndi ndalama, njira, chifukwa ndi kuchuluka kobwezedwa pa shelufu.",
     expensesTitle: "Zotulutsa",
@@ -1368,9 +1372,11 @@ export const ny = {
     productsTitle: "Zinthu ndi katundu",
     productsDesc: "Mzere wathunthu wa zinthu ndi kuchuluka kwa katundu, mitengo ndi mtengo wogula.",
     movementsTitle: "Kusuntha kwa katundu",
-    movementsDesc: "Mbiri yonse ya katundu — zinthu zonse zolowa ndi kutuluka, ndi chifukwa ndi zinthu.",
+    movementsDesc:
+      "Mbiri yonse ya katundu — zinthu zonse zolowa ndi kutuluka, ndi chifukwa ndi zinthu.",
     backupTitle: "Mafayilo onse",
-    backupDesc: "Itsitsa mafayilo onse a CSV pamodzi. Gwiritsani ntchito izi pa kopa data yonse kapena kupatsa waonera akaunti.",
+    backupDesc:
+      "Itsitsa mafayilo onse a CSV pamodzi. Gwiritsani ntchito izi pa kopa data yonse kapena kupatsa waonera akaunti.",
     downloadBtn: "Tsitsani CSV",
     downloadAllBtn: "Tsitsani CSV zonse",
     downloading: "Tikutsitsa…",
@@ -1378,6 +1384,7 @@ export const ny = {
     noStoreMovements: "Sankhani sitolo imodzi kuti mutsitse mbiri ya kusuntha kwa katundu.",
     emptyDataset: "Palibe data munthawi imeneyi.",
     errorMsg: "Kutsitsa kulephera. Chonde yesaninso.",
+    quotaHit: "Mwafika pamwamba pa kutsitsa kwa ola ili. Yesani masiku {mins} mminuti.",
     colSaleNumber: "Malonda #",
     colDate: "Tsiku",
     colStore: "Sitolo",
@@ -1415,9 +1422,11 @@ export const ny = {
     colDelta: "Kusintha",
     colBalanceAfter: "Zotsala pambuyo",
     colRef: "Zinthu",
-    backupNotice: "Mafayilo onse agwiritsa ntchito nthawi yomweyo ndi chisankho cha sitolo yomwe munasankha pamwamba. Atsegulireni mu Excel kapena Google Sheets.",
+    backupNotice:
+      "Mafayilo onse agwiritsa ntchito nthawi yomweyo ndi chisankho cha sitolo yomwe munasankha pamwamba. Atsegulireni mu Excel kapena Google Sheets.",
     pdfReportTitle: "Lipoti yathunthu ya bizinesi",
-    pdfReportDesc: "PDF imodzi yotsindikizika — chidule cha zachuma, njira zolipirira, zotulutsa, kufanizira masitolo, ndi mbali ya katundu.",
+    pdfReportDesc:
+      "PDF imodzi yotsindikizika — chidule cha zachuma, njira zolipirira, zotulutsa, kufanizira masitolo, ndi mbali ya katundu.",
     pdfTitle: "Lipoti yathunthu ya bizinesi",
     pdfShare: "Gawo",
     pdfRefundCount: "Zochita zobwezedwa",
@@ -1431,7 +1440,8 @@ export const ny = {
     pdfTopStock: "Zinthu 20 zapamwamba malinga ndi mtengo wa katundu",
     pdfStockValue: "Mtengo wa katundu",
     pdfLowStock: "Katundu wochepa / wofunika kuyitanitsidwa",
-    storeExportDesc: "Data yonse ya {store} — zochitika zonse, zinthu ndi kusuntha kwa katundu. Si chidule; gwiritsani ntchito Malipoti pa ichi.",
+    storeExportDesc:
+      "Data yonse ya {store} — zochitika zonse, zinthu ndi kusuntha kwa katundu. Si chidule; gwiritsani ntchito Malipoti pa ichi.",
     storeExportLabel: "Tulutsani dera ili",
   },
 };

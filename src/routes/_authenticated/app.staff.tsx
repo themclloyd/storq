@@ -190,7 +190,8 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
         p_active: f.active,
       });
       toast.success(t("common.saved"));
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: ["staff"] });
+      qc.invalidateQueries({ queryKey: ["staff-names"] });
       onClose();
     } catch (e) {
       toast.error((e as Error).message);

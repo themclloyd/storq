@@ -103,7 +103,7 @@ function CollectionPage() {
         })) ?? c?.id;
       await rpc("set_collection_products", { p_collection: newId, p_products: [...sel] });
       toast.success(t("col.saved"));
-      await qc.invalidateQueries();
+      await qc.invalidateQueries({ queryKey: ["collections"] });
       if (isNew && newId) nav({ to: "/app/collections/$id", params: { id: newId }, replace: true });
     } catch (e) {
       toast.error((e as Error).message);
@@ -115,7 +115,7 @@ function CollectionPage() {
     if (!c || !confirm(t("col.deleteConfirm"))) return;
     try {
       await rpc("delete_collection", { p_id: c.id });
-      await qc.invalidateQueries();
+      await qc.invalidateQueries({ queryKey: ["collections"] });
       nav({ to: "/app/collections" });
     } catch (e) {
       toast.error((e as Error).message);

@@ -6,3 +6,10 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+
+# Auto-generated / tool-managed — never hand-formatted (each regenerates on its own)
+.qoder/
+.lovable/
+src/integrations/supabase/
+# i18n catalogs are hand-tuned and must never be prettified
+src/lib/i18n/

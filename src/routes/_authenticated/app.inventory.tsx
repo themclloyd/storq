@@ -84,6 +84,7 @@ import { cn } from "@/lib/utils";
 import { useCollections } from "@/lib/collections";
 import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useOnce } from "@/hooks/use-once";
 import { visibleWorkspacePages } from "@/lib/workspace-navigation";
 import { downloadCsv, downloadLabelSheet, downloadPdf, fileStamp, parseCsv } from "@/lib/pdf";
 import { t as tt, useI18n } from "@/lib/i18n";
@@ -269,7 +270,7 @@ function Inventory() {
     const u = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0), 0);
     const retail = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.price), 0);
     const atCost = all.reduce((a, p) => a + (stock.data?.[p.id] ?? 0) * Number(p.cost), 0);
-    void downloadPdf({
+    return downloadPdf({
       filename: `storq-inventory-${fileStamp()}`,
       title: t("inv.reportTitle"),
       business: business?.name,
@@ -312,6 +313,11 @@ function Inventory() {
       ],
     });
   }
+  // Collapse overlapping and rapid-repeat export clicks so a session cannot
+  // pile up jsPDF builds (CPU DoS, blob leaks, browser download throttling).
+  const { run: runExport, running: exporting } = useOnce((kind: "csv" | "pdf") => {
+    void exportInventory(kind);
+  });
   // Ten rows per page (spec §4). Clamp when filters shrink `rows`.
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(rows, page);
   // Filters that narrow the list (sorting is excluded) drive the trigger badge.
@@ -343,6 +349,13 @@ function Inventory() {
                 const f = e.target.files?.[0];
                 e.target.value = "";
                 if (!f) return;
+                // Cap the CSV upload before reading it into memory — a
+                // 500 MB spreadsheet would freeze the tab and lock up the
+                // renderer before any DB call ever happened.
+                if (f.size > 5_000_000) {
+                  toast.error(t("inv.errFileTooLarge", { max: "5 MB" }));
+                  return;
+                }
                 try {
                   setImp(readImport(await f.text(), products.data ?? []));
                 } catch (err) {
@@ -454,10 +467,10 @@ function Inventory() {
                   {t("inv.downloadTemplate")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => exportInventory("csv")}>
+                <DropdownMenuItem disabled={exporting} onSelect={() => void runExport("csv")}>
                   {t("inv.exportCsv")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => exportInventory("pdf")}>
+                <DropdownMenuItem disabled={exporting} onSelect={() => void runExport("pdf")}>
                   {t("inv.exportPdf")}
                 </DropdownMenuItem>
                 {siblingPages.length > 0 && <DropdownMenuSeparator />}
@@ -1296,6 +1309,11 @@ const UNSAFE_CELL = /[\u0000-\u001f\u007f-\u009f<>`]/;
 function readImport(text: string, products: Product[]): ImportRow[] {
   const rows = parseCsv(text);
   if (rows.length < 2) throw new Error(tt("inv.errNoRows"));
+  // Bound a single import to 5 000 data rows. Anything larger is either a
+  // mistake or an abusive upload that would queue 5 000 sequential
+  // `save_product` RPCs.
+  if (rows.length - 1 > 5_000)
+    throw new Error(tt("inv.errTooManyRows", { count: rows.length - 1, max: "5,000" }));
   const h = rows[0]!.map((x) => x.trim().toLowerCase());
   const col = (...names: string[]) => h.findIndex((x) => names.includes(x));
   const ci = {

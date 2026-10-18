@@ -15,6 +15,7 @@ import { downloadPdf, fileStamp } from "@/lib/pdf";
 import { useRefunds } from "@/lib/refunds";
 import { methodLabel } from "@/lib/receipts";
 import { buildBusinessReport } from "@/lib/business-report";
+import { useOnce } from "@/hooks/use-once";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
   head: () => ({
@@ -39,7 +40,25 @@ const RANGE_LABEL_KEY: Record<keyof typeof rangeDays, string> = {
 };
 
 function Reports() {
-  const { store, stores, money, can, business } = usePos();
+  const { can } = usePos();
+  const { t } = useI18n();
+  // Gate before any heavy read mounts: a cashier deep-linking to
+  // /app/reports would otherwise fire sales + expenses + refunds + stock +
+  // products + the sale-item-costs chunk chain before the "admins only"
+  // card rendered. Splitting the shell here means the child hooks never
+  // mount for a session that cannot see the data anyway.
+  if (!can("admin", "manager")) {
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground">
+        {t("reports.onlyAdmins")}
+      </Card>
+    );
+  }
+  return <ReportsContent />;
+}
+
+function ReportsContent() {
+  const { store, stores, money, business } = usePos();
   const { t } = useI18n();
   const [range, setRange] = useState<keyof typeof rangeDays>("30 days");
   const [all, setAll] = useState(false);
@@ -87,17 +106,17 @@ function Reports() {
   const pct = (n: number) => `${n.toFixed(1)}%`;
   const profitable = r.realProfit >= 0;
   const perUnit = r.moneyCollected ? (r.realProfit / r.moneyCollected) * 100 : 0;
-
-  if (!can("admin", "manager"))
-    return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">
-        {t("reports.onlyAdmins")}
-      </Card>
-    );
   const loading = sales.isLoading || expenses.isLoading || refundsQ.isLoading;
+  // A filter toggle is only safe to retry once the whole chain (including
+  // the sale-item-costs chunk read) has settled; otherwise a rapid click on
+  // the range switch or "All stores" stacks overlapping 1000-row joins.
+  const fetching =
+    sales.isFetching || expenses.isFetching || refundsQ.isFetching || costs.isFetching;
 
+  // downloadPdf is async — keep the promise (no `void`) so useOnce can await
+  // it and lock the button until the browser has actually handed the file off.
   const exportPdf = () =>
-    void downloadPdf({
+    downloadPdf({
       filename: `storq-business-statement-${fileStamp()}`,
       title: t("bizReport.pdfTitle"),
       business: business?.name,
@@ -234,6 +253,9 @@ function Reports() {
         { type: "text", heading: " ", text: t("bizReport.pdfSignoff") },
       ],
     });
+  // Collapse concurrent and rapid-repeat clicks so a session cannot spawn a
+  // pile of jsPDF builds (CPU DoS, blob leaks, browser download throttling).
+  const { run: runExport, running: building } = useOnce(exportPdf);
 
   const steps: { k: string; hint: string; v: number; sign: "" | "-" | "="; strong?: boolean }[] = [
     {
@@ -278,6 +300,7 @@ function Reports() {
             <SegmentedControl
               aria-label={t("reports.title")}
               size="sm"
+              disabled={fetching}
               value={range}
               onChange={setRange}
               options={(Object.keys(rangeDays) as (keyof typeof rangeDays)[]).map((k) => ({
@@ -288,6 +311,7 @@ function Reports() {
             {stores.length > 1 && (
               <Button
                 size="sm"
+                disabled={fetching}
                 variant={all ? "secondary" : "outline"}
                 aria-pressed={all}
                 onClick={() => setAll(!all)}
@@ -295,7 +319,7 @@ function Reports() {
                 {t("reports.allStores")}
               </Button>
             )}
-            <Button size="sm" disabled={loading} onClick={exportPdf}>
+            <Button size="sm" disabled={loading || building} onClick={() => void runExport()}>
               {t("reports.downloadPdf")}
             </Button>
           </>

@@ -7,6 +7,7 @@ import { ReceiptIcon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { fetchSalesForExport, useSalesPage, useSalesSummary, useStaffNames } from "@/lib/sales";
+import { consumeExportQuota } from "@/lib/export-quota";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -129,6 +130,15 @@ function Sales() {
   // Export is on-demand: fetch the full period only when a button is clicked so
   // ordinary browsing stays light while the download still covers every sale.
   async function runExport(kind: "csv" | "pdf") {
+    // Per-device rolling budget — client-side only but stops a click-loop from
+    // re-pulling another full-period scan the instant the previous finishes.
+    const quota = consumeExportQuota();
+    if (!quota.allowed) {
+      toast.error(
+        t("xport.quotaHit", { mins: Math.max(1, Math.ceil(quota.retryAfterMs / 60_000)) }),
+      );
+      return;
+    }
     setExporting(true);
     try {
       const data = await fetchSalesForExport({ storeId, since });

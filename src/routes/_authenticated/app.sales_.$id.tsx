@@ -33,6 +33,7 @@ import { useStaffNames } from "@/lib/sales";
 import { usePos, type Store } from "@/lib/pos";
 import { downloadPdf, downloadReceiptPdf } from "@/lib/pdf";
 import { saleToReceipt } from "@/lib/receipts";
+import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/sales_/$id")({
@@ -403,7 +404,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
         p_reason: reason,
       });
       toast.success(t("sdetail.refundToast", { number: r.number, amount: money(r.amount) }));
-      qc.invalidateQueries();
+      invalidateKeys(qc, SALE_TOUCHED);
       onClose();
     } catch (e) {
       toast.error((e as Error).message);

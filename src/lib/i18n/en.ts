@@ -435,6 +435,8 @@ export const en = {
     filter: "Filter",
     stockValueCost: "stock value at cost",
     importCsv: "Import CSV",
+    errFileTooLarge: "File is too large — the maximum import size is {max}.",
+    errTooManyRows: "This file has {count} rows — the maximum import is {max}.",
     exportCsv: "Export CSV",
     exportPdf: "Export PDF",
     downloadTemplate: "Download Template",
@@ -1356,6 +1358,7 @@ export const en = {
     noStoreMovements: "Select a single store to export the stock movements ledger.",
     emptyDataset: "No data in this period.",
     errorMsg: "Export failed. Please try again.",
+    quotaHit: "You've reached the export limit for this hour. Try again in {mins} minute(s).",
     colSaleNumber: "Sale #",
     colDate: "Date",
     colStore: "Store",
@@ -1411,7 +1414,8 @@ export const en = {
     pdfTopStock: "Top 20 items by stock value",
     pdfStockValue: "Stock value",
     pdfLowStock: "Low / reorder stock",
-    storeExportDesc: "Full raw data for {store} — every transaction, item and stock movement. Not a summary; use Reports for that.",
+    storeExportDesc:
+      "Full raw data for {store} — every transaction, item and stock movement. Not a summary; use Reports for that.",
     storeExportLabel: "Export this location",
   },
 } as const;

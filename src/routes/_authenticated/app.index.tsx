@@ -23,6 +23,7 @@ import {
   type Product,
 } from "@/lib/products";
 import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
+import { useOnce } from "@/hooks/use-once";
 import { normalizeCode } from "@/lib/item-codes";
 import { usePos } from "@/lib/pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -113,6 +114,12 @@ function Register() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const products = useProducts(store?.id);
+  // Cool the "Try again" click on the till's error state so a session cannot
+  // hammer the catalog query on a flaky connection.
+  const { run: retryProducts, running: retryingProducts } = useOnce(
+    () => products.refetch(),
+    3_000,
+  );
   // Live screen: re-read quantities so a CSV import or another till's sale is
   // never sold against a badge this device cached earlier.
   const stock = useStock(store?.id, { live: true });
@@ -445,7 +452,12 @@ function Register() {
             <Empty>
               <div className="flex flex-col items-center gap-3">
                 <span>{t("errors.generic")}</span>
-                <Button size="sm" variant="outline" onClick={() => void products.refetch()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={retryingProducts}
+                  onClick={() => void retryProducts()}
+                >
                   {t("common.tryAgain")}
                 </Button>
               </div>

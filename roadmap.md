@@ -1,5 +1,7 @@
 # Storq visual refresh
+
 ## Paid store enforcement
+
 - [x] Research Shopify POS per-location subscriptions and audit Storq billing.
 - [x] Enforce paid store capacity server-side and explain capacity in Stores and Billing.
 - [x] Verify guards, payment activation, and app checks with 22 tests and rollback-only database checks.
@@ -14,6 +16,7 @@ Verification: build OK; database checks passed for store limits, over-capacity w
 Verification: light-mode sign-in checked visually; build OK. Signed-in billing and dashboard checks are unavailable with this project's external sign-in setup.
 
 ## Store-aware navigation
+
 - [x] Group inventory, sales, financial and business tools without removing existing URLs or staff access.
 - [x] Show approval workflows only for approval stores and keep layby in both types.
 - [x] Test navigation policies and checkout controls; check preview where access is available.

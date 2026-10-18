@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
 import { invalidateKeys } from "@/lib/cache-invalidation";
 import { downloadPdf } from "@/lib/pdf";
+import { useOnce } from "@/hooks/use-once";
 import { useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,9 @@ function Shifts() {
     queryKey: ["shift-summary", open?.id],
     enabled: !!open,
     refetchInterval: 30000,
+    // A background tab must not keep polling the till; the summary re-syncs
+    // on visibility change.
+    refetchIntervalInBackground: false,
     queryFn: () => rpc<Summary>("get_shift_summary", { p_shift: open!.id }),
   });
   const [float, setFloat] = useState("");
@@ -486,6 +490,65 @@ function ZReport({
   const { money, business, stores } = usePos();
   const { t } = useI18n();
   const sm = s.summary;
+  // Collapse overlapping and rapid-repeat clicks so a session cannot pile up
+  // jsPDF builds on the local CPU.
+  const { run: runPdf, running: building } = useOnce(() => {
+    const v = Number(s.variance);
+    return downloadPdf({
+      filename: `storq-shift-${(s.closed_at ?? s.opened_at).slice(0, 10)}`,
+      title: t("shift.reportTitle"),
+      business: business?.name,
+      subtitle: stores.find((x) => x.id === s.store_id)?.name,
+      badge:
+        Math.abs(v) < 0.01
+          ? t("shift.balanced")
+          : v > 0
+            ? t("shift.overWord")
+            : t("shift.shortWord"),
+      meta: [
+        [t("shift.openedWord"), `${fmtDate(s.opened_at)} · ${names[s.opened_by ?? ""] ?? ""}`],
+        [
+          t("shift.closedWord"),
+          s.closed_at
+            ? `${fmtDate(s.closed_at)} · ${names[s.closed_by ?? ""] ?? ""}`
+            : t("shift.openWord"),
+        ],
+      ],
+      kpis: [
+        [t("shift.rowExpectedCash"), money(s.expected_cash ?? sm?.expected_cash ?? 0)],
+        [t("shift.countedWord"), money(s.counted_cash)],
+        [t("shift.difference"), money(v)],
+      ],
+      sections: [
+        ...(sm
+          ? [
+              {
+                type: "pairs" as const,
+                heading: t("shift.title"),
+                rows: [
+                  [t("shift.rowStartingFloat"), money(sm.opening_float)],
+                  [t("shift.rowCashSales"), money(sm.cash_sales)],
+                  [t("shift.rowCashRefunds"), `-${money(sm.cash_refunds)}`],
+                  [t("shift.cashIn"), money(sm.cash_in)],
+                  [t("shift.cashOut"), `-${money(sm.cash_out)}`],
+                  [t("shift.rowExpenses"), `-${money(sm.till_expenses)}`],
+                  [t("shift.rowExpectedCash"), money(sm.expected_cash)],
+                ] as [string, string][],
+              },
+              {
+                type: "pairs" as const,
+                heading: t("shift.takingsByMethod", { count: sm.transactions }),
+                rows: Object.entries(sm.by_method ?? {}).map(
+                  ([m, x]) => [m, money(x)] as [string, string],
+                ),
+              },
+            ]
+          : []),
+        ...(s.notes ? [{ type: "text" as const, heading: t("shift.notes"), text: s.notes }] : []),
+      ],
+      footerNote: t("shift.footerCounted"),
+    });
+  });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md rounded-3xl">
@@ -526,71 +589,7 @@ function ZReport({
             </p>
           )}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => {
-            const v = Number(s.variance);
-            void downloadPdf({
-              filename: `storq-shift-${(s.closed_at ?? s.opened_at).slice(0, 10)}`,
-              title: t("shift.reportTitle"),
-              business: business?.name,
-              subtitle: stores.find((x) => x.id === s.store_id)?.name,
-              badge:
-                Math.abs(v) < 0.01
-                  ? t("shift.balanced")
-                  : v > 0
-                    ? t("shift.overWord")
-                    : t("shift.shortWord"),
-              meta: [
-                [
-                  t("shift.openedWord"),
-                  `${fmtDate(s.opened_at)} · ${names[s.opened_by ?? ""] ?? ""}`,
-                ],
-                [
-                  t("shift.closedWord"),
-                  s.closed_at
-                    ? `${fmtDate(s.closed_at)} · ${names[s.closed_by ?? ""] ?? ""}`
-                    : t("shift.openWord"),
-                ],
-              ],
-              kpis: [
-                [t("shift.rowExpectedCash"), money(s.expected_cash ?? sm?.expected_cash ?? 0)],
-                [t("shift.countedWord"), money(s.counted_cash)],
-                [t("shift.difference"), money(v)],
-              ],
-              sections: [
-                ...(sm
-                  ? [
-                      {
-                        type: "pairs" as const,
-                        heading: t("shift.title"),
-                        rows: [
-                          [t("shift.rowStartingFloat"), money(sm.opening_float)],
-                          [t("shift.rowCashSales"), money(sm.cash_sales)],
-                          [t("shift.rowCashRefunds"), `-${money(sm.cash_refunds)}`],
-                          [t("shift.cashIn"), money(sm.cash_in)],
-                          [t("shift.cashOut"), `-${money(sm.cash_out)}`],
-                          [t("shift.rowExpenses"), `-${money(sm.till_expenses)}`],
-                          [t("shift.rowExpectedCash"), money(sm.expected_cash)],
-                        ] as [string, string][],
-                      },
-                      {
-                        type: "pairs" as const,
-                        heading: t("shift.takingsByMethod", { count: sm.transactions }),
-                        rows: Object.entries(sm.by_method ?? {}).map(
-                          ([m, x]) => [m, money(x)] as [string, string],
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(s.notes
-                  ? [{ type: "text" as const, heading: t("shift.notes"), text: s.notes }]
-                  : []),
-              ],
-              footerNote: t("shift.footerCounted"),
-            });
-          }}
-        >
+        <Button variant="outline" disabled={building} onClick={() => void runPdf()}>
           {t("sdetail.downloadPdf")}
         </Button>
       </DialogContent>

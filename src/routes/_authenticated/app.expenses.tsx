@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useOnce } from "@/hooks/use-once";
 import {
   Table,
   TableBody,
@@ -229,6 +230,13 @@ function Expenses() {
     });
   }
 
+  // Collapse overlapping and rapid-repeat export clicks so a session cannot
+  // pile up jsPDF builds (CPU DoS, blob leaks, browser download throttling).
+  const { run: runExport, running: exporting } = useOnce((kind: "csv" | "pdf") => {
+    if (kind === "csv") exportCsv();
+    else exportPdf();
+  });
+
   return (
     <>
       <PageHeader
@@ -309,7 +317,7 @@ function Expenses() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <ExportMenu onExport={(kind) => (kind === "csv" ? exportCsv() : exportPdf())} />
+            <ExportMenu disabled={exporting} onExport={(kind) => void runExport(kind)} />
             <Button onClick={() => setRecording(true)} disabled={!store}>
               <HugeiconsIcon icon={PlusSignIcon} /> {t("exp.recordExpense")}
             </Button>

@@ -96,6 +96,8 @@ function StockTakeDetail() {
     enabled: !!take,
     // Live team count while the session is open; a closed session never changes.
     refetchInterval: open ? 15_000 : false,
+    // A background tab must not keep polling; the count re-syncs on visibility.
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_take_lines")

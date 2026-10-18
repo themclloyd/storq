@@ -13,9 +13,17 @@ type Shared = {
   items: { name: string; price: number; sale_price: number }[];
 };
 
+// Public, unauthenticated SSR endpoint — a script can hit /c/<anything> at
+// high frequency. Cache every result (including misses) for 30 s per worker so
+// repeated hits on the same slug cost zero database calls.
+const CACHE_TTL_MS = 30_000;
+const sharedCache = new Map<string, { at: number; value: Shared | null }>();
+
 const getShared = createServerFn({ method: "GET" })
   .validator((d) => z.object({ slug: z.string().min(1).max(64) }).parse(d))
   .handler(async ({ data }) => {
+    const hit = sharedCache.get(data.slug);
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
     const sb = createClient(
       process.env["SUPABASE_URL"]!,
       process.env["SUPABASE_PUBLISHABLE_KEY"]!,
@@ -25,7 +33,10 @@ const getShared = createServerFn({ method: "GET" })
     );
     const { data: r, error } = await sb.rpc("get_shared_collection", { p_slug: data.slug });
     if (error) throw new Error(error.message);
-    return (r as unknown as Shared) ?? null;
+    const value = (r as unknown as Shared) ?? null;
+    if (sharedCache.size > 500) sharedCache.clear(); // cheap cap against slug enumeration
+    sharedCache.set(data.slug, { at: Date.now(), value });
+    return value;
   });
 
 export const Route = createFileRoute("/c/$slug")({

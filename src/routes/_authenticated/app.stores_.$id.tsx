@@ -38,6 +38,7 @@ import { fetchExpensesForExport } from "@/lib/expenses";
 import { fetchProductsForExport, fetchMovementsForExport } from "@/lib/products";
 import { buildBusinessReport } from "@/lib/business-report";
 import { methodLabel } from "@/lib/receipts";
+import { consumeExportQuota } from "@/lib/export-quota";
 
 export const Route = createFileRoute("/_authenticated/app/stores_/$id")({
   head: () => ({
@@ -110,7 +111,21 @@ function StoreForm({ store }: { store: Store }) {
   }
   const anyX = Object.values(xbusy).some(Boolean);
 
+  // Per-device rolling budget (see src/lib/export-quota.ts). Client-side only
+  // but stops a scripted click-loop from re-pulling another 50k-row scan the
+  // instant the previous finished.
+  const guardQuota = useCallback((): boolean => {
+    const q = consumeExportQuota();
+    if (!q.allowed) {
+      toast.error(t("xport.quotaHit", { mins: Math.max(1, Math.ceil(q.retryAfterMs / 60_000)) }));
+      return false;
+    }
+    return true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const xSales = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("sales", true);
     try {
       const rows = await fetchSalesForExport({ storeId: store.id, since });
@@ -153,6 +168,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, stamp, tag]);
 
   const xSaleItems = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("saleItems", true);
     try {
       const rows = await fetchSaleItemsForExport({ storeId: store.id, since });
@@ -182,6 +198,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, stamp, tag]);
 
   const xRefunds = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("refunds", true);
     try {
       const rows = await fetchRefundsForExport({ storeId: store.id, since });
@@ -242,6 +259,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, stamp, tag]);
 
   const xExpenses = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("expenses", true);
     try {
       const rows = await fetchExpensesForExport({ storeId: store.id, since });
@@ -269,6 +287,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, stamp, tag]);
 
   const xProducts = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("products", true);
     try {
       const rows = await fetchProductsForExport(store.id);
@@ -307,6 +326,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, stamp, tag]);
 
   const xMovements = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("movements", true);
     try {
       const rows = await fetchMovementsForExport({ storeId: store.id, since });
@@ -336,6 +356,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, stamp, tag]);
 
   const xPdf = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("pdf", true);
     try {
       const [salesRows, refundRows, expenseRows, productRows] = await Promise.all([
@@ -544,6 +565,7 @@ function StoreForm({ store }: { store: Store }) {
   }, [store.id, store.name, stamp, tag]);
 
   const xAll = useCallback(async () => {
+    if (!guardQuota()) return;
     xmark("all", true);
     try {
       const delay = () => new Promise<void>((r) => setTimeout(r, 350));
@@ -563,7 +585,7 @@ function StoreForm({ store }: { store: Store }) {
     } finally {
       xmark("all", false);
     }
-  }, [xSales, xSaleItems, xRefunds, xExpenses, xProducts, xMovements, xPdf]);
+  }, [xSales, xSaleItems, xRefunds, xExpenses, xProducts, xMovements, xPdf, guardQuota]);
 
   async function save() {
     const err = firstError(
@@ -592,7 +614,8 @@ function StoreForm({ store }: { store: Store }) {
         p_tax_inclusive: incl,
       });
       toast.success(t("common.saved"));
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: ["stores"] });
+      qc.invalidateQueries({ queryKey: ["business"] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
