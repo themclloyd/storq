@@ -1549,6 +1549,7 @@ export type Database = {
           p_price: number
           p_reorder_point?: number
           p_sku: string
+          p_store: string
           p_token: string
         }
         Returns: string
@@ -1567,14 +1568,14 @@ export type Database = {
       }
       save_store: {
         Args: {
-          p_address?: string | null
-          p_email?: string | null
-          p_id: string | null
+          p_address?: string
+          p_email?: string
+          p_id: string
           p_name: string
-          p_phone?: string | null
-          p_tax_inclusive?: boolean | null
-          p_tax_number?: string | null
-          p_tax_rate?: number | null
+          p_phone?: string
+          p_tax_inclusive?: boolean
+          p_tax_number?: string
+          p_tax_rate?: number
           p_token: string
           p_type: string
         }
@@ -1622,15 +1623,25 @@ export type Database = {
         Args: { p_store: string; p_token: string }
         Returns: string
       }
-      start_store_subscription_payment: {
-        Args: {
-          p_currency: string
-          p_months: number
-          p_stores: number
-          p_token: string
-        }
-        Returns: Json
-      }
+      start_store_subscription_payment:
+        | {
+            Args: {
+              p_currency: string
+              p_months: number
+              p_stores: number
+              p_token: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_currency: string
+              p_period: string
+              p_stores: number
+              p_token: string
+            }
+            Returns: Json
+          }
       start_subscription_payment: {
         Args: { p_currency: string; p_period: string; p_token: string }
         Returns: Json
