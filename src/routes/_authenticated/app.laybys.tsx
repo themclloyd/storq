@@ -14,9 +14,9 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/laybys")({
   head: () => ({
     meta: [
-      { title: "Laybys — Storq" },
+      { title: "Laybys | Storq" },
       { name: "description", content: "Track customer laybys and outstanding balances." },
-      { property: "og:title", content: "Laybys — Storq" },
+      { property: "og:title", content: "Laybys | Storq" },
       { property: "og:description", content: "Track customer laybys and outstanding balances." },
       { name: "robots", content: "noindex, nofollow" },
     ],

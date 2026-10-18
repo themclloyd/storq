@@ -75,6 +75,47 @@ export function useSales(
   });
 }
 
+/**
+ * Live "invoices awaiting you" signal shown by the workspace shell. It counts
+ * pending approvals for the store selected in the switcher only — the badge
+ * belongs to that location and never carries over when you switch stores.
+ * Oldest first, so the queue opens on what has waited longest. This is a live
+ * surface: it polls while anything is waiting here, and on this device a
+ * send/approve/reject refreshes it instantly via the ["pending-approvals"]
+ * entry in SALE_TOUCHED.
+ */
+export function usePendingApprovals() {
+  const { store, staff, can } = usePos();
+  // Only an approver sitting in an approval-based store has a queue to watch;
+  // direct stores and cashiers never poll or badge at all.
+  const storeId =
+    can("admin", "manager") &&
+    store?.store_type === "approval" &&
+    (!staff?.store_id || staff.store_id === store.id)
+      ? store.id
+      : undefined;
+  return useQuery({
+    queryKey: ["pending-approvals", storeId ?? ""],
+    enabled: !!storeId,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const id = storeId as string; // enabled: gates on this being set
+      const { data, error } = await supabase
+        .from("sales")
+        .select("id,store_id,created_at")
+        .eq("status", "pending_approval")
+        .eq("store_id", id)
+        .order("created_at", { ascending: true })
+        // The badge caps its read like the dashboard alert does; "99+" is
+        // shown when the window is full so the count stays honest.
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as { id: string; store_id: string; created_at: string }[];
+    },
+  });
+}
+
 // Sale-item buying costs live in the gated sale_item_costs table (admin/manager
 // only). Cashiers simply get an empty map and every cost fallback is 0.
 export function useSaleItemCosts(rows?: SaleRow[]) {
@@ -216,4 +257,57 @@ export async function fetchSalesForExport(filter: {
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as unknown as SaleExportRow[];
+}
+
+// Flat sale-item rows for the line-items CSV sheet.
+export type SaleItemExportRow = {
+  sale_number: number;
+  sale_created_at: string;
+  sale_status: string;
+  store_id: string;
+  product_id: string | null;
+  product_name: string;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+};
+
+/**
+ * Fetches sale line items joined to their parent sale for the full-detail CSV.
+ * Called only on Export click — never in a hook.
+ */
+export async function fetchSaleItemsForExport(filter: {
+  storeId?: string | undefined;
+  since: string;
+}): Promise<SaleItemExportRow[]> {
+  let q = supabase
+    .from("sale_items")
+    .select("product_id,name,qty,price,sales!inner(number,created_at,status,store_id)")
+    .gte("sales.created_at", filter.since)
+    .order("sales.created_at", { ascending: false })
+    .limit(200_000);
+  if (filter.storeId)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    q = (q as any).eq("sales.store_id", filter.storeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (
+    (data ?? []) as unknown as {
+      product_id: string | null;
+      name: string;
+      qty: string | number;
+      price: string | number;
+      sales: { number: number; created_at: string; status: string; store_id: string };
+    }[]
+  ).map((r) => ({
+    sale_number: r.sales.number,
+    sale_created_at: r.sales.created_at,
+    sale_status: r.sales.status,
+    store_id: r.sales.store_id,
+    product_id: r.product_id,
+    product_name: r.name,
+    qty: Number(r.qty),
+    unit_price: Number(r.price),
+    line_total: Number(r.qty) * Number(r.price),
+  }));
 }

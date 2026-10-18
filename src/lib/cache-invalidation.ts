@@ -22,6 +22,9 @@ export const SALE_TOUCHED: readonly QueryKey[] = [
   ["shifts"],
   ["shift-summary"],
   ["dash-alerts"],
+  // The shell's live approvals badge — a sent invoice or a review updates it
+  // immediately on this device instead of waiting for the next poll.
+  ["pending-approvals"],
 ];
 
 /** Invalidate each key prefix as its own query — TanStack batches them. */

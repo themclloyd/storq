@@ -61,7 +61,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Storq POS — Point of sale, inventory and layby" },
+      { title: "Storq POS | Point of sale, inventory and layby" },
       {
         name: "description",
         content: "Point of sale, stock and layby for single and multi-store businesses.",
@@ -92,7 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
         {/* Without JS, scroll-reveal wrappers on the landing page must stay visible. */}
@@ -100,7 +100,7 @@ function RootShell({ children }: { children: ReactNode }) {
           <style>{".reveal{opacity:1!important;transform:none!important;transition:none}"}</style>
         </noscript>
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>

@@ -34,12 +34,12 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/stocktake")({
   head: () => ({
     meta: [
-      { title: "Stock takes — Storq" },
+      { title: "Stock takes | Storq" },
       {
         name: "description",
         content: "Review stock take sessions and reconcile store inventory.",
       },
-      { property: "og:title", content: "Stock takes — Storq" },
+      { property: "og:title", content: "Stock takes | Storq" },
       {
         property: "og:description",
         content: "Review stock take sessions and reconcile store inventory.",

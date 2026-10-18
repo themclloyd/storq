@@ -11,8 +11,9 @@
  *
  * 2. ADD STORES — user has an active paid sub and wants more locations. They pick:
  *    - How many NEW stores to add (delta, not total)
- *    - How many months for the new capacity
- *    Currency is shared. Proration is explained plainly.
+ *    - How many months the new stores are paid for
+ *    Currency is shared. Only the new slots are billed (SQL snapshots them as
+ *    `billed_stores`) and the expiry already paid for never moves earlier.
  *
  * 3. NEW SUBSCRIPTION — trial or expired. They pick:
  *    - How many stores to cover
@@ -47,7 +48,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { SITE_URL } from "@/lib/seo";
 import { downloadPdf } from "@/lib/pdf";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -94,6 +94,27 @@ function projectedExpiry(until: Date | null, months: number): Date {
   const base = until && until > new Date() ? new Date(until) : new Date();
   base.setMonth(base.getMonth() + months);
   return base;
+}
+
+/**
+ * Expiry after a capacity purchase: the paid-for term of the new slots, but never
+ * earlier than the runway the existing slots already have. Mirrors the
+ * `billed_stores < stores` branch of `complete_subscription_payment`.
+ */
+function capacityExpiry(until: Date | null, months: number): Date {
+  const now = new Date();
+  const termEnd = new Date(now);
+  termEnd.setMonth(now.getMonth() + months);
+  return until && until > now ? new Date(Math.max(until.getTime(), termEnd.getTime())) : termEnd;
+}
+
+/**
+ * Slots a payment actually charges for — the same rule SQL applies inside
+ * `start_store_subscription_payment`: an active subscription has already paid for
+ * its current slots, so raising the count is priced on the difference alone.
+ */
+function billedSlotCount(totalSlots: number, paidSlots: number): number {
+  return paidSlots > 0 && totalSlots > paidSlots ? totalSlots - paidSlots : totalSlots;
 }
 
 // ── Shared sub-components ───────────────────────────────────────────────────
@@ -332,6 +353,9 @@ export function Billing({ locked }: { locked?: boolean }) {
   const [currency, setCurrency] = useState<Currency>("MWK");
   const [busy, setBusy] = useState(false);
   const checked = useRef(false);
+  // tx_ref of the checkout we opened in the PayChangu iframe this session —
+  // used to authenticate postMessage results and ignore stale messages.
+  const pendingRef = useRef<string | null>(null);
 
   // ── Per-mode state ────────────────────────────────────────────────────────
   const [renewMonths, setRenewMonths] = useState(1);
@@ -365,23 +389,91 @@ export function Billing({ locked }: { locked?: boolean }) {
   const months =
     planMode === "renew" ? renewMonths : planMode === "add-stores" ? addMonths : newMonths;
 
-  async function check(ref: string) {
-    const r = await verify({ data: { tx_ref: ref } });
-    if (r.ok) {
-      toast.success(t("billing.paymentReceived"));
-      qc.invalidateQueries({ queryKey: ["subscription"] });
-    } else toast.error(r.message);
+  // What this payment charges for and the expiry it buys. SQL derives both the same
+  // way, so the number shown can never differ from the amount actually taken.
+  const billedSlots = billedSlotCount(n, paidCapacity);
+  const isCapacityPurchase = billedSlots < n;
+  const payUntil = isCapacityPurchase
+    ? capacityExpiry(until, months)
+    : projectedExpiry(until, months);
+
+  async function check(ref: string): Promise<boolean> {
+    try {
+      const r = await verify({ data: { tx_ref: ref } });
+      if (r.ok) {
+        toast.success(t("billing.paymentReceived"));
+        qc.invalidateQueries({ queryKey: ["subscription"] });
+        return true;
+      }
+      // A reference the server can never complete (its payment row no longer
+      // exists) is forgotten; transient failures stay put and retry next load.
+      if (r.drop) {
+        if (pendingRef.current === ref) pendingRef.current = null;
+        localStorage.removeItem("paychangu_pending_tx_ref");
+      }
+      toast.error(r.message);
+      return false;
+    } catch (e) {
+      toast.error((e as Error).message);
+      return false;
+    }
   }
+
+  // The checkout overlay is dismissed once PayChangu reports success, but the
+  // pending reference is only cleared after OUR server confirms the payment.
+  // A transient failure (provider not yet consistent, missing service key) then
+  // survives in localStorage and is retried on the next load — so a charge that
+  // really happened is never silently dropped.
+  async function finalizePayment(ref: string) {
+    document.getElementById("iframe1")?.remove();
+    document.querySelector(".page-loading")?.remove();
+    if (await check(ref)) {
+      if (pendingRef.current === ref) pendingRef.current = null;
+      localStorage.removeItem("paychangu_pending_tx_ref");
+    }
+  }
+
+  // The PayChangu checkout loads inside an iframe (popup.js), so a successful
+  // payment NEVER navigates our top-level window — the iframe's own callback
+  // redirect lands inside the frame (and our CSP frame-ancestors 'none' blocks
+  // it there). The only reliable completion signal is the
+  // `paychangu:payment.success` postMessage the checkout sends to its parent.
+  // The message is trusted only because it comes from the checkout origin AND
+  // we have a locally-started tx_ref awaiting payment; the real confirmation
+  // always happens server-side via verify-payment. (The message's own
+  // `payment.reference` is PayChangu's internal ref_id, not our tx_ref.)
+  function handlePaychanguMessage(e: MessageEvent) {
+    if (!/^https:\/\/(?:test-)?checkout\.paychangu\.com$/.test(e.origin)) return;
+    const msg = e.data as { type?: string } | null;
+    if (msg?.type !== "paychangu:payment.success") return;
+    const ref = pendingRef.current;
+    if (!ref) return;
+    void finalizePayment(ref);
+  }
+
+  // Keep the listener on the latest closure (translated toasts, fresh verify).
+  const paychanguMsgHandler = useRef(handlePaychanguMessage);
+  paychanguMsgHandler.current = handlePaychanguMessage;
 
   useEffect(() => {
     if (checked.current) return;
     checked.current = true;
-    const ref = new URLSearchParams(window.location.search).get("tx_ref");
+    // Check URL param first (PayChangu redirect), then fall back to localStorage
+    // (saved before opening the widget so it survives a full-page navigation).
+    const urlRef = new URLSearchParams(window.location.search).get("tx_ref");
+    const storedRef = localStorage.getItem("paychangu_pending_tx_ref");
+    const ref = urlRef || storedRef;
     if (ref) {
-      check(ref);
+      void finalizePayment(ref);
       window.history.replaceState(null, "", window.location.pathname);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => paychanguMsgHandler.current(e);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   async function pay() {
@@ -389,29 +481,40 @@ export function Billing({ locked }: { locked?: boolean }) {
     try {
       const [{ key }, start, { data: u }] = await Promise.all([
         getKey(),
-        rpc<{ tx_ref: string; amount: number }>("start_store_subscription_payment", {
-          p_months: months,
-          p_currency: currency,
-          p_stores: n,
-        }),
+        rpc<{ tx_ref: string; amount: number; billed_stores: number }>(
+          "start_store_subscription_payment",
+          {
+            p_months: months,
+            p_currency: currency,
+            p_stores: n,
+          },
+        ),
         supabase.auth.getUser(),
         loadPaychangu(),
       ]);
       if (!key) throw new Error(t("billing.payNotConfigured"));
-      const url = `${SITE_URL || window.location.origin}/app/billing`;
+      // Use VITE_SITE_URL when set (deployed domain), fall back to current origin.
+      const origin =
+        (import.meta.env["VITE_SITE_URL"] as string | undefined)?.trim().replace(/\/+$/, "") ||
+        window.location.origin;
+      const callbackUrl = `${origin}/app/billing`;
       if (!document.getElementById("wrapper")) {
         const w = document.createElement("div");
         w.id = "wrapper";
         document.body.appendChild(w);
       }
       if (!window.PaychanguCheckout) throw new Error(t("billing.paychanguFailed"));
+      // Persist tx_ref so the verify logic can pick it up even if the
+      // PayChangu redirect causes a full page reload (e.g. on localhost).
+      pendingRef.current = start.tx_ref;
+      localStorage.setItem("paychangu_pending_tx_ref", start.tx_ref);
       window.PaychanguCheckout({
         public_key: key,
         tx_ref: start.tx_ref,
         amount: start.amount,
         currency,
-        callback_url: url,
-        return_url: url,
+        callback_url: callbackUrl,
+        return_url: callbackUrl,
         customer: {
           email: u.user?.email ?? "",
           first_name: business?.name ?? "Storq",
@@ -419,7 +522,9 @@ export function Billing({ locked }: { locked?: boolean }) {
         },
         customization: {
           title: "Storq subscription",
-          description: `${n} store${n > 1 ? "s" : ""} · ${months} month${months > 1 ? "s" : ""}`,
+          description: isCapacityPurchase
+            ? `+${billedSlots} store${billedSlots > 1 ? "s" : ""} · ${months} month${months > 1 ? "s" : ""}`
+            : `${n} store${n > 1 ? "s" : ""} · ${months} month${months > 1 ? "s" : ""}`,
         },
         meta: { business: business?.id },
       });
@@ -471,7 +576,9 @@ export function Billing({ locked }: { locked?: boolean }) {
       <HugeiconsIcon icon={CreditCardIcon} />
       {busy
         ? t("billing.opening")
-        : t("billing.payAmount", { amount: fmt(currency, calcTotal(currency, n, months)) })}
+        : t("billing.payAmount", {
+            amount: fmt(currency, calcTotal(currency, billedSlots, months)),
+          })}
     </Button>
   );
 
@@ -736,8 +843,12 @@ export function Billing({ locked }: { locked?: boolean }) {
             history.data.map((r) => {
               const paid = r.status === "paid";
               const when = new Date(r.paid_at ?? r.created_at);
+              // Capacity purchases charge the new slots only, so the label has to
+              // say what was billed — not the resulting total capacity.
+              const billed = r.billed_stores ?? r.stores;
               // Period column may be 'monthly', 'yearly', or an integer string
-              const monthCount = r.period === "monthly" ? 1 : r.period === "yearly" ? 12 : Number(r.period);
+              const monthCount =
+                r.period === "monthly" ? 1 : r.period === "yearly" ? 12 : Number(r.period);
               const periodDisplay = !isNaN(monthCount)
                 ? `${monthCount} month${monthCount !== 1 ? "s" : ""}`
                 : r.period;
@@ -746,7 +857,9 @@ export function Billing({ locked }: { locked?: boolean }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium">
-                        {t("billing.storesCount", { count: r.stores })}
+                        {billed < r.stores
+                          ? t("billing.addedStoresCount", { count: billed })
+                          : t("billing.storesCount", { count: billed })}
                         <span className="font-normal text-muted-foreground">
                           {" · "}
                           {periodDisplay} {t("billing.planWord")}
@@ -844,9 +957,7 @@ export function Billing({ locked }: { locked?: boolean }) {
               {/* "Your subscription will be active until ~X" */}
               <p className="text-xs text-muted-foreground">
                 {t("billing.expiresAfterPay", {
-                  date: projectedExpiry(until, renewMonths).toLocaleDateString(undefined, {
-                    dateStyle: "long",
-                  }),
+                  date: payUntil.toLocaleDateString(undefined, { dateStyle: "long" }),
                 })}
               </p>
 
@@ -872,9 +983,9 @@ export function Billing({ locked }: { locked?: boolean }) {
         </DialogContent>
       </Dialog>
 
-      {/* ══ ADD STORES ═════════════════════════════════════════════════════
-          Delta-first: the big number = how many NEW stores.
-          Then the user picks how many months for the expanded capacity.
+      {/* ══ ADD STORES ═══════════════════════════════════════════════════
+          Delta-first: the big number = how many NEW stores, and only those are
+          billed. The existing slots keep the expiry already paid for.
       ═════════════════════════════════════════════════════════════════════= */}
       <Dialog open={planMode === "add-stores"} onOpenChange={(o) => !o && setPlanMode(null)}>
         <DialogContent className="max-w-md rounded-3xl">
@@ -910,7 +1021,9 @@ export function Billing({ locked }: { locked?: boolean }) {
                 confirmLine={
                   <span>
                     {t("billing.addStoresTotalLine", { total: addTotal })}{" "}
-                    <span className="text-xs">({paidCapacity} + {safeAddDelta})</span>
+                    <span className="text-xs">
+                      ({paidCapacity} + {safeAddDelta})
+                    </span>
                   </span>
                 }
               />
@@ -923,16 +1036,25 @@ export function Billing({ locked }: { locked?: boolean }) {
               />
 
               <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-                {t("billing.addStoresProrateNote")}
+                {t("billing.addStoresDeltaOnlyNote", {
+                  billed: safeAddDelta,
+                  paid: paidCapacity,
+                })}
+              </p>
+
+              <p className="text-xs text-muted-foreground">
+                {t("billing.expiresAfterPay", {
+                  date: payUntil.toLocaleDateString(undefined, { dateStyle: "long" }),
+                })}
               </p>
 
               <PriceSummary
                 currency={currency}
-                stores={addTotal}
+                stores={billedSlots}
                 months={addMonths}
-                breakdownLabel={t("billing.priceBreakdown", {
+                breakdownLabel={t("billing.priceBreakdownNew", {
                   price: fmt(currency, PRICES[currency]),
-                  count: addTotal,
+                  count: billedSlots,
                   months: addMonths,
                 })}
                 discountLabel={t("billing.yearDiscountLine")}
@@ -1091,6 +1213,7 @@ type Inv = {
   currency: string;
   amount: number;
   stores: number;
+  billed_stores: number | null;
   status: string;
   created_at: string;
   paid_at: string | null;
@@ -1100,11 +1223,16 @@ function printInvoice(r: Inv, biz: string) {
   const c = r.currency as Currency;
   const d = new Date(r.paid_at ?? r.created_at).toLocaleDateString("en-ZA", { dateStyle: "long" });
   const amt = fmt(c, Number(r.amount));
-  const monthCount =
-    r.period === "monthly" ? 1 : r.period === "yearly" ? 12 : Number(r.period);
+  const monthCount = r.period === "monthly" ? 1 : r.period === "yearly" ? 12 : Number(r.period);
   const periodDisplay = !isNaN(monthCount)
     ? `${monthCount} month${monthCount !== 1 ? "s" : ""}`
     : r.period;
+  // The invoice must list the slots the amount was charged for.
+  const billed = r.billed_stores ?? r.stores;
+  const planDisplay =
+    billed < r.stores
+      ? `+${billed} new store${billed !== 1 ? "s" : ""} · ${periodDisplay}`
+      : `${billed} store${billed !== 1 ? "s" : ""} · ${periodDisplay}`;
   void downloadPdf({
     filename: `storq-invoice-${r.tx_ref}`,
     title: tInv("billing.invTitle"),
@@ -1114,7 +1242,7 @@ function printInvoice(r: Inv, biz: string) {
     meta: [
       [tInv("billing.billedTo"), biz || "—"],
       [tInv("billing.invoiceDate"), d],
-      [tInv("billing.invPlan"), `${r.stores} store${r.stores !== 1 ? "s" : ""} · ${periodDisplay}`],
+      [tInv("billing.invPlan"), planDisplay],
       [tInv("billing.currencyWord"), c],
     ],
     sections: [
@@ -1126,7 +1254,7 @@ function printInvoice(r: Inv, biz: string) {
           [
             tInv("billing.invLineDesc", { period: periodDisplay }) +
               (monthCount >= 12 ? tInv("billing.yearlyDiscountSuffix") : ""),
-            r.stores,
+            billed,
             amt,
           ],
         ],

@@ -71,9 +71,9 @@ import { useI18n, type TranslateParams } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
     meta: [
-      { title: "Register — Storq" },
+      { title: "Register | Storq" },
       { name: "description", content: "Ring up sales and create layby or approval invoices." },
-      { property: "og:title", content: "Register — Storq" },
+      { property: "og:title", content: "Register | Storq" },
       {
         property: "og:description",
         content: "Ring up sales and create layby or approval invoices.",
@@ -112,7 +112,7 @@ function Register() {
   const { store, money, business, staff, checkout, can } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const products = useProducts();
+  const products = useProducts(store?.id);
   // Live screen: re-read quantities so a CSV import or another till's sale is
   // never sold against a badge this device cached earlier.
   const stock = useStock(store?.id, { live: true });
@@ -453,7 +453,7 @@ function Register() {
           ) : list.length === 0 ? (
             <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
           ) : !browsing ? (
-            <Empty>{t("till.searchToStart")}</Empty>
+            <Empty>{t(approval ? "till.searchToStartInvoice" : "till.searchToStart")}</Empty>
           ) : shown.length === 0 ? (
             <Empty>{t("till.noMatchingItems")}</Empty>
           ) : (

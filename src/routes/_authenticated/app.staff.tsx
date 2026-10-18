@@ -26,9 +26,9 @@ import {
 export const Route = createFileRoute("/_authenticated/app/staff")({
   head: () => ({
     meta: [
-      { title: "Staff — Storq" },
+      { title: "Staff | Storq" },
       { name: "description", content: "Manage staff access and PINs in Storq." },
-      { property: "og:title", content: "Staff — Storq" },
+      { property: "og:title", content: "Staff | Storq" },
       { property: "og:description", content: "Manage staff access and PINs in Storq." },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -44,16 +44,23 @@ const roleOptions: { value: Role; labelKey: string }[] = [
   { value: "admin", labelKey: "staff.roleAdmin" },
 ];
 
-// Staff role is a stored code; only its display label is localized.
+// Staff role is a stored code; only its display label is localized. The
+// manager label gains "/ Approver" only once some store actually routes
+// invoices for approval, so direct-sale teams never see that vocabulary.
 const ROLE_LABEL_KEYS: Record<Role, string> = {
   cashier: "staff.roleCashier",
   manager: "staff.roleManager",
   admin: "staff.roleAdmin",
 };
+const roleLabelKey = (role: Role, approval: boolean) =>
+  role === "manager" && approval ? "staff.roleManagerApproval" : ROLE_LABEL_KEYS[role];
+const descKey = (base: string, approval: boolean) =>
+  approval ? `staff.${base}Approval` : `staff.${base}`;
 
 function Staff() {
   const { can, stores, autoLockMinutes, setAutoLockMinutes } = usePos();
   const { t } = useI18n();
+  const approval = stores.some((x) => x.store_type === "approval");
   const [edit, setEdit] = useState<Partial<StaffRow> | null>(null);
   const staff = useQuery({
     queryKey: ["staff"],
@@ -88,15 +95,17 @@ function Staff() {
       <div className="mb-4 grid gap-2 text-[13px] sm:grid-cols-3">
         <Card className="p-4">
           <div className="font-medium">{t("staff.roleAdmin")}</div>
-          <p className="mt-0.5 text-muted-foreground">{t("staff.roleAdminDesc")}</p>
+          <p className="mt-0.5 text-muted-foreground">{t(descKey("roleAdminDesc", approval))}</p>
         </Card>
         <Card className="p-4">
-          <div className="font-medium">{t("staff.roleManager")}</div>
-          <p className="mt-0.5 text-muted-foreground">{t("staff.roleManagerDesc")}</p>
+          <div className="font-medium">
+            {t(approval ? "staff.roleManagerApproval" : "staff.roleManager")}
+          </div>
+          <p className="mt-0.5 text-muted-foreground">{t(descKey("roleManagerDesc", approval))}</p>
         </Card>
         <Card className="p-4">
           <div className="font-medium">{t("staff.roleCashier")}</div>
-          <p className="mt-0.5 text-muted-foreground">{t("staff.roleCashierDesc")}</p>
+          <p className="mt-0.5 text-muted-foreground">{t(descKey("roleCashierDesc", approval))}</p>
         </Card>
       </div>
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
@@ -131,7 +140,7 @@ function Staff() {
                 )}
               </div>
               <div className="truncate text-xs text-muted-foreground">
-                {t(ROLE_LABEL_KEYS[s.role])} ·{" "}
+                {t(roleLabelKey(s.role, approval))} ·{" "}
                 {stores.find((x) => x.id === s.store_id)?.name ?? t("sales.allStores")}
               </div>
             </div>
@@ -149,6 +158,7 @@ function Staff() {
 function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void }) {
   const { rpc, stores } = usePos();
   const { t } = useI18n();
+  const approval = stores.some((x) => x.store_type === "approval");
   const qc = useQueryClient();
   const [f, setF] = useState({
     name: s.name ?? "",
@@ -212,7 +222,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
               <SelectContent>
                 {roleOptions.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
-                    {t(o.labelKey)}
+                    {t(roleLabelKey(o.value, approval))}
                   </SelectItem>
                 ))}
               </SelectContent>

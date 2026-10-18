@@ -28,12 +28,12 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/stocktake_/$id")({
   head: () => ({
     meta: [
-      { title: "Stock take — Storq" },
+      { title: "Stock take | Storq" },
       {
         name: "description",
         content: "Count items and review the quantity differences of a stock take.",
       },
-      { property: "og:title", content: "Stock take — Storq" },
+      { property: "og:title", content: "Stock take | Storq" },
       {
         property: "og:description",
         content: "Count items and review the quantity differences of a stock take.",
@@ -66,7 +66,6 @@ function StockTakeDetail() {
   const { store, stores, can, rpc } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const products = useProducts();
   const names = useStaffNames();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<LineFilter>("all");
@@ -88,6 +87,9 @@ function StockTakeDetail() {
     },
   });
   const take = takeQ.data;
+  // The take's lines reference its own store's item copies, so the catalog is
+  // scoped to that store (not whichever store the operator last switched to).
+  const products = useProducts(take?.store_id);
   const open = take?.status === "open";
   const lines = useQuery({
     queryKey: ["take-lines", id],

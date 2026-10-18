@@ -17,9 +17,11 @@ import {
   BarChartIcon,
   Settings01Icon,
   LanguagesIcon,
+  Alert02Icon,
 } from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { PosProvider, usePos } from "@/lib/pos";
+import { usePendingApprovals } from "@/lib/sales";
 import {
   workspaceNavigation,
   workspacePageAt,
@@ -74,7 +76,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/app")({
   head: () => ({
     meta: [
-      { title: "Register — Storq" },
+      { title: "Register | Storq" },
       { name: "description", content: "Storq point of sale register." },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -386,9 +388,17 @@ function UserMenu({
   settingsTo: string | undefined;
 }) {
   const { t, locale, setLocale } = useI18n();
-  const { staff, lock } = usePos();
+  const { staff, lock, stores } = usePos();
   const signOut = useSignOut();
   const initial = staff?.name.slice(0, 2).toUpperCase() ?? "";
+  // "Approver" only means something where invoices actually await review, so
+  // direct-sale businesses just see the plain Manager label.
+  const roleLabel =
+    staff?.role === "manager" && stores.some((s) => s.store_type === "approval")
+      ? t("roles.managerApprover")
+      : staff
+        ? t(`roles.${staff.role}`)
+        : "";
   const avatar = (
     <Avatar className="size-8 border">
       <AvatarFallback className="text-xs">{initial}</AvatarFallback>
@@ -402,9 +412,7 @@ function UserMenu({
             {avatar}
             <span className="grid min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <span className="truncate text-[13px] font-medium">{staff?.name}</span>
-              <span className="truncate text-[11px] text-muted-foreground">
-                {staff && t(`roles.${staff.role}`)}
-              </span>
+              <span className="truncate text-[11px] text-muted-foreground">{roleLabel}</span>
             </span>
             <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </button>
@@ -456,6 +464,53 @@ function UserMenu({
   );
 }
 
+/**
+ * The persistent "invoices awaiting you" signal for the store currently
+ * selected: it appears the moment a cashier sends an invoice there and only
+ * clears when that store's queue has been approved or rejected. Each location
+ * keeps its own count, so switching stores never carries a pending alert from
+ * one branch to another — the whole point of approval mode is that whoever is
+ * at a till sees what *that* store is waiting on.
+ */
+function ApprovalsAlert({
+  count,
+  compact,
+  onGo,
+}: {
+  count: number;
+  compact?: boolean;
+  onGo: () => void;
+}) {
+  const { t } = useI18n();
+  if (!count) return null;
+  const label = count >= 100 ? "99+" : String(count);
+  const aria = t("dashboard.alertInvoices", { count });
+  return (
+    <button
+      type="button"
+      onClick={onGo}
+      aria-label={aria}
+      title={aria}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-warning/40 bg-warning/15 px-2 py-1 text-[11px] font-semibold text-warning-foreground transition-colors hover:bg-warning/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        !compact && "px-2.5",
+      )}
+    >
+      <span className="relative flex size-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70" />
+        <span className="relative inline-flex size-2 rounded-full bg-warning" />
+      </span>
+      <span className="tabular">{label}</span>
+      {!compact && (
+        <span className="flex items-center gap-1">
+          <HugeiconsIcon icon={Alert02Icon} className="size-3.5" />
+          <span className="hidden lg:inline">{t("nav.approvals")}</span>
+        </span>
+      )}
+    </button>
+  );
+}
+
 function Shell() {
   const { t } = useI18n();
   const { staff, stores, store, setStoreId, lock } = usePos();
@@ -468,6 +523,19 @@ function Shell() {
   const current = workspacePageAt(path);
   const lockedToStore = staff?.role === "cashier" && !!staff.store_id;
   const unavailableApproval = current?.approvalOnly && store?.store_type !== "approval";
+  // Mode chips only mean something when stores actually differ; a single-mode
+  // business never sees "Approval"/"Direct sale" vocabulary in the switcher.
+  const mixedModes =
+    stores.some((x) => x.store_type === "approval") &&
+    stores.some((x) => x.store_type !== "approval");
+  // Live approvals signal for the selected store only — switching locations
+  // never drags another store's pending count along with it.
+  const pending = usePendingApprovals();
+  const pendingCount = pending.data?.length ?? 0;
+  const pendingBadge = pendingCount >= 100 ? "99+" : String(pendingCount);
+  function goToApprovals() {
+    void navigate({ to: "/app/invoices" });
+  }
 
   useEffect(() => {
     if (store && unavailableApproval) void navigate({ to: "/app/sales", replace: true });
@@ -515,9 +583,11 @@ function Shell() {
                   {stores.map((s) => (
                     <DropdownMenuItem key={s.id} onSelect={() => setStoreId(s.id)}>
                       <span className="truncate">{s.name}</span>
-                      <span className="ml-auto shrink-0">
-                        <StoreTypeTag type={s.store_type} />
-                      </span>
+                      {mixedModes && (
+                        <span className="ml-auto shrink-0">
+                          <StoreTypeTag type={s.store_type} />
+                        </span>
+                      )}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -542,6 +612,14 @@ function Shell() {
                         <Link to={n.to}>
                           <HugeiconsIcon icon={navIcons[n.group]} />
                           <span>{t(n.labelKey)}</span>
+                          {n.group === "sales" && pendingCount > 0 && (
+                            <span
+                              className="tabular ml-auto rounded-full bg-warning-soft px-1.5 text-[10px] font-bold text-warning-foreground"
+                              aria-hidden
+                            >
+                              {pendingBadge}
+                            </span>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -561,7 +639,8 @@ function Shell() {
         <header className="hidden h-12 items-center border-b px-3 md:flex lg:px-4">
           <SidebarTrigger />
           {/* The drawer runs itself, so the shell only has to keep it visible. */}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <ApprovalsAlert count={pendingCount} onGo={goToApprovals} />
             <DrawerChip storeId={store?.id} />
           </div>
         </header>
@@ -574,10 +653,18 @@ function Shell() {
             options={stores.map((s) => ({ value: s.id, label: s.name }))}
           />
           <DrawerChip storeId={store?.id} compact />
+          <ApprovalsAlert count={pendingCount} compact onGo={goToApprovals} />
           <UserMenu variant="icon" settingsTo={settingsEntry?.to} />
         </header>
         <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">
-          {staff && <WorkspaceTabs path={path} role={staff.role} storeType={store?.store_type} />}
+          {staff && (
+            <WorkspaceTabs
+              path={path}
+              role={staff.role}
+              storeType={store?.store_type}
+              pendingCount={pendingCount}
+            />
+          )}
           <div key={store?.id}>
             <Outlet />
           </div>
@@ -595,7 +682,18 @@ function Shell() {
                   active ? "text-accent" : "text-muted-foreground",
                 )}
               >
-                <HugeiconsIcon icon={navIcons[n.group]} className="size-5" /> {t(n.labelKey)}
+                <HugeiconsIcon icon={navIcons[n.group]} className="size-5" />
+                <span className="flex items-center gap-1">
+                  {t(n.labelKey)}
+                  {n.group === "sales" && pendingCount > 0 && (
+                    <span
+                      className="tabular rounded-full bg-warning-soft px-1 text-[9px] font-bold leading-4 text-warning-foreground"
+                      aria-hidden
+                    >
+                      {pendingBadge}
+                    </span>
+                  )}
+                </span>
               </Link>
             );
           })}

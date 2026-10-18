@@ -20,9 +20,9 @@ import { useSubscription } from "@/lib/billing";
 export const Route = createFileRoute("/_authenticated/app/stores")({
   head: () => ({
     meta: [
-      { title: "Locations — Storq" },
+      { title: "Locations | Storq" },
       { name: "description", content: "Manage your Storq locations, VAT and receipt details." },
-      { property: "og:title", content: "Locations — Storq" },
+      { property: "og:title", content: "Locations | Storq" },
       {
         property: "og:description",
         content: "Manage your Storq locations, VAT and receipt details.",

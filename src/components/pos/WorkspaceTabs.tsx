@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
   menuNavigationGroups,
+  pageLabelKey,
   visibleWorkspacePages,
   workspacePageAt,
   type WorkspaceGroup,
@@ -22,10 +23,13 @@ export function WorkspaceTabs({
   path,
   role,
   storeType,
+  pendingCount,
 }: {
   path: string;
   role: Role;
   storeType?: Store["store_type"] | undefined;
+  /** Live pending-approval count, badged onto the Approvals tab until cleared. */
+  pendingCount?: number;
 }) {
   const { t } = useI18n();
   const current = workspacePageAt(path);
@@ -57,7 +61,15 @@ export function WorkspaceTabs({
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {t(page.labelKey)}
+            {t(pageLabelKey(page, storeType))}
+            {page.approvalOnly && pendingCount ? (
+              <span
+                className="tabular ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-bold text-warning-foreground"
+                aria-hidden
+              >
+                {pendingCount >= 100 ? "99+" : pendingCount}
+              </span>
+            ) : null}
           </Link>
         );
       })}

@@ -27,9 +27,9 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/sales")({
   head: () => ({
     meta: [
-      { title: "Sales — Storq" },
+      { title: "Sales | Storq" },
       { name: "description", content: "Review Storq sales, receipts and refunds." },
-      { property: "og:title", content: "Sales — Storq" },
+      { property: "og:title", content: "Sales | Storq" },
       { property: "og:description", content: "Review Storq sales, receipts and refunds." },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -105,6 +105,9 @@ function Sales() {
     return d.toISOString();
   }, [range]);
   const storeId = all ? undefined : store?.id;
+  // Approval stores speak in "invoice" terms throughout this page; direct
+  // stores and the mixed all-stores view keep the plain "sales" vocabulary.
+  const approval = !all && store?.store_type === "approval";
 
   // Headline numbers come from a single SQL aggregate over the whole period, so
   // they stay exact past 1000 sales; the table itself pages on the server.
@@ -162,7 +165,7 @@ function Sales() {
       } else {
         void downloadPdf({
           filename: `storq-sales-${fileStamp()}`,
-          title: t("sales.reportTitle"),
+          title: t(approval ? "sales.reportTitleApproval" : "sales.reportTitle"),
           business: business?.name,
           orientation: "landscape",
           subtitle: `${all ? t("sales.allStores") : (store?.name ?? "")} · ${t(rangeKey[range])}`,
@@ -170,7 +173,7 @@ function Sales() {
             [t("sales.netSales"), money(kpi.revenue)],
             [t("sales.collected"), money(kpi.collected)],
             [t("sales.refunds"), money(kpi.refunds)],
-            [t("sales.transactions"), String(kpi.transactions)],
+            [t(approval ? "sales.titleApproval" : "sales.transactions"), String(kpi.transactions)],
           ],
           sections: [
             {
@@ -220,7 +223,7 @@ function Sales() {
     [t("sales.netSales"), money(kpi.revenue)],
     [t("sales.collected"), money(kpi.collected)],
     [t("sales.refunds"), money(kpi.refunds)],
-    [t("sales.transactions"), String(kpi.transactions)],
+    [t(approval ? "sales.titleApproval" : "sales.transactions"), String(kpi.transactions)],
   ];
   if (showPending) cards.push([t("status.pending_approval"), String(kpi.pending)]);
 
@@ -230,8 +233,8 @@ function Sales() {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.sales")} / ${t("nav.salesHistory")}`}
-        title={t("sales.title")}
+        breadcrumb={`${t("nav.sales")} / ${t(approval ? "nav.invoices" : "nav.salesHistory")}`}
+        title={t(approval ? "sales.titleApproval" : "sales.title")}
         actions={
           <>
             <SegmentedControl
@@ -282,8 +285,12 @@ function Sales() {
             <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
               <HugeiconsIcon icon={ReceiptIcon} />
             </span>
-            <p className="font-display text-lg">{t("sales.emptyTitle")}</p>
-            <p className="max-w-xs text-sm text-muted-foreground">{t("sales.emptyBody")}</p>
+            <p className="font-display text-lg">
+              {t(approval ? "sales.emptyTitleApproval" : "sales.emptyTitle")}
+            </p>
+            <p className="max-w-xs text-sm text-muted-foreground">
+              {t(approval ? "sales.emptyBodyApproval" : "sales.emptyBody")}
+            </p>
             <Button variant="outline" onClick={() => navigate({ to: "/app" })}>
               {t("sales.openPos")}
             </Button>

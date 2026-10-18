@@ -18,13 +18,14 @@ export type Product = {
 
 // The till keeps one lean, long-lived catalog in memory (like Square/Shopify's
 // local catalog) so scanning and search never wait on the network. Buying
-// costs are only pulled by screens that show them (`withCost`).
-export function useProducts(opts: { withCost?: boolean } = {}) {
-  const { business, can } = usePos();
+// costs are only pulled by screens that show them (`withCost`). Each store
+// owns its own item copies now, so the catalog is scoped to the current store.
+export function useProducts(storeId?: string, opts: { withCost?: boolean } = {}) {
+  const { can } = usePos();
   const withCost = !!opts.withCost && can("admin", "manager");
   return useQuery({
-    queryKey: ["products", business?.id, withCost],
-    enabled: !!business?.id,
+    queryKey: ["products", storeId, withCost],
+    enabled: !!storeId,
     // The catalog only changes through the inventory screens, which
     // invalidate explicitly — no need to re-pull it on every mount.
     staleTime: 30 * 60_000,
@@ -32,6 +33,7 @@ export function useProducts(opts: { withCost?: boolean } = {}) {
       const { data, error } = await supabase
         .from("products")
         .select("id,name,sku,category,price,active,reorder_point")
+        .eq("store_id", storeId!)
         .order("name");
       if (error) throw error;
       const base = data as unknown as Omit<Product, "cost">[];
@@ -103,4 +105,107 @@ export function useStock(storeId?: string, opts: { live?: boolean } = {}) {
       >;
     },
   });
+}
+
+// ---- export helpers (lazy — called only on button click) ----
+
+export type ProductExportRow = {
+  id: string;
+  name: string;
+  sku: string | null;
+  category: string | null;
+  price: number;
+  cost: number;
+  active: boolean;
+  reorder_point: number | null;
+  qty: number; // current stock at the chosen store (or 0 when all-stores)
+};
+
+/**
+ * Fetches every active + inactive product for `storeId`, joining current stock
+ * for that store.  Called only on an Export click — never inside a hook.
+ */
+export async function fetchProductsForExport(storeId: string): Promise<ProductExportRow[]> {
+  const [{ data: prods, error: pe }, costRes, { data: stock, error: se }] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id,name,sku,category,price,active,reorder_point")
+      .eq("store_id", storeId)
+      .order("name"),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from as any)("product_costs").select("product_id,cost"),
+    supabase
+      .from("store_stock")
+      .select("product_id,qty")
+      .eq("store_id", storeId),
+  ]);
+  if (pe) throw pe;
+  if (se) throw se;
+  const costs = new Map<string, number>(
+    ((costRes.data ?? []) as { product_id: string; cost: string | number }[]).map((c) => [
+      c.product_id,
+      Number(c.cost),
+    ]),
+  );
+  const stockMap = new Map<string, number>(
+    ((stock ?? []) as { product_id: string; qty: string | number }[]).map((s) => [
+      s.product_id,
+      Number(s.qty),
+    ]),
+  );
+  return ((prods ?? []) as unknown as Omit<ProductExportRow, "cost" | "qty">[]).map((p) => ({
+    ...p,
+    cost: costs.get(p.id) ?? 0,
+    qty: stockMap.get(p.id) ?? 0,
+  }));
+}
+
+export type StockMovementExportRow = {
+  created_at: string;
+  product_id: string;
+  product_name: string;
+  delta: number;
+  balance_after: number;
+  reason: string;
+  note: string | null;
+  ref_id: string | null;
+};
+
+/**
+ * Fetches the immutable stock movement ledger for a store within the given
+ * period.  Admin/manager only — RLS silently returns nothing for cashiers.
+ */
+export async function fetchMovementsForExport(filter: {
+  storeId: string;
+  since: string;
+}): Promise<StockMovementExportRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)("stock_movements")
+    .select(
+      "created_at,product_id,products(name),delta,balance_after,reason,note,ref_id",
+    )
+    .eq("store_id", filter.storeId)
+    .gte("created_at", filter.since)
+    .order("created_at", { ascending: false })
+    .limit(100_000);
+  if (error) throw error;
+  return ((data ?? []) as {
+    created_at: string;
+    product_id: string;
+    products: { name: string } | null;
+    delta: number;
+    balance_after: number;
+    reason: string;
+    note: string | null;
+    ref_id: string | null;
+  }[]).map((r) => ({
+    created_at: r.created_at,
+    product_id: r.product_id,
+    product_name: r.products?.name ?? "",
+    delta: Number(r.delta),
+    balance_after: Number(r.balance_after),
+    reason: r.reason,
+    note: r.note,
+    ref_id: r.ref_id,
+  }));
 }

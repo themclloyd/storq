@@ -19,9 +19,9 @@ import { buildBusinessReport } from "@/lib/business-report";
 export const Route = createFileRoute("/_authenticated/app/reports")({
   head: () => ({
     meta: [
-      { title: "Business report — Storq" },
+      { title: "Business report | Storq" },
       { name: "description", content: "A plain-language profit statement for your stores." },
-      { property: "og:title", content: "Business report — Storq" },
+      { property: "og:title", content: "Business report | Storq" },
       { property: "og:description", content: "A plain-language profit statement for your stores." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -49,7 +49,9 @@ function Reports() {
   const expenses = useExpenses({ storeId, since });
   const refundsQ = useRefunds({ storeId, since });
   const costs = useSaleItemCosts(sales.data);
-  const products = useProducts();
+  // The dead-stock table only renders in single-store mode (it no-ops when
+  // `all` is set), so the catalog is scoped to the store whose stock is shown.
+  const products = useProducts(store?.id);
   const stock = useStock(all ? undefined : store?.id);
 
   const r = useMemo(

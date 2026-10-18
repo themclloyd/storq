@@ -66,3 +66,20 @@ export function sinceFor(r: keyof typeof rangeDays) {
   d.setDate(d.getDate() - rangeDays[r]);
   return d.toISOString();
 }
+
+// ---- export helper (lazy — called only on button click) ----
+export async function fetchExpensesForExport(filter: {
+  storeId?: string | undefined;
+  since: string;
+}): Promise<Expense[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q = (supabase.from as any)("expenses")
+    .select("*")
+    .gte("spent_on", localDateKey(filter.since))
+    .order("spent_on", { ascending: false })
+    .limit(50_000);
+  if (filter.storeId) q = q.eq("store_id", filter.storeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Expense[];
+}

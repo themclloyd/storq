@@ -17,12 +17,12 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/collections/$id")({
   head: () => ({
     meta: [
-      { title: "Edit collection — Storq" },
+      { title: "Edit collection | Storq" },
       {
         name: "description",
         content: "Edit collection details, discounts and product membership.",
       },
-      { property: "og:title", content: "Edit collection — Storq" },
+      { property: "og:title", content: "Edit collection | Storq" },
       {
         property: "og:description",
         content: "Edit collection details, discounts and product membership.",
@@ -36,12 +36,12 @@ export const Route = createFileRoute("/_authenticated/app/collections/$id")({
 function CollectionPage() {
   const { id } = Route.useParams();
   const isNew = id === "new";
-  const { can, rpc, money } = usePos();
+  const { can, rpc, money, store } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const nav = useNavigate();
   const cols = useCollections();
-  const products = useProducts();
+  const products = useProducts(store?.id);
   const c = isNew ? undefined : cols.data?.list.find((x) => x.id === id);
 
   const [f, setF] = useState({ name: "", discount: "0", shared: true });

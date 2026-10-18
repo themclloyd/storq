@@ -31,7 +31,7 @@ const getShared = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/c/$slug")({
   loader: ({ params }) => getShared({ data: { slug: params.slug } }),
   head: ({ params, loaderData }) => {
-    const t = loaderData ? `${loaderData.name} — ${loaderData.business}` : "Collection — Storq";
+    const t = loaderData ? `${loaderData.name} | ${loaderData.business}` : "Collection | Storq";
     const d = loaderData
       ? `Shop ${loaderData.items.length} items from ${loaderData.business}${loaderData.discount_pct > 0 ? `, now ${loaderData.discount_pct}% off` : ""}.`
       : "A shared Storq collection.";

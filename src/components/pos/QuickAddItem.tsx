@@ -42,7 +42,7 @@ export function QuickAddItem({
   onCreated: (p: Product) => void;
   onClose: () => void;
 }) {
-  const { rpc, can } = usePos();
+  const { rpc, can, store } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const [name, setName] = useState("");
@@ -68,6 +68,7 @@ export function QuickAddItem({
     setBusy(true);
     try {
       const pid = (await rpc("save_product", {
+        p_store: store?.id ?? null,
         p_id: null,
         p_name: sanitizeText(name, LIMITS.productName),
         p_sku: itemCode || null,

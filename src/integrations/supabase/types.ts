@@ -406,6 +406,7 @@ export type Database = {
           price: number
           reorder_point: number | null
           sku: string | null
+          store_id: string
         }
         Insert: {
           active?: boolean
@@ -417,6 +418,7 @@ export type Database = {
           price?: number
           reorder_point?: number | null
           sku?: string | null
+          store_id: string
         }
         Update: {
           active?: boolean
@@ -428,6 +430,7 @@ export type Database = {
           price?: number
           reorder_point?: number | null
           sku?: string | null
+          store_id?: string
         }
         Relationships: [
           {
@@ -435,6 +438,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -1202,6 +1212,7 @@ export type Database = {
       subscription_payments: {
         Row: {
           amount: number
+          billed_stores: number
           business_id: string
           created_at: string
           created_by: string | null
@@ -1214,6 +1225,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          billed_stores?: number
           business_id: string
           created_at?: string
           created_by?: string | null
@@ -1226,6 +1238,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          billed_stores?: number
           business_id?: string
           created_at?: string
           created_by?: string | null

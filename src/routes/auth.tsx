@@ -13,7 +13,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Storq" },
+      { title: "Sign in | Storq" },
       { name: "description", content: "Sign this device in to your Storq business account." },
       { name: "robots", content: "noindex, nofollow" },
     ],

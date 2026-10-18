@@ -38,9 +38,9 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/sales_/$id")({
   head: () => ({
     meta: [
-      { title: "Sale details — Storq" },
+      { title: "Sale details | Storq" },
       { name: "description", content: "Sale details, payments and refunds in Storq." },
-      { property: "og:title", content: "Sale details — Storq" },
+      { property: "og:title", content: "Sale details | Storq" },
       { property: "og:description", content: "Sale details, payments and refunds in Storq." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -179,6 +179,9 @@ function SaleDetail() {
   const tax = Number(s.tax);
   const balance = Number(s.total) - Number(s.paid);
   const store = stores.find((x) => x.id === s.store_id);
+  // The record speaks the language of the store that created it: approval
+  // stores raise invoices (layby included), direct stores ring up sales.
+  const approvalStore = store?.store_type === "approval";
   // The customer reads best in the meta row: name, phone, or both — whichever
   // the sale carries.
   const customerLabel = [s.customer_name, s.customer_phone].filter(Boolean).join(" · ");
@@ -186,10 +189,12 @@ function SaleDetail() {
   return (
     <div className="mx-auto max-w-3xl">
       <Link to="/app/sales" className="text-sm text-muted-foreground hover:text-foreground">
-        ← {t("sales.title")}
+        ← {t(approvalStore ? "sales.titleApproval" : "sales.title")}
       </Link>
       <div className="mt-2 mb-4">
-        <h1 className="text-xl font-semibold">{t("sdetail.saleTitle", { number: s.number })}</h1>
+        <h1 className="text-xl font-semibold">
+          {t(approvalStore ? "sdetail.invoiceTitle" : "sdetail.saleTitle", { number: s.number })}
+        </h1>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {fmtDate(s.created_at)} · {store?.name}
           {s.created_by &&

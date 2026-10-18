@@ -53,3 +53,20 @@ export function useRefunds(filter: {
 
 export const REFUNDABLE = ["completed", "layby_completed", "partially_refunded"];
 export const COUNTED = ["completed", "layby_completed", "partially_refunded", "refunded"];
+
+// ---- export helper (lazy — called only on button click) ----
+export async function fetchRefundsForExport(filter: {
+  storeId?: string | undefined;
+  since: string;
+}): Promise<RefundRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q = (supabase.from as any)("refunds")
+    .select("*, refund_items(name,qty,amount,cost,restock,product_id)")
+    .gte("created_at", filter.since)
+    .order("created_at", { ascending: false })
+    .limit(50_000);
+  if (filter.storeId) q = q.eq("store_id", filter.storeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as RefundRow[];
+}

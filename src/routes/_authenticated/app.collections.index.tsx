@@ -13,12 +13,12 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/collections/")({
   head: () => ({
     meta: [
-      { title: "Collections — Storq" },
+      { title: "Collections | Storq" },
       {
         name: "description",
         content: "Manage shared product collections and collection discounts.",
       },
-      { property: "og:title", content: "Collections — Storq" },
+      { property: "og:title", content: "Collections | Storq" },
       {
         property: "og:description",
         content: "Manage shared product collections and collection discounts.",

@@ -26,12 +26,12 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/transfers")({
   head: () => ({
     meta: [
-      { title: "Stock transfers — Storq" },
+      { title: "Stock transfers | Storq" },
       {
         name: "description",
         content: "Move stock between your stores and track it in transit.",
       },
-      { property: "og:title", content: "Stock transfers — Storq" },
+      { property: "og:title", content: "Stock transfers | Storq" },
       {
         property: "og:description",
         content: "Move stock between your stores and track it in transit.",
@@ -198,7 +198,6 @@ function TransferRow({
 function CreateDialog({ onClose }: { onClose: () => void }) {
   const { store, stores } = usePos();
   const { t } = useI18n();
-  const products = useProducts();
   const others = stores.filter((s) => s.id !== store?.id);
   const [from, setFrom] = useState(store?.id ?? "");
   const [to, setTo] = useState(others[0]?.id ?? "");
@@ -206,6 +205,10 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState("");
   const dq = useDebouncedValue(q);
   const [draft, setDraft] = useState<Draft[]>([]);
+  // The picker lists the SOURCE store's own catalog: transfer lines can only
+  // draw down items the origin store actually owns. The destination copy is
+  // created server-side on receive.
+  const products = useProducts(from || undefined);
   const stock = useStock(from || undefined);
   const muts = useTransferMutations(onClose);
 

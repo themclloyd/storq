@@ -17,9 +17,9 @@ import { useI18n } from "@/lib/i18n";
 export const Route = createFileRoute("/_authenticated/app/shifts")({
   head: () => ({
     meta: [
-      { title: "Cash drawer — Storq" },
+      { title: "Cash drawer | Storq" },
       { name: "description", content: "Open and close till shifts and reconcile counted cash." },
-      { property: "og:title", content: "Cash drawer — Storq" },
+      { property: "og:title", content: "Cash drawer | Storq" },
       {
         property: "og:description",
         content: "Open and close till shifts and reconcile counted cash.",

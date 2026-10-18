@@ -92,9 +92,9 @@ import { useScannerWedge } from "@/components/pos/use-scanner";
 export const Route = createFileRoute("/_authenticated/app/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — Storq" },
+      { title: "Inventory | Storq" },
       { name: "description", content: "Manage Storq items, buying costs and store stock." },
-      { property: "og:title", content: "Inventory — Storq" },
+      { property: "og:title", content: "Inventory | Storq" },
       { property: "og:description", content: "Manage Storq items, buying costs and store stock." },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -134,7 +134,7 @@ function Inventory() {
       )
     : [];
   const [imp, setImp] = useState<ImportRow[] | null>(null);
-  const products = useProducts({ withCost: true });
+  const products = useProducts(store?.id, { withCost: true });
   const stock = useStock(store?.id);
   const cols = useCollections();
   const colName = useCallback(
@@ -754,6 +754,7 @@ function ProductDialog({
     try {
       const pid =
         ((await rpc("save_product", {
+          p_store: store?.id ?? null,
           p_id: p.id ?? null,
           p_name: sanitizeText(f.name, LIMITS.productName),
           p_sku: code || null,
@@ -1371,6 +1372,7 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
       try {
         const id =
           ((await rpc("save_product", {
+            p_store: store?.id ?? null,
             p_id: r.existing?.id ?? null,
             p_name: r.name,
             p_sku: r.sku || null,

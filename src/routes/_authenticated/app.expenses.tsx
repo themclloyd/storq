@@ -63,9 +63,9 @@ import { Field, NativeSelect, PageHeader, Pager } from "@/components/pos/bits";
 export const Route = createFileRoute("/_authenticated/app/expenses")({
   head: () => ({
     meta: [
-      { title: "Expenses — Storq" },
+      { title: "Expenses | Storq" },
       { name: "description", content: "Record and review business expenses." },
-      { property: "og:title", content: "Expenses — Storq" },
+      { property: "og:title", content: "Expenses | Storq" },
       { property: "og:description", content: "Record and review business expenses." },
       { name: "robots", content: "noindex, nofollow" },
     ],

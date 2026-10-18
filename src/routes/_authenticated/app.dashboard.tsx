@@ -40,9 +40,9 @@ import {
 export const Route = createFileRoute("/_authenticated/app/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Storq" },
+      { title: "Dashboard | Storq" },
       { name: "description", content: "Sales, expenses, profit and alerts at a glance." },
-      { property: "og:title", content: "Dashboard — Storq" },
+      { property: "og:title", content: "Dashboard | Storq" },
       { property: "og:description", content: "Sales, expenses, profit and alerts at a glance." },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -63,6 +63,8 @@ function Dashboard() {
   // leaving every chart on "no activity" while a new query resolves.
   const since = dashboardSince();
   const storeId = store?.id;
+  // Approval stores read their numbers as invoices; direct stores as sales.
+  const approval = store?.store_type === "approval";
 
   // Buying costs (and therefore the nested sale_items join) are gated to
   // managers/admins. A cashier's chart only needs parent totals, so we skip the
@@ -168,9 +170,11 @@ function Dashboard() {
 
   const cards = [
     {
-      label: t("dashboard.sales"),
+      label: t(approval ? "dashboard.salesApproval" : "dashboard.sales"),
       value: money(d.revenue),
-      sub: t("dashboard.salesCount", { count: d.count }),
+      sub: t(approval ? "dashboard.salesCountApproval" : "dashboard.salesCount", {
+        count: d.count,
+      }),
       icon: ChartLineData01Icon,
     },
     {

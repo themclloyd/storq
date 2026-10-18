@@ -23,10 +23,20 @@ type Page = {
   label: string;
   /** i18n dot-key for `label`; rendered via t(). Kept separate so `label` stays the stable English identity. */
   labelKey: string;
+  /**
+   * Alternate i18n key used when the selected store is approval-based, so the
+   * same URL reads "Invoices" there while direct stores keep "Sales history".
+   */
+  approvalLabelKey?: string;
   roles: Role[];
   group: WorkspaceGroup;
   approvalOnly?: boolean;
 };
+
+/** Mode-aware sidebar/tab label for a page. */
+export function pageLabelKey(page: Page, type?: Store["store_type"]) {
+  return page.approvalLabelKey && type === "approval" ? page.approvalLabelKey : page.labelKey;
+}
 const all: Role[] = ["admin", "manager", "cashier"];
 const managers: Role[] = ["admin", "manager"];
 
@@ -50,6 +60,7 @@ export const workspacePages: Page[] = [
     to: "/app/sales",
     label: "Sales history",
     labelKey: "nav.salesHistory",
+    approvalLabelKey: "nav.invoices",
     group: "sales",
     roles: all,
   },
@@ -154,7 +165,7 @@ export function workspaceNavigation(role: Role, type?: Store["store_type"]) {
   const labelKeys: Record<WorkspaceGroup, string> = {
     dashboard: "nav.dashboard",
     register: "nav.pos",
-    sales: "nav.sales",
+    sales: type === "approval" ? "nav.invoices" : "nav.sales",
     inventory: "nav.inventory",
     finance: role === "cashier" ? "nav.expenses" : "nav.reports",
     settings: "nav.settings",
