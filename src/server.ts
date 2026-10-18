@@ -24,14 +24,17 @@ async function getServerEntry(): Promise<ServerEntry> {
 // and plugin surfaces. Supabase is the only outbound API and only its public
 // host is needed; Inter ships bundled with our stylesheet, so no font origin is
 // allowed. Public marketing pages remain independent of this header.
+// PayChangu popup.js is loaded on demand for subscription payments; it also
+// opens a hosted checkout frame and posts to its API, so script-src, frame-src,
+// and connect-src must allow its domain.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://in.paychangu.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-src 'none'",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.paychangu.com",
+  "frame-src 'none' https://*.paychangu.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",

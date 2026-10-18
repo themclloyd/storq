@@ -34,6 +34,8 @@ export type Receipt = {
   customerName: string | null;
   customerPhone: string | null;
   note: string | null;
+  /** Total refunded so far; renderers add Refunded/Net rows when > 0. */
+  refunded?: number;
 };
 
 export type MoneyFmt = (n: number) => string;
@@ -60,6 +62,8 @@ const STATUS_KEYS: Record<string, string> = {
   completed: "doc.badgePaid",
   layby_open: "doc.badgeLaybyOpen",
   layby_completed: "doc.badgeLaybyPaid",
+  refunded: "doc.badgeRefunded",
+  partially_refunded: "doc.badgePartRefunded",
 };
 
 /** Localised chip label for a receipt status ("" when it needs no chip). */
@@ -67,6 +71,84 @@ export const statusLabel = (status: string) => {
   const key = STATUS_KEYS[status];
   return key ? t(key) : "";
 };
+
+/** The persisted-sale fields the receipt builder reads (a SaleRow subset). */
+export type SaleForReceipt = {
+  number: number;
+  kind: "sale" | "layby";
+  status: string;
+  total: number | string;
+  paid: number | string;
+  tax: number | string;
+  refunded: number | string;
+  discount?: number | string | null;
+  payment_method: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  note: string | null;
+  created_at: string;
+  sale_items: { name: string; qty: number | string; price: number | string }[];
+};
+
+/**
+ * Rebuild a printable Receipt from a persisted sale so detail/export screens
+ * reuse the till's thermal builder instead of the A4 document. `cashier` is
+ * the resolved staff name; store VAT settings drive the tax line.
+ */
+export function saleToReceipt(
+  s: SaleForReceipt,
+  o: {
+    bizName: string;
+    store?:
+      | {
+          name: string;
+          address: string | null;
+          phone: string | null;
+          email: string | null;
+          tax_number: string | null;
+          tax_rate: number;
+          tax_inclusive: boolean;
+        }
+      | undefined;
+    cashier: string;
+  },
+): Receipt {
+  const lines = s.sale_items.map((i) => ({
+    name: i.name,
+    qty: Number(i.qty),
+    price: Number(i.price),
+    total: Number(i.qty) * Number(i.price),
+  }));
+  const total = Number(s.total);
+  const paid = Number(s.paid);
+  return {
+    number: s.number,
+    kind: s.kind,
+    status: s.status,
+    bizName: o.bizName,
+    storeName: o.store?.name ?? "",
+    storeAddress: o.store?.address ?? null,
+    storePhone: o.store?.phone ?? null,
+    storeEmail: o.store?.email ?? null,
+    storeTaxNumber: o.store?.tax_number ?? null,
+    cashier: o.cashier,
+    date: s.created_at,
+    lines,
+    subtotal: lines.reduce((a, l) => a + l.total, 0),
+    tax: Number(s.tax),
+    taxRate: Number(o.store?.tax_rate ?? 0),
+    taxInclusive: o.store?.tax_inclusive ?? true,
+    discount: Number(s.discount ?? 0),
+    total,
+    method: s.payment_method ?? "cash",
+    paid,
+    change: Math.max(0, paid - total),
+    customerName: s.customer_name,
+    customerPhone: s.customer_phone,
+    note: s.note,
+    refunded: Number(s.refunded),
+  };
+}
 
 /**
  * Receipt HTML is built by string concatenation and inserted via innerHTML, so
@@ -127,6 +209,10 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
       ),
     );
   out.push(padRow(t("doc.total"), money(r.total)));
+  if (r.refunded && r.refunded > 0) {
+    out.push(padRow(t("status.refunded"), "-" + money(r.refunded)));
+    out.push(padRow(t("doc.net"), money(r.total - r.refunded)));
+  }
   out.push(rule);
   out.push(padRow(t("doc.method"), methodLabel(r.method)));
   for (const tnd of r.tenders ?? [])
@@ -185,6 +271,11 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
     .join("");
   const discountRow =
     r.discount && r.discount > 0 ? row(t("doc.discount"), esc("-" + money(r.discount))) : "";
+  const refundRows =
+    r.refunded && r.refunded > 0
+      ? row(t("status.refunded"), esc("-" + money(r.refunded))) +
+        row(t("doc.net"), esc(money(r.total - r.refunded)), true)
+      : "";
   const changeRow = r.change > 0 ? row(t("doc.change"), esc(money(r.change))) : "";
   const meta =
     (r.customerName ? row(t("doc.customer"), esc(r.customerName)) : "") +
@@ -211,6 +302,7 @@ export function receiptHtml(r: Receipt, money: MoneyFmt) {
     row(t("doc.subtotal"), esc(money(r.subtotal))),
     vatRow,
     row(t("doc.total"), esc(money(r.total)), true),
+    refundRows,
     dashed,
     row(t("doc.method"), esc(methodLabel(r.method))),
     tenderRows,

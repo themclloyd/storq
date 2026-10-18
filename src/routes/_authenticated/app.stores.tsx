@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, PlusSignIcon } from "@/lib/icons";
+import { ArrowRight01Icon, CreditCardIcon, PlusSignIcon } from "@/lib/icons";
 import { usePos, type Store } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { LIMITS, firstError, requireText, sanitizeText, validatePhone } from "@/lib/validate";
@@ -62,9 +62,18 @@ function Stores() {
         title={t("store.title")}
         sub={pluralize(stores.length, t("store.oneLocation"), t("store.manyLocations"))}
         actions={
-          <Button disabled={!subscription.data?.canAddStore} onClick={() => setAdding(true)}>
-            <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
-          </Button>
+          subscription.data?.canAddStore ? (
+            <Button onClick={() => setAdding(true)}>
+              <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
+            </Button>
+          ) : (
+            <Link to="/app/billing">
+              <Button variant="outline">
+                <HugeiconsIcon icon={CreditCardIcon} className="size-4" />
+                {t("store.payMore")}
+              </Button>
+            </Link>
+          )
         }
       />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3 text-[13px]">

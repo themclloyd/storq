@@ -17,6 +17,9 @@ export type SaleRow = {
   created_at: string;
   tax: number;
   refunded: number;
+  // Sale-level discount total. Present on rows read via `select("*")` (sale
+  // detail); optional so list/aggregate builders can omit it.
+  discount?: number;
   created_by: string | null;
   approved_by: string | null;
   approved_at: string | null;

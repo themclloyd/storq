@@ -369,6 +369,10 @@ export async function downloadReceiptPdf(r: Receipt, money: MoneyFmt) {
         money(r.tax),
       );
     row(t("doc.total"), money(r.total), 11, "bold");
+    if (r.refunded && r.refunded > 0) {
+      row(t("status.refunded"), `-${money(r.refunded)}`);
+      row(t("doc.net"), money(r.total - r.refunded), 10, "bold");
+    }
     rule();
     row(t("doc.method"), methodLabel(r.method));
     for (const tnd of r.tenders ?? []) row(`  ${methodLabel(tnd.method)}`, money(tnd.raw));

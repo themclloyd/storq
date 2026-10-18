@@ -1612,7 +1612,7 @@ export type Database = {
       start_store_subscription_payment: {
         Args: {
           p_currency: string
-          p_period: string
+          p_months: number
           p_stores: number
           p_token: string
         }

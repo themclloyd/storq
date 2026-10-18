@@ -2,13 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -26,11 +26,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { ReceiptIcon, Refresh01Icon } from "@/lib/icons";
 import { REFUNDABLE, useRefunds } from "@/lib/refunds";
 import type { SaleRow } from "@/lib/sales";
 import { useStaffNames } from "@/lib/sales";
-import { usePos } from "@/lib/pos";
-import { downloadPdf } from "@/lib/pdf";
+import { usePos, type Store } from "@/lib/pos";
+import { downloadPdf, downloadReceiptPdf } from "@/lib/pdf";
+import { saleToReceipt } from "@/lib/receipts";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/sales_/$id")({
@@ -53,6 +55,7 @@ const METHOD_KEYS: Record<string, string> = {
   card: "till.payCard",
   mobile: "till.payMobile",
   store_credit: "doc.storeCredit",
+  split: "doc.split",
 };
 const METHOD_ORDER = ["cash", "card", "mobile", "store_credit"] as const;
 // Resolve a payment-method code to its localized label; unknown codes fall back to the raw value.
@@ -69,37 +72,70 @@ const fmtDate = (d: string) =>
     minute: "2-digit",
   });
 
-const statusStyle: Record<string, string> = {
-  completed: "bg-success/15 text-success",
-  layby_completed: "bg-success/15 text-success",
-  pending_approval: "bg-warning/25 text-warning-foreground",
-  layby_open: "bg-accent/15 text-accent",
-  rejected: "bg-destructive/15 text-destructive",
-  layby_cancelled: "bg-destructive/15 text-destructive",
-  open: "bg-accent/15 text-accent",
-  closed: "bg-secondary text-muted-foreground",
-  refunded: "bg-destructive/15 text-destructive",
-  partially_refunded: "bg-warning/25 text-warning-foreground",
-};
-const statusText: Record<string, string> = {
-  completed: "Paid",
-  layby_completed: "Layby paid",
-  pending_approval: "Awaiting approval",
-  layby_open: "Layby open",
-  rejected: "Rejected",
-  layby_cancelled: "Layby cancelled",
-  open: "Open",
-  closed: "Closed",
-  refunded: "Refunded",
-  partially_refunded: "Part refunded",
+// Action tiles share one filled style: the order-sheet pattern's Receipt /
+// Return tiles — big touch targets, icon top-left, label bottom-left.
+const TILE_CLASS =
+  "flex h-20 w-36 flex-col items-start justify-between rounded-xl bg-accent/15 p-3.5 " +
+  "text-accent transition-colors hover:bg-accent/25 focus-visible:outline-none " +
+  "focus-visible:ring-2 focus-visible:ring-ring";
+
+// Lifecycle states the payment/refund axes don't describe, mapped to dot color.
+const dotColor: Record<string, string> = {
+  pending_approval: "bg-warning",
+  layby_open: "bg-accent",
+  rejected: "bg-destructive",
+  layby_cancelled: "bg-destructive",
+  open: "bg-accent",
+  closed: "bg-muted-foreground",
 };
 
-function StatusBadge({ s }: { s: string }) {
+// Payment, refund and lifecycle state as independent dot indicators: a layby
+// reads "Layby open · Balance due", a part-refunded sale "Paid · Part refunded" —
+// instead of one compound status badge.
+function StateDots({ s }: { s: SaleRow }) {
   const { t } = useI18n();
+  const total = Number(s.total);
+  const paid = Number(s.paid);
+  const refunded = Number(s.refunded);
+  const dots: { key: string; label: string; color: string }[] = [];
+  if (!["completed", "layby_completed", "refunded", "partially_refunded"].includes(s.status)) {
+    dots.push({
+      key: "state",
+      label: t(`status.${s.status}`),
+      color: dotColor[s.status] ?? "bg-muted-foreground",
+    });
+  }
+  if (total - paid <= 0.009) {
+    dots.push({
+      key: "paid",
+      label: t(s.kind === "layby" ? "status.layby_completed" : "status.completed"),
+      color: "bg-success",
+    });
+  } else if (paid > 0) {
+    dots.push({ key: "paid", label: t("sdetail.balanceDue"), color: "bg-warning" });
+  } else {
+    dots.push({ key: "paid", label: t("status.unpaid"), color: "bg-muted-foreground" });
+  }
+  if (refunded > 0) {
+    const full = refunded >= total - 0.009;
+    dots.push({
+      key: "refund",
+      label: t(full ? "status.refunded" : "status.partially_refunded"),
+      color: full ? "bg-destructive" : "bg-warning",
+    });
+  }
   return (
-    <Badge className={cn("rounded-full border-transparent px-2.5 py-0.5", statusStyle[s])}>
-      {s in statusText ? t(`status.${s}`) : s}
-    </Badge>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      {dots.map((d) => (
+        <span
+          key={d.key}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+        >
+          <span className={cn("size-2 rounded-full", d.color)} />
+          {d.label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -142,181 +178,161 @@ function SaleDetail() {
   const subtotal = s.sale_items.reduce((a, i) => a + Number(i.qty) * Number(i.price), 0);
   const tax = Number(s.tax);
   const balance = Number(s.total) - Number(s.paid);
-  const storeName = stores.find((x) => x.id === s.store_id)?.name;
+  const store = stores.find((x) => x.id === s.store_id);
+  // The customer reads best in the meta row: name, phone, or both — whichever
+  // the sale carries.
+  const customerLabel = [s.customer_name, s.customer_phone].filter(Boolean).join(" · ");
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-3xl">
       <Link to="/app/sales" className="text-sm text-muted-foreground hover:text-foreground">
         ← {t("sales.title")}
       </Link>
-      <div className="mt-2 mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold">
-              {t("sdetail.saleTitle", { number: s.number })}
-            </h1>
-            <StatusBadge s={s.status} />
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {fmtDate(s.created_at)} · {storeName}
-            {s.created_by &&
-              ` · ${t("sdetail.by", { name: names.data?.[s.created_by] ?? t("sdetail.staffWord") })}`}
-          </p>
+      <div className="mt-2 mb-4">
+        <h1 className="text-xl font-semibold">{t("sdetail.saleTitle", { number: s.number })}</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {fmtDate(s.created_at)} · {store?.name}
+          {s.created_by &&
+            ` · ${t("sdetail.by", { name: names.data?.[s.created_by] ?? t("sdetail.staffWord") })}`}
+          {customerLabel && ` · ${t("sdetail.forCustomer", { name: customerLabel })}`}
+          {s.approved_by && ` · ${t("sdetail.approvedBy")} ${names.data?.[s.approved_by] ?? "—"}`}
+        </p>
+        <div className="mt-2">
+          <StateDots s={s} />
         </div>
-        <div className="flex gap-1.5">
-          <SalePdfButton
-            s={s}
-            storeName={storeName ?? ""}
-            staff={names.data ?? {}}
-            refunds={refunds.data ?? []}
-          />
-          {can("admin", "manager") && REFUNDABLE.includes(s.status) && (
-            <Button variant="destructive" size="sm" onClick={() => setRefundOpen(true)}>
-              {t("sdetail.returnRefund")}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="mb-4 grid gap-2 sm:grid-cols-4">
-        {[
-          [t("common.total"), money(s.total)],
-          [t("doc.paid"), money(s.paid)],
-          [t("status.refunded"), money(s.refunded)],
-          [t("sdetail.net"), money(Number(s.total) - Number(s.refunded))],
-        ].map(([k, v]) => (
-          <Card key={k} className="p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {k}
+        {/* Amount + payment method on the left, action tiles on the right —
+            one row instead of two stacked bands; tiles wrap under on phones. */}
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="tabular text-3xl font-bold tracking-tight">{money(s.total)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {s.payment_method ? mLabel(s.payment_method) : "—"}
             </div>
-            <div className="tabular mt-1 truncate text-base font-bold">{v}</div>
-          </Card>
-        ))}
+          </div>
+          <div className="flex gap-2">
+            <ReceiptTile
+              s={s}
+              store={store}
+              staff={names.data ?? {}}
+              refunds={refunds.data ?? []}
+            />
+            {can("admin", "manager") && REFUNDABLE.includes(s.status) && (
+              <button type="button" onClick={() => setRefundOpen(true)} className={TILE_CLASS}>
+                <HugeiconsIcon icon={Refresh01Icon} size={20} />
+                <span className="text-sm font-semibold">{t("sdetail.returnRefund")}</span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <div className="space-y-3 lg:col-span-2">
-          <Card>
-            <CardHeader className="border-b py-3">
-              <CardTitle className="text-sm font-semibold">{t("sdetail.itemsCard")}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-[11px] uppercase">{t("doc.item")}</TableHead>
-                    <TableHead className="text-[11px] uppercase">{t("doc.amount")}</TableHead>
+      {/* One column in receipt order: lines → money → refunds → note. No rail,
+          so nothing floats and the card edges line up with the header above. */}
+      <div className="space-y-3">
+        <Card>
+          <CardHeader className="border-b py-3">
+            <CardTitle className="text-sm font-semibold">{t("sdetail.itemsCard")}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase">{t("doc.item")}</TableHead>
+                  <TableHead className="text-[11px] uppercase">{t("doc.amount")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {s.sale_items.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell>
+                      <div className="truncate font-medium">{i.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {money(i.price)} × {i.qty}
+                        {Number(i.refunded_qty) > 0 && (
+                          <span className="text-destructive">
+                            {" "}
+                            · {i.refunded_qty} {t("sdetail.returned")}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="tabular font-semibold">
+                      {money(Number(i.qty) * Number(i.price))}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {s.sale_items.map((i) => (
-                    <TableRow key={i.id}>
-                      <TableCell>
-                        <div className="truncate font-medium">{i.name}</div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {money(i.price)} × {i.qty}
-                          {Number(i.refunded_qty) > 0 && (
-                            <span className="text-destructive">
-                              {" "}
-                              · {i.refunded_qty} {t("sdetail.returned")}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="tabular font-semibold">
-                        {money(Number(i.qty) * Number(i.price))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="space-y-1 border-t px-4 py-3 text-[13px]">
-                <Row k={t("doc.subtotal")} v={money(subtotal)} />
-                {tax > 0 && <Row k={t("till.vat")} v={money(tax)} />}
-                <Row k={t("common.total")} v={money(s.total)} bold />
-                {Number(s.refunded) > 0 && (
+                ))}
+              </TableBody>
+            </Table>
+            {/* Totals reconcile directly under the lines, like a printed roll. */}
+            <div className="space-y-1 border-t px-4 py-3 text-[13px]">
+              <Row k={t("doc.subtotal")} v={money(subtotal)} />
+              {tax > 0 && <Row k={t("till.vat")} v={money(tax)} />}
+              <Row k={t("common.total")} v={money(s.total)} bold />
+              <Row k={t("doc.paid")} v={money(s.paid)} />
+              {balance > 0.009 && (
+                <Row k={t("sdetail.balanceDue")} v={money(balance)} className="text-destructive" />
+              )}
+              {Number(s.refunded) > 0 && (
+                <>
                   <Row
                     k={t("status.refunded")}
                     v={`− ${money(s.refunded)}`}
                     className="text-destructive"
                   />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="border-b py-3">
-              <CardTitle className="text-sm font-semibold">{t("sdetail.refundsCard")}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {(refunds.data ?? []).length === 0 ? (
-                <p className="px-4 py-3 text-[13px] text-muted-foreground">
-                  {t("sdetail.noRefunds")}
-                </p>
-              ) : (
-                <div className="divide-y">
-                  {refunds.data!.map((r) => (
-                    <div key={r.id} className="px-4 py-2 text-[13px]">
-                      <div className="flex justify-between gap-3">
-                        <span className="font-semibold">
-                          {t("sdetail.refundNumber", { number: r.number })} · {mLabel(r.method)}
-                        </span>
-                        <span className="tabular font-semibold text-destructive">
-                          − {money(r.amount)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {fmtDate(r.created_at)}
-                        {r.staff_id && ` · ${names.data?.[r.staff_id] ?? ""}`}
-                        {r.reason && ` · ${r.reason}`}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {r.refund_items
-                          .map(
-                            (i) =>
-                              `${i.qty} × ${i.name}${i.restock ? "" : ` ${t("sdetail.scrapped")}`}`,
-                          )
-                          .join(", ")}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  <Row k={t("sdetail.net")} v={money(Number(s.total) - Number(s.refunded))} bold />
+                </>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <aside className="space-y-3">
-          <Card className="p-3 text-[13px]">
-            <CardTitle className="mb-2 text-sm font-semibold">{t("doc.payment")}</CardTitle>
-            <Row k={t("doc.method")} v={s.payment_method ? mLabel(s.payment_method) : "—"} />
-            <Row k={t("doc.paid")} v={money(s.paid)} />
-            {balance > 0.009 && (
-              <Row k={t("sdetail.balanceDue")} v={money(balance)} className="text-destructive" />
-            )}
-            {s.approved_by && (
-              <Row k={t("sdetail.approvedBy")} v={names.data?.[s.approved_by] ?? "—"} />
-            )}
-          </Card>
-          <Card className="p-3 text-[13px]">
-            <CardTitle className="mb-2 text-sm font-semibold">{t("doc.customer")}</CardTitle>
-            {s.customer_name || s.customer_phone ? (
-              <>
-                <div className="font-medium">{s.customer_name}</div>
-                <div className="text-muted-foreground">{s.customer_phone}</div>
-              </>
+        <Card>
+          <CardHeader className="border-b py-3">
+            <CardTitle className="text-sm font-semibold">{t("sdetail.refundsCard")}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {(refunds.data ?? []).length === 0 ? (
+              <p className="px-4 py-3 text-[13px] text-muted-foreground">
+                {t("sdetail.noRefunds")}
+              </p>
             ) : (
-              <p className="text-muted-foreground">{t("doc.walkInCustomer")}</p>
+              <div className="divide-y">
+                {refunds.data!.map((r) => (
+                  <div key={r.id} className="px-4 py-2 text-[13px]">
+                    <div className="flex justify-between gap-3">
+                      <span className="font-semibold">
+                        {t("sdetail.refundNumber", { number: r.number })} · {mLabel(r.method)}
+                      </span>
+                      <span className="tabular font-semibold text-destructive">
+                        − {money(r.amount)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {fmtDate(r.created_at)}
+                      {r.staff_id && ` · ${names.data?.[r.staff_id] ?? ""}`}
+                      {r.reason && ` · ${r.reason}`}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {r.refund_items
+                        .map(
+                          (i) =>
+                            `${i.qty} × ${i.name}${i.restock ? "" : ` ${t("sdetail.scrapped")}`}`,
+                        )
+                        .join(", ")}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
+          </CardContent>
+        </Card>
+
+        {s.note && (
+          <Card className="p-3 text-[13px]">
+            <CardTitle className="mb-2 text-sm font-semibold">{t("sdetail.noteCard")}</CardTitle>
+            <p className="text-muted-foreground">{s.note}</p>
           </Card>
-          {s.note && (
-            <Card className="p-3 text-[13px]">
-              <CardTitle className="mb-2 text-sm font-semibold">{t("sdetail.noteCard")}</CardTitle>
-              <p className="text-muted-foreground">{s.note}</p>
-            </Card>
-          )}
-        </aside>
+        )}
       </div>
       {refundOpen && <RefundDialog sale={s} onClose={() => setRefundOpen(false)} />}
     </div>
@@ -483,14 +499,14 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
   );
 }
 
-function SalePdfButton({
+function ReceiptTile({
   s,
-  storeName,
+  store,
   staff,
   refunds,
 }: {
   s: SaleRow;
-  storeName: string;
+  store?: Store | undefined;
   staff: Record<string, string>;
   refunds: {
     number: number;
@@ -512,15 +528,28 @@ function SalePdfButton({
         ? t("doc.invoice")
         : t("doc.taxInvoice");
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() =>
+    <button
+      type="button"
+      className={TILE_CLASS}
+      onClick={() => {
+        // Approval invoices stay on the A4 builder (the till never issues a
+        // receipt for them); everything else exports on the till's 80mm roll.
+        if (!isInvoice) {
+          void downloadReceiptPdf(
+            saleToReceipt(s, {
+              bizName: business?.name ?? "Storq",
+              store,
+              cashier: staff[s.created_by ?? ""] ?? t("sdetail.staffWord"),
+            }),
+            money,
+          ).then(() => toast.success(t("till.receiptDownloaded")));
+          return;
+        }
         void downloadPdf({
           filename: `storq-${s.kind === "layby" ? "layby" : "sale"}-${s.number}`,
           title: `${docType} #${s.number}`,
           business: business?.name,
-          subtitle: storeName,
+          subtitle: store?.name ?? "",
           badge:
             (
               {
@@ -612,10 +641,11 @@ function SalePdfButton({
 
 ${t("doc.thankYouBusiness")}`
             : t("doc.thankYouBusiness"),
-        })
-      }
+        });
+      }}
     >
-      {t("sdetail.downloadPdf")}
-    </Button>
+      <HugeiconsIcon icon={ReceiptIcon} size={20} />
+      <span className="text-sm font-semibold">{t("doc.receipt")}</span>
+    </button>
   );
 }
