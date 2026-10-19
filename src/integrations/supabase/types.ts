@@ -314,6 +314,7 @@ export type Database = {
         Row: {
           auth_uid: string
           business_id: string
+          device_id: string
           fails: number
           locked_until: string | null
           updated_at: string
@@ -321,6 +322,7 @@ export type Database = {
         Insert: {
           auth_uid: string
           business_id: string
+          device_id?: string
           fails?: number
           locked_until?: string | null
           updated_at?: string
@@ -328,6 +330,7 @@ export type Database = {
         Update: {
           auth_uid?: string
           business_id?: string
+          device_id?: string
           fails?: number
           locked_until?: string | null
           updated_at?: string
@@ -949,6 +952,7 @@ export type Database = {
         Row: {
           auth_uid: string | null
           created_at: string
+          device_id: string
           expires_at: string
           staff_id: string
           token: string
@@ -956,6 +960,7 @@ export type Database = {
         Insert: {
           auth_uid?: string | null
           created_at?: string
+          device_id?: string
           expires_at?: string
           staff_id: string
           token?: string
@@ -963,6 +968,7 @@ export type Database = {
         Update: {
           auth_uid?: string | null
           created_at?: string
+          device_id?: string
           expires_at?: string
           staff_id?: string
           token?: string
@@ -1841,7 +1847,10 @@ export type Database = {
         Returns: Json
       }
       subscription_active: { Args: { p_business: string }; Returns: boolean }
-      unlock_with_pin: { Args: { p_pin: string }; Returns: Json }
+      unlock_with_pin: {
+        Args: { p_device_id?: string; p_pin: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
