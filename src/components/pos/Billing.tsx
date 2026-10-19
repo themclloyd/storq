@@ -550,15 +550,23 @@ export function Billing({ locked }: { locked?: boolean }) {
     },
   });
 
-  const status = s?.overLimit
-    ? { label: t("billing.statusOverLimit"), cls: "bg-destructive-soft text-destructive" }
-    : until
-      ? { label: t("billing.statusActive"), cls: "bg-success-soft text-success" }
-      : s?.trial
-        ? { label: t("store.freeTrial"), cls: "bg-secondary text-secondary-foreground" }
-        : { label: t("billing.statusExpired"), cls: "bg-destructive-soft text-destructive" };
+  // An operator decision outranks the money clocks, exactly as it does in SQL and in
+  // the ops roster: a tenant with paid time left is still suspended or closed.
+  const status = s?.closed
+    ? { label: t("billing.statusClosed"), cls: "bg-destructive-soft text-destructive" }
+    : s?.suspended
+      ? { label: t("billing.statusSuspended"), cls: "bg-warning-soft text-warning-foreground" }
+      : s?.overLimit
+        ? { label: t("billing.statusOverLimit"), cls: "bg-destructive-soft text-destructive" }
+        : until
+          ? { label: t("billing.statusActive"), cls: "bg-success-soft text-success" }
+          : s?.trial
+            ? { label: t("store.freeTrial"), cls: "bg-secondary text-secondary-foreground" }
+            : { label: t("billing.statusExpired"), cls: "bg-destructive-soft text-destructive" };
 
-  const canPay = can("admin", "manager");
+  // A closed account cannot pay its way back — SQL refuses the intent outright — so
+  // it gets no payment affordance at all. A suspension does: paying clears it.
+  const canPay = can("admin", "manager") && !s?.closed;
   const lastPaid = history.data?.find((r) => r.status === "paid") ?? null;
   const paidInvoices = (history.data ?? []).filter((r) => r.status === "paid");
   const usagePct = s?.capacity ? Math.min(100, Math.round((stores.length / s.capacity) * 100)) : 0;
@@ -588,9 +596,11 @@ export function Billing({ locked }: { locked?: boolean }) {
         breadcrumb={locked ? undefined : `${t("nav.settings")} / ${t("nav.subscription")}`}
         title={
           locked
-            ? s?.overLimit
-              ? t("billing.overLimitTitle")
-              : t("billing.needsAttentionTitle")
+            ? s?.closed
+              ? t("billing.closedTitle")
+              : s?.overLimit
+                ? t("billing.overLimitTitle")
+                : t("billing.needsAttentionTitle")
             : t("billing.title")
         }
         sub={t("billing.sub")}
@@ -638,6 +648,16 @@ export function Billing({ locked }: { locked?: boolean }) {
                 <div className="text-xs text-muted-foreground">{t("billing.perStoreMonth")}</div>
               </div>
             </div>
+
+            {s?.closed ? (
+              <p className="rounded-xl bg-destructive-soft px-3 py-2 text-[13px] text-destructive">
+                {t("billing.closedNotice")}
+              </p>
+            ) : s?.suspended ? (
+              <p className="rounded-xl bg-warning-soft px-3 py-2 text-[13px] text-warning-foreground">
+                {t("billing.suspendedNotice")}
+              </p>
+            ) : null}
 
             {s?.capacity ? (
               <div>

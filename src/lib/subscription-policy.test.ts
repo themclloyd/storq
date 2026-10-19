@@ -57,4 +57,30 @@ describe("subscriptionAccess — entitlement is derived in SQL, mirrored here", 
     expect(a.active).toBe(false);
     expect(a.capacity).toBe(0);
   });
+
+  it("an operator suspension blocks the till even while prepaid time is still running", () => {
+    // The money clock is untouched — that is the point of a suspension — so the
+    // block cannot come from `paid`/`expired`, only from the stamp itself.
+    const a = subscriptionAccess(sub({ suspended_at: PAST }), 2, NOW);
+    expect(a.paid).toBe(true);
+    expect(a.suspended).toBe(true);
+    expect(a.closed).toBe(false);
+    expect(a.active).toBe(false);
+    expect(a.canAddStore).toBe(false);
+  });
+
+  it("a closure outranks a suspension it was layered on top of", () => {
+    const a = subscriptionAccess(sub({ suspended_at: PAST, closed_at: PAST }), 2, NOW);
+    expect(a.closed).toBe(true);
+    expect(a.active).toBe(false);
+  });
+
+  it("a stored snapshot from before the columns existed is never read as blocked", () => {
+    // Devices hold cached rows written before this migration; an absent field has to
+    // mean "normal", or an offline till would lock itself for no reason.
+    const a = subscriptionAccess(sub(), 2, NOW);
+    expect(a.suspended).toBe(false);
+    expect(a.closed).toBe(false);
+    expect(a.active).toBe(true);
+  });
 });

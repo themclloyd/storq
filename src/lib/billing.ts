@@ -21,11 +21,12 @@ export function useSubscription(businessId?: string, storeCount = 0) {
     staleTime: 6 * 60 * 60_000,
     retry: 1,
     queryFn: async () => {
-      // subscriptions predates type regeneration for paid_store_limit — read via any-cast
+      // subscriptions predates type regeneration for paid_store_limit and the
+      // operator lifecycle stamps — read via any-cast with an explicit column list
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("subscriptions")
-        .select("trial_ends_at,paid_until,plan,paid_store_limit")
+        .select("trial_ends_at,paid_until,plan,paid_store_limit,suspended_at,closed_at")
         .eq("business_id", businessId)
         .maybeSingle();
       if (error) throw error;

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LIMITS, validateEmail, validatePassword } from "@/lib/validate";
+import { landingRouteFor } from "@/lib/ops";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
@@ -72,7 +73,9 @@ function AuthPage() {
           password,
         });
         if (error) throw error;
-        nav({ to: "/app" });
+        // A platform operator owns no business, so /app would dead-end on setup;
+        // the probe is one cheap RPC and fails open to the workspace.
+        nav({ to: await landingRouteFor() });
       } else if (mode === "up") {
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
