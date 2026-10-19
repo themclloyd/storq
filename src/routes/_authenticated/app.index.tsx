@@ -226,6 +226,45 @@ function Register() {
     });
   };
 
+  // ---- held (parked) sales: kept on this device per store ----
+  type Held = { id: string; at: number; cart: Line[]; discounts: Record<string, number> };
+  const heldKey = `storq:held:${store?.id ?? "none"}`;
+  const [held, setHeld] = useState<Held[]>([]);
+  useEffect(() => {
+    try {
+      setHeld(JSON.parse(localStorage.getItem(heldKey) ?? "[]"));
+    } catch {
+      setHeld([]);
+    }
+  }, [heldKey]);
+  const saveHeld = (next: Held[]) => {
+    setHeld(next);
+    localStorage.setItem(heldKey, JSON.stringify(next));
+  };
+  const holdCart = () => {
+    if (!cart.length) return;
+    saveHeld([...held, { id: crypto.randomUUID(), at: Date.now(), cart, discounts }]);
+    setCart([]);
+    setDiscounts({});
+    toast.success(t("till.heldSaved"));
+  };
+  const resumeHeld = (id: string) => {
+    const h = held.find((x) => x.id === id);
+    if (!h) return;
+    // Re-link to the fresh catalog so prices/stock are current; drop removed items.
+    const lines = h.cart
+      .map((l) => ({ p: list.find((p) => p.id === l.p.id), qty: l.qty }))
+      .filter((l): l is Line => !!l.p);
+    const rest = held.filter((x) => x.id !== id);
+    // Swap: the current basket (if any) is held in its place.
+    saveHeld(
+      cart.length ? [...rest, { id: crypto.randomUUID(), at: Date.now(), cart, discounts }] : rest,
+    );
+    setCart(lines);
+    setDiscounts(h.discounts);
+    toast.success(t("till.heldResumed"));
+  };
+
   // ---- barcode: hardware wedge + camera scan ----
   const applyCode = (code: string) => {
     const p = findByBarcode(list, code);
@@ -431,7 +470,47 @@ function Register() {
               />
             </div>
             <ScanCameraButton onOpen={() => setScanning(true)} />
+            {cart.length > 0 && (
+              <Button variant="outline" className="h-11" onClick={holdCart}>
+                {t("till.holdCart")}
+              </Button>
+            )}
           </div>
+          {held.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                {t("till.heldCarts", { count: held.length })}
+              </span>
+              {held.map((h) => (
+                <span
+                  key={h.id}
+                  className="flex items-center gap-1 rounded-full border bg-card py-1 pl-3 pr-1 text-xs"
+                >
+                  <span className="tabular">
+                    {new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{" "}
+                    · {t("till.heldItems", { count: h.cart.length })}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2"
+                    onClick={() => resumeHeld(h.id)}
+                  >
+                    {t("till.resume")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-muted-foreground"
+                    aria-label="Discard held sale"
+                    onClick={() => saveHeld(held.filter((x) => x.id !== h.id))}
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
+                  </Button>
+                </span>
+              ))}
+            </div>
+          )}
           {cats.length > 0 && (
             <div className="mb-4 flex justify-start gap-2 overflow-x-auto pb-1">
               <CatChip active={!cat} onClick={() => setCat(null)}>

@@ -342,6 +342,140 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_audit_log: {
+        Row: {
+          action: string
+          actor_label: string
+          actor_role: string
+          actor_user_id: string | null
+          after_state: Json
+          before_state: Json
+          business_id: string | null
+          business_ref: string | null
+          created_at: string
+          id: string
+          reason: string
+          target_label: string
+        }
+        Insert: {
+          action: string
+          actor_label: string
+          actor_role: string
+          actor_user_id?: string | null
+          after_state: Json
+          before_state: Json
+          business_id?: string | null
+          business_ref?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          target_label: string
+        }
+        Update: {
+          action?: string
+          actor_label?: string
+          actor_role?: string
+          actor_user_id?: string | null
+          after_state?: Json
+          before_state?: Json
+          business_id?: string | null
+          business_ref?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          target_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_log_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_deleted_tenants: {
+        Row: {
+          business_created_at: string
+          business_ref: string
+          closed_at: string
+          currency: string
+          id: string
+          name: string
+          owner_id: string | null
+          paid_store_limit: number
+          paid_until: string | null
+          plan: string | null
+          purged_at: string
+          reason: string
+          sale_count: number
+          staff_count: number
+          store_count: number
+        }
+        Insert: {
+          business_created_at: string
+          business_ref: string
+          closed_at: string
+          currency: string
+          id?: string
+          name: string
+          owner_id?: string | null
+          paid_store_limit?: number
+          paid_until?: string | null
+          plan?: string | null
+          purged_at?: string
+          reason: string
+          sale_count?: number
+          staff_count?: number
+          store_count?: number
+        }
+        Update: {
+          business_created_at?: string
+          business_ref?: string
+          closed_at?: string
+          currency?: string
+          id?: string
+          name?: string
+          owner_id?: string | null
+          paid_store_limit?: number
+          paid_until?: string | null
+          plan?: string | null
+          purged_at?: string
+          reason?: string
+          sale_count?: number
+          staff_count?: number
+          store_count?: number
+        }
+        Relationships: []
+      }
       product_collections: {
         Row: {
           collection_id: string
@@ -1269,26 +1403,32 @@ export type Database = {
       subscriptions: {
         Row: {
           business_id: string
+          closed_at: string | null
           created_at: string
           paid_store_limit: number
           paid_until: string | null
           plan: string | null
+          suspended_at: string | null
           trial_ends_at: string
         }
         Insert: {
           business_id: string
+          closed_at?: string | null
           created_at?: string
           paid_store_limit?: number
           paid_until?: string | null
           plan?: string | null
+          suspended_at?: string | null
           trial_ends_at?: string
         }
         Update: {
           business_id?: string
+          closed_at?: string | null
           created_at?: string
           paid_store_limit?: number
           paid_until?: string | null
           plan?: string | null
+          suspended_at?: string | null
           trial_ends_at?: string
         }
         Relationships: [
@@ -1437,6 +1577,7 @@ export type Database = {
       lock_session: { Args: { p_token: string }; Returns: undefined }
       low_stock: { Args: { p_store: string; p_token: string }; Returns: Json }
       my_business_id: { Args: never; Returns: string }
+      my_platform_role: { Args: never; Returns: string }
       open_shift: {
         Args: {
           p_float: number
@@ -1445,6 +1586,43 @@ export type Database = {
           p_token: string
         }
         Returns: string
+      }
+      ops_business_roster: {
+        Args: {
+          p_limit: number
+          p_offset: number
+          p_q: string
+          p_state: string
+        }
+        Returns: Json
+      }
+      ops_purge_tenant: {
+        Args: {
+          p_business_id: string
+          p_confirm_name: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ops_set_tenant_state: {
+        Args: { p_action: string; p_business_id: string; p_reason: string }
+        Returns: Json
+      }
+      ops_subscription_history: {
+        Args: { p_business_id: string; p_limit: number }
+        Returns: Json
+      }
+      ops_update_subscription: {
+        Args: {
+          p_business_id: string
+          p_extend_days?: number
+          p_plan?: string
+          p_reason?: string
+          p_slots?: number
+          p_trial_days?: number
+          p_until?: string
+        }
+        Returns: Json
       }
       pin_taken: {
         Args: { p_business: string; p_except: string; p_pin: string }
@@ -1475,6 +1653,23 @@ export type Database = {
           p_token: string
         }
         Returns: string
+      }
+      require_platform_admin: {
+        Args: { p_roles: string[] }
+        Returns: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          role: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "platform_admins"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       require_staff: {
         Args: { p_roles: string[]; p_token: string }
