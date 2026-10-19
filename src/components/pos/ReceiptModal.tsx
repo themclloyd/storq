@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Download01Icon, PrinterIcon, Tick02Icon } from "@/lib/icons";
+import { Download01Icon, PrinterIcon, Share01Icon, Tick02Icon } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   printReceipt,
   receiptHtml,
+  receiptText,
   receiptTitle,
   type MoneyFmt,
   type Receipt,
@@ -99,8 +100,22 @@ export function ReceiptModal({
             <HugeiconsIcon icon={PrinterIcon} /> {t("till.print")}
           </Button>
         </DialogFooter>
-        <div className="border-t px-5 py-3">
-          <Button variant="ghost" size="lg" className="w-full" onClick={onClose}>
+        <div className="flex gap-3 border-t px-5 py-3">
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            onClick={() => {
+              // Digital receipt: straight to the customer's chat when we have a number.
+              const text = encodeURIComponent(receiptText(receipt, money));
+              const digits = (receipt.customerPhone ?? "").replace(/\D/g, "");
+              const url = digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
+              window.open(url, "_blank", "noopener");
+            }}
+          >
+            <HugeiconsIcon icon={Share01Icon} /> {t("till.whatsapp")}
+          </Button>
+          <Button variant="ghost" size="lg" className="flex-1" onClick={onClose}>
             {t("till.newSale")}
           </Button>
         </div>

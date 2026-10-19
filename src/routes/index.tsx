@@ -139,7 +139,7 @@ const landingJsonLd = {
 export const Route = createFileRoute("/")({
   head: () => {
     const seo = buildSeo({
-      title: "Storq POS | Know your stock, your profit, your whole business",
+      title: "Storq POS | The lite POS for African shops — works offline",
       description:
         "Keep your till, your stock and your staff in order from the phone in your pocket, and see the real profit behind every sale before you close. One plan at MK60,000 per store, free trial included.",
       path: "/",
