@@ -1471,10 +1471,6 @@ export type Database = {
         Args: { p_sale: string; p_token: string }
         Returns: undefined
       }
-      cancel_transfer: {
-        Args: { p_id: string; p_token: string }
-        Returns: string
-      }
       cash_move: {
         Args: {
           p_amount: number
@@ -1642,10 +1638,6 @@ export type Database = {
           p_token: string
         }
         Returns: Json
-      }
-      receive_transfer: {
-        Args: { p_id: string; p_token: string }
-        Returns: string
       }
       record_expense: {
         Args: {

@@ -22,6 +22,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowRight01Icon,
   Tick01Icon,
+  Cancel01Icon,
   SmartPhone01Icon,
   WifiOffIcon,
   ShieldCheckIcon,
@@ -32,7 +33,7 @@ import {
   BarChartIcon,
 } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { PRICES } from "@/lib/billing";
+import { PRICES, YEARLY_FACTOR } from "@/lib/billing";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { buildSeo, absUrl, SITE_NAME } from "@/lib/seo";
@@ -287,7 +288,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function Landing() {
   const { t } = useI18n();
   return (
-    <div className="storq-landing min-h-screen bg-background text-foreground">
+    <div className="storq-landing min-h-screen bg-background pb-16 text-foreground md:pb-0">
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
@@ -360,6 +361,25 @@ function Landing() {
         </Rise>
         <Rise delay={300}>
           <p className="mt-4 text-sm text-muted-foreground">{t("marketing.heroNote")}</p>
+        </Rise>
+        <Rise delay={380} className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {[
+            [WifiOffIcon, "marketing.heroChip1"],
+            [SmartPhone01Icon, "marketing.heroChip2"],
+            [FlashIcon, "marketing.heroChip3"],
+            [UserMultipleIcon, "marketing.heroChip4"],
+          ].map(([Icon, k]) => {
+            const I = Icon as typeof FlashIcon;
+            return (
+              <span
+                key={k as string}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+              >
+                <HugeiconsIcon icon={I} className="h-3.5 w-3.5 text-accent" />
+                {t(k as string)}
+              </span>
+            );
+          })}
         </Rise>
         <Rise delay={120} className="relative mt-14 overflow-hidden rounded-3xl">
           <img
@@ -580,6 +600,77 @@ function Landing() {
         </Reveal>
       </section>
 
+      {/* Old way vs Storq — the switch an owner recognises from their own day */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-7xl px-6 py-24">
+          <Reveal>
+            <Eyebrow>{t("marketing.vsEyebrow")}</Eyebrow>
+            <h2 className="font-display mt-3 max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
+              {t("marketing.vsH2")}
+            </h2>
+            <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
+              {t("marketing.vsLead")}
+            </p>
+          </Reveal>
+          <div className="mt-14 grid gap-6 md:grid-cols-2">
+            <Reveal>
+              <Card className="h-full gap-0 rounded-3xl border-0 bg-muted p-8">
+                <CardHeader className="gap-0 p-0">
+                  <CardTitle className="font-display text-2xl text-muted-foreground">
+                    {t("marketing.vsOldTitle")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ul className="mt-6 space-y-4">
+                    {[
+                      "marketing.vsOld1",
+                      "marketing.vsOld2",
+                      "marketing.vsOld3",
+                      "marketing.vsOld4",
+                    ].map((k) => (
+                      <li key={k} className="flex gap-3 text-base text-muted-foreground">
+                        <HugeiconsIcon
+                          icon={Cancel01Icon}
+                          className="mt-0.5 h-5 w-5 shrink-0 text-destructive"
+                        />{" "}
+                        {t(k)}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </Reveal>
+            <Reveal delay={120}>
+              <Card className="h-full gap-0 rounded-3xl border-0 bg-primary p-8 text-primary-foreground transition-transform duration-300 hover:-translate-y-1">
+                <CardHeader className="gap-0 p-0">
+                  <CardTitle className="font-display text-2xl">
+                    {t("marketing.vsNewTitle")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ul className="mt-6 space-y-4">
+                    {[
+                      "marketing.vsNew1",
+                      "marketing.vsNew2",
+                      "marketing.vsNew3",
+                      "marketing.vsNew4",
+                    ].map((k) => (
+                      <li key={k} className="flex gap-3 text-base">
+                        <HugeiconsIcon icon={Tick01Icon} className="mt-0.5 h-5 w-5 shrink-0" />{" "}
+                        {t(k)}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-8">
+                    <Cta invert />
+                  </div>
+                </CardContent>
+              </Card>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* Layby — the sale you would otherwise send away */}
       <section id="layby" className="bg-muted">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
@@ -773,6 +864,12 @@ function Landing() {
                   </span>
                 </p>
                 <p className="mt-3 text-base opacity-70">{t("marketing.pricingNote")}</p>
+                <p className="mt-3 text-sm font-semibold">
+                  {t("marketing.pricingYearly", {
+                    yearly: (PRICES.MWK * YEARLY_FACTOR).toLocaleString("en-US"),
+                    save: (PRICES.MWK * 12 - PRICES.MWK * YEARLY_FACTOR).toLocaleString("en-US"),
+                  })}
+                </p>
                 <ul className="mt-8 grid gap-3 sm:grid-cols-2">
                   {planFeatureKeys.map((x) => (
                     <li key={x} className="flex gap-3">
@@ -813,6 +910,18 @@ function Landing() {
         <span>© {new Date().getFullYear()} Storq</span>
         <span>{t("marketing.footerTag")}</span>
       </footer>
+
+      {/* Sticky trial bar — keeps the next step one tap away on phones */}
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("marketing.stickyNote")}
+          </p>
+          <Button asChild size="sm" className="shrink-0 rounded-lg px-4 font-semibold">
+            <Link to="/auth">{t("marketing.trial")}</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
