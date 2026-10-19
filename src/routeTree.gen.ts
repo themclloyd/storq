@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedOpsRouteImport } from './routes/_authenticated/ops'
-import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
 import { Route as AuthenticatedAppCollectionsRouteImport } from './routes/_authenticated/app.collections'
@@ -59,11 +58,6 @@ const AuthenticatedOpsRoute = AuthenticatedOpsRouteImport.update({
   id: '/ops',
   path: '/ops',
   getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const CSlugRoute = CSlugRouteImport.update({
-  id: '/c/$slug',
-  path: '/c/$slug',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
@@ -182,7 +176,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/ops': typeof AuthenticatedOpsRoute
-  '/c/$slug': typeof CSlugRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/collections': typeof AuthenticatedAppCollectionsRouteWithChildren
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -208,7 +201,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/ops': typeof AuthenticatedOpsRoute
-  '/c/$slug': typeof CSlugRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
@@ -236,7 +228,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/ops': typeof AuthenticatedOpsRoute
-  '/c/$slug': typeof CSlugRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
   '/_authenticated/app/collections': typeof AuthenticatedAppCollectionsRouteWithChildren
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -265,7 +256,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app'
     | '/ops'
-    | '/c/$slug'
     | '/app/billing'
     | '/app/collections'
     | '/app/dashboard'
@@ -291,7 +281,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/ops'
-    | '/c/$slug'
     | '/app/billing'
     | '/app/dashboard'
     | '/app/expenses'
@@ -318,7 +307,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/app'
     | '/_authenticated/ops'
-    | '/c/$slug'
     | '/_authenticated/app/billing'
     | '/_authenticated/app/collections'
     | '/_authenticated/app/dashboard'
@@ -345,7 +333,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  CSlugRoute: typeof CSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -384,13 +371,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/ops'
       preLoaderRoute: typeof AuthenticatedOpsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/c/$slug': {
-      id: '/c/$slug'
-      path: '/c/$slug'
-      fullPath: '/c/$slug'
-      preLoaderRoute: typeof CSlugRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
@@ -615,7 +595,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  CSlugRoute: CSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

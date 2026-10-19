@@ -3,10 +3,10 @@ import { useEffect, useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete02Icon, Share01Icon, Cancel01Icon } from "@/lib/icons";
+import { Delete02Icon, Cancel01Icon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useProducts } from "@/lib/products";
-import { useCollections, shareUrl } from "@/lib/collections";
+import { useCollections } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -121,19 +121,6 @@ function CollectionPage() {
       toast.error((e as Error).message);
     }
   }
-  async function share() {
-    if (!c) return;
-    const url = shareUrl(c.share_slug);
-    try {
-      if (navigator.share) await navigator.share({ title: c.name, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success(t("col.linkCopied"));
-      }
-    } catch {
-      /* cancelled */
-    }
-  }
 
   return (
     <>
@@ -149,11 +136,6 @@ function CollectionPage() {
         }
         actions={
           <div className="flex gap-1.5">
-            {c && c.is_shared && (
-              <Button size="sm" variant="outline" onClick={share}>
-                <HugeiconsIcon icon={Share01Icon} /> {t("col.share")}
-              </Button>
-            )}
             {c && (
               <Button size="sm" variant="ghost" onClick={remove}>
                 <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")}

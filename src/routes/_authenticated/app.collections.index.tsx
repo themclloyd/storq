@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusSignIcon, Share01Icon } from "@/lib/icons";
+import { PlusSignIcon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
-import { useCollections, shareUrl, type Collection } from "@/lib/collections";
+import { useCollections } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { BackLink, Empty, PageHeader, Pager } from "@/components/pos/bits";
 import { pageSlice } from "@/lib/paging";
@@ -39,19 +38,6 @@ function Collections() {
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(list, page);
   const count = (id: string) =>
     Object.values(cols.data?.byProduct ?? {}).filter((ids) => ids.includes(id)).length;
-
-  async function share(c: Collection) {
-    const url = shareUrl(c.share_slug);
-    try {
-      if (navigator.share) await navigator.share({ title: c.name, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success(t("col.linkCopied"));
-      }
-    } catch {
-      /* cancelled */
-    }
-  }
 
   return (
     <>
@@ -97,15 +83,6 @@ function Collections() {
                     <Link to="/app/collections/$id" params={{ id: c.id }}>
                       {t("col.open")}
                     </Link>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={!c.is_shared}
-                    onClick={() => share(c)}
-                  >
-                    <HugeiconsIcon icon={Share01Icon} />{" "}
-                    {c.is_shared ? t("col.share") : t("col.notShared")}
                   </Button>
                 </div>
               </div>
