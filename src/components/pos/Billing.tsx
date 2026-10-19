@@ -1,7 +1,7 @@
 /**
  * Billing page — subscription management for Storq.
  *
- * Three flows, each with its own dialog:
+ * One plan dialog serves three modes, switched by `planMode` and its tab row:
  *
  * 1. RENEW / EXTEND  — user already has an active paid sub. They pick:
  *    - How many months to add (1, 2, 3, 6, 12, or any stepper value 1-24)
@@ -20,6 +20,9 @@
  *    - How many months
  *    Currency is shared.
  *
+ * All three bill off the same single `subscriptions.paid_until` per business, so every
+ * store of the account always shares one expiry date — there is nothing to co-time.
+ *
  * Backend constraint: `start_store_subscription_payment` accepts p_months (1-24).
  * 15% discount applies at 12+ months.
  */
@@ -31,13 +34,23 @@ import { toast } from "sonner";
 import { usePos } from "@/lib/pos";
 import { useI18n, t as tInv } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { PRICES, YEARLY_FACTOR, loadPaychangu, useSubscription } from "@/lib/billing";
+import {
+  MONTH_PRESETS,
+  PRICES,
+  calcTotal,
+  fmtMoney as fmt,
+  loadPaychangu,
+  useSubscription,
+  type Currency,
+} from "@/lib/billing";
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
+import { useOnce } from "@/hooks/use-once";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control";
 import { PageHeader } from "@/components/pos/bits";
+import { GraceBanner } from "@/components/pos/GraceBanner";
 import {
   Dialog,
   DialogContent,
@@ -66,28 +79,12 @@ declare global {
   }
 }
 
-const fmt = (c: "MWK" | "USD", n: number) =>
-  c === "MWK"
-    ? `MK${Math.round(n).toLocaleString("en-US")}`
-    : `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-
 const PERIOD_KEY: Record<string, string> = {
   monthly: "billing.periodMonthly",
   yearly: "billing.periodYearly",
 };
 
 type PlanMode = "renew" | "add-stores" | "new";
-type Currency = "MWK" | "USD";
-
-// ── Quick-pick months (shown as tap targets; stepper allows any value 1-24) ──
-const MONTH_PRESETS = [1, 3, 6, 12] as const;
-
-/** Unit price for a given month count: flat rate × possible 12-month discount. */
-function calcTotal(currency: Currency, stores: number, months: number): number {
-  const monthly = PRICES[currency] * stores;
-  const discount = months >= 12 ? YEARLY_FACTOR / 12 : 1; // YEARLY_FACTOR = 12 × 0.85
-  return Math.round(monthly * months * discount * 100) / 100;
-}
 
 /** What date will the subscription expire after this payment clears? */
 function projectedExpiry(until: Date | null, months: number): Date {
@@ -352,6 +349,9 @@ export function Billing({ locked }: { locked?: boolean }) {
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [currency, setCurrency] = useState<Currency>("MWK");
   const [busy, setBusy] = useState(false);
+  // A debit the provider took but our server never confirmed survives in localStorage.
+  // That pending reference is what the "already debited?" recovery button re-verifies.
+  const [pendingTx, setPendingTx] = useState<string | null>(null);
   const checked = useRef(false);
   // tx_ref of the checkout we opened in the PayChangu iframe this session —
   // used to authenticate postMessage results and ignore stale messages.
@@ -410,6 +410,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       if (r.drop) {
         if (pendingRef.current === ref) pendingRef.current = null;
         localStorage.removeItem("paychangu_pending_tx_ref");
+        setPendingTx(null);
       }
       toast.error(r.message);
       return false;
@@ -430,8 +431,17 @@ export function Billing({ locked }: { locked?: boolean }) {
     if (await check(ref)) {
       if (pendingRef.current === ref) pendingRef.current = null;
       localStorage.removeItem("paychangu_pending_tx_ref");
+      setPendingTx(null);
     }
   }
+
+  // Recovery for a mobile-money charge the owner knows went through while the screen
+  // still shows a locked plan: re-run the very same server verification a page load
+  // would, without waiting for the next reload. `check` already toasts the outcome.
+  const { run: verifyRecent, running: verifying } = useOnce(async () => {
+    const ref = localStorage.getItem("paychangu_pending_tx_ref");
+    if (ref) await check(ref);
+  }, 5_000);
 
   // The PayChangu checkout loads inside an iframe (popup.js), so a successful
   // payment NEVER navigates our top-level window — the iframe's own callback
@@ -469,6 +479,12 @@ export function Billing({ locked }: { locked?: boolean }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Surface a stored pending reference whenever a billing surface is looked at (read
+  // inside an effect only — localStorage does not exist during the server render).
+  useEffect(() => {
+    setPendingTx(localStorage.getItem("paychangu_pending_tx_ref"));
+  }, [planMode, payOpen]);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => paychanguMsgHandler.current(e);
@@ -508,6 +524,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       // PayChangu redirect causes a full page reload (e.g. on localhost).
       pendingRef.current = start.tx_ref;
       localStorage.setItem("paychangu_pending_tx_ref", start.tx_ref);
+      setPendingTx(start.tx_ref);
       window.PaychanguCheckout({
         public_key: key,
         tx_ref: start.tx_ref,
@@ -590,6 +607,50 @@ export function Billing({ locked }: { locked?: boolean }) {
     </Button>
   );
 
+  // ── One dialog, three modes ───────────────────────────────────────────────
+  // The picker edits whichever month count the active mode owns.
+  const setMonths = (v: number) => {
+    if (planMode === "renew") setRenewMonths(v);
+    else if (planMode === "add-stores") setAddMonths(v);
+    else setNewMonths(v);
+  };
+  // Slots shown in the breakdown: an add-stores purchase bills the delta only.
+  const summarySlots = planMode === "add-stores" ? billedSlots : n;
+
+  // Only a paid account can extend or grow; a trial or a lapsed one starts fresh.
+  const planTabs: SegmentOption<PlanMode>[] = s?.paid
+    ? [
+        { value: "renew", label: t("billing.renewAllTab") },
+        { value: "add-stores", label: t("billing.addLocationTab") },
+      ]
+    : [{ value: "new", label: t("billing.choosePlanTitle") }];
+
+  const planHead: Record<PlanMode, { title: string; desc: string }> = {
+    renew: {
+      title: t("billing.renewExtendTitle"),
+      desc: t("billing.renewExtendDesc", {
+        capacity: renewSlots,
+        date: until?.toLocaleDateString(undefined, { dateStyle: "long" }) ?? "—",
+      }),
+    },
+    "add-stores": {
+      title: t("billing.addStoresTitle"),
+      desc: t("billing.addStoresIntro", {
+        capacity: paidCapacity,
+        delta: safeAddDelta,
+        total: addTotal,
+      }),
+    },
+    new: {
+      title: t("billing.choosePlanTitle"),
+      desc: t("billing.choosePlanDesc", {
+        count: stores.length,
+        name: business?.name ?? t("billing.yourAccount"),
+      }),
+    },
+  };
+  const head = planHead[planMode ?? "renew"];
+
   return (
     <div className={cn("mx-auto w-full max-w-6xl space-y-8", locked && "py-6")}>
       <PageHeader
@@ -605,6 +666,10 @@ export function Billing({ locked }: { locked?: boolean }) {
         }
         sub={t("billing.sub")}
       />
+
+      {/* The shell hides its own copy of this banner on the billing route, so the
+          renewal prompt is never shown twice on one screen. */}
+      <GraceBanner />
 
       <div className="grid gap-5 sm:grid-cols-2">
         {/* ── Current plan card ──────────────────────────────────────────── */}
@@ -923,144 +988,113 @@ export function Billing({ locked }: { locked?: boolean }) {
         </Card>
       </section>
 
-      {/* ══ RENEW / EXTEND ═════════════════════════════════════════════════
-          Fixed store count. User picks how many months they want:
-          quick-tap 1 / 3 / 6 / 12, or stepper for anything in between.
-          12-month discount (15%) applied automatically.
+      {/* ══ RENEW / ADD / NEW ═════════════════════════════════════════════════
+          One dialog, three modes, switched by its tab row. Renew locks the store
+          count and buys months; add-stores bills the delta only; new subscribes a
+          total slot count. Currency, duration, expiry line, price summary and the
+          pay button are shared, as is the single `paid_until` every mode renews.
       ═════════════════════════════════════════════════════════════════════= */}
-      <Dialog open={planMode === "renew"} onOpenChange={(o) => !o && setPlanMode(null)}>
+      <Dialog open={planMode !== null} onOpenChange={(o) => !o && setPlanMode(null)}>
         <DialogContent className="max-w-md rounded-3xl">
           <DialogHeader>
-            <DialogTitle>{t("billing.renewExtendTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("billing.renewExtendDesc", {
-                capacity: renewSlots,
-                date: until?.toLocaleDateString(undefined, { dateStyle: "long" }) ?? "—",
-              })}
-            </DialogDescription>
+            <DialogTitle>{head.title}</DialogTitle>
+            <DialogDescription>{head.desc}</DialogDescription>
           </DialogHeader>
 
           {!canPay ? (
             <p className="text-sm text-muted-foreground">{t("billing.askAdminRenew")}</p>
           ) : (
             <>
-              <CurrencyToggle
-                value={currency}
-                onChange={setCurrency}
-                label={t("billing.currencyWord")}
-              />
-
-              {/* Stores — locked, display only */}
-              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
-                <div>
-                  <p className="mb-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {t("billing.slotsLabel")}
+              {planTabs.length > 1 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("billing.planTabsLabel")}
                   </p>
-                  <p className="text-sm font-medium">
-                    {renewSlots}{" "}
-                    {renewSlots === 1 ? t("billing.storeUnit") : t("billing.storeUnits")}
-                  </p>
+                  <SegmentedControl
+                    size="sm"
+                    className="w-full"
+                    aria-label={t("billing.planTabsLabel")}
+                    value={planMode ?? "renew"}
+                    onChange={setPlanMode}
+                    options={planTabs}
+                  />
                 </div>
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
-                  {t("billing.renewOrExtend")}
-                </span>
-              </div>
+              )}
 
-              {/* Month picker — THE main choice */}
-              <MonthPicker
-                value={renewMonths}
-                onChange={setRenewMonths}
-                label={t("billing.monthsLabel")}
-                {...monthPickerSharedProps}
-              />
-
-              {/* "Your subscription will be active until ~X" */}
-              <p className="text-xs text-muted-foreground">
-                {t("billing.expiresAfterPay", {
-                  date: payUntil.toLocaleDateString(undefined, { dateStyle: "long" }),
-                })}
-              </p>
-
-              <PriceSummary
-                currency={currency}
-                stores={renewSlots}
-                months={renewMonths}
-                breakdownLabel={t("billing.priceBreakdown", {
-                  price: fmt(currency, PRICES[currency]),
-                  count: renewSlots,
-                  months: renewMonths,
-                })}
-                discountLabel={t("billing.yearDiscountLine")}
-                totalLabel={t("common.total")}
-              />
-
-              <DialogFooter>{payBtn}</DialogFooter>
-              <p className="text-center text-xs text-muted-foreground">
-                {t("billing.payProviders")}
-              </p>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ══ ADD STORES ═══════════════════════════════════════════════════
-          Delta-first: the big number = how many NEW stores, and only those are
-          billed. The existing slots keep the expiry already paid for.
-      ═════════════════════════════════════════════════════════════════════= */}
-      <Dialog open={planMode === "add-stores"} onOpenChange={(o) => !o && setPlanMode(null)}>
-        <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>{t("billing.addStoresTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("billing.addStoresIntro", {
-                capacity: paidCapacity,
-                delta: safeAddDelta,
-                total: addTotal,
-              })}
-            </DialogDescription>
-          </DialogHeader>
-
-          {!canPay ? (
-            <p className="text-sm text-muted-foreground">{t("billing.askAdminRenew")}</p>
-          ) : (
-            <>
               <CurrencyToggle
                 value={currency}
                 onChange={setCurrency}
                 label={t("billing.currencyWord")}
               />
 
-              <CountStepper
-                value={safeAddDelta}
-                min={1}
-                max={addDeltaMax}
-                onChange={setAddDelta}
-                label={t("billing.addStoresDeltaLabel")}
-                unitSingular={t("billing.newStore")}
-                unitPlural={t("billing.newStores")}
-                confirmLine={
-                  <span>
-                    {t("billing.addStoresTotalLine", { total: addTotal })}{" "}
-                    <span className="text-xs">
-                      ({paidCapacity} + {safeAddDelta})
+              {/* Slots — the one thing the three modes genuinely mean differently. */}
+              {planMode === "add-stores" ? (
+                <CountStepper
+                  value={safeAddDelta}
+                  min={1}
+                  max={addDeltaMax}
+                  onChange={setAddDelta}
+                  label={t("billing.addStoresDeltaLabel")}
+                  unitSingular={t("billing.newStore")}
+                  unitPlural={t("billing.newStores")}
+                  confirmLine={
+                    <span>
+                      {t("billing.addStoresTotalLine", { total: addTotal })}{" "}
+                      <span className="text-xs">
+                        ({paidCapacity} + {safeAddDelta})
+                      </span>
                     </span>
+                  }
+                />
+              ) : planMode === "new" ? (
+                <CountStepper
+                  value={resolvedNewSlots}
+                  min={newSlotsMin}
+                  max={1000}
+                  onChange={setNewSlots}
+                  label={t("billing.slotsLabel")}
+                  unitSingular={t("billing.storeUnit")}
+                  unitPlural={t("billing.storeUnits")}
+                  note={
+                    resolvedNewSlots < stores.length ? (
+                      <p className="text-xs text-amber-600" role="alert">
+                        {t("billing.minSlotsWarning", { count: stores.length })}
+                      </p>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
+                  <div>
+                    <p className="mb-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("billing.slotsLabel")}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {renewSlots}{" "}
+                      {renewSlots === 1 ? t("billing.storeUnit") : t("billing.storeUnits")}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
+                    {t("billing.renewOrExtend")}
                   </span>
-                }
-              />
+                </div>
+              )}
 
               <MonthPicker
-                value={addMonths}
-                onChange={setAddMonths}
+                value={months}
+                onChange={setMonths}
                 label={t("billing.monthsLabel")}
                 {...monthPickerSharedProps}
               />
 
-              <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-                {t("billing.addStoresDeltaOnlyNote", {
-                  billed: safeAddDelta,
-                  paid: paidCapacity,
-                })}
-              </p>
+              {planMode === "add-stores" && (
+                <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                  {t("billing.addStoresDeltaOnlyNote", {
+                    billed: safeAddDelta,
+                    paid: paidCapacity,
+                  })}
+                </p>
+              )}
 
               <p className="text-xs text-muted-foreground">
                 {t("billing.expiresAfterPay", {
@@ -1070,89 +1104,43 @@ export function Billing({ locked }: { locked?: boolean }) {
 
               <PriceSummary
                 currency={currency}
-                stores={billedSlots}
-                months={addMonths}
-                breakdownLabel={t("billing.priceBreakdownNew", {
-                  price: fmt(currency, PRICES[currency]),
-                  count: billedSlots,
-                  months: addMonths,
-                })}
+                stores={summarySlots}
+                months={months}
+                breakdownLabel={t(
+                  planMode === "add-stores"
+                    ? "billing.priceBreakdownNew"
+                    : "billing.priceBreakdown",
+                  {
+                    price: fmt(currency, PRICES[currency]),
+                    count: summarySlots,
+                    months,
+                  },
+                )}
                 discountLabel={t("billing.yearDiscountLine")}
                 totalLabel={t("common.total")}
               />
 
-              <DialogFooter>{payBtn}</DialogFooter>
-              <p className="text-center text-xs text-muted-foreground">
-                {t("billing.payProviders")}
-              </p>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+              {/* The checkout window opens on the click below — say what the phone must do. */}
+              {busy && (
+                <p className="rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                  {t("billing.mmCheckoutHint")}
+                </p>
+              )}
 
-      {/* ══ NEW SUBSCRIPTION ═══════════════════════════════════════════════
-          Pick stores then months. Clear, two-step mental model.
-      ═════════════════════════════════════════════════════════════════════= */}
-      <Dialog open={planMode === "new"} onOpenChange={(o) => !o && setPlanMode(null)}>
-        <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>{t("billing.choosePlanTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("billing.choosePlanDesc", {
-                count: stores.length,
-                name: business?.name ?? t("billing.yourAccount"),
-              })}
-            </DialogDescription>
-          </DialogHeader>
-
-          {!canPay ? (
-            <p className="text-sm text-muted-foreground">{t("billing.askAdminRenew")}</p>
-          ) : (
-            <>
-              <CurrencyToggle
-                value={currency}
-                onChange={setCurrency}
-                label={t("billing.currencyWord")}
-              />
-
-              <CountStepper
-                value={resolvedNewSlots}
-                min={newSlotsMin}
-                max={1000}
-                onChange={setNewSlots}
-                label={t("billing.slotsLabel")}
-                unitSingular={t("billing.storeUnit")}
-                unitPlural={t("billing.storeUnits")}
-                note={
-                  resolvedNewSlots < stores.length ? (
-                    <p className="text-xs text-amber-600" role="alert">
-                      {t("billing.minSlotsWarning", { count: stores.length })}
-                    </p>
-                  ) : undefined
-                }
-              />
-
-              <MonthPicker
-                value={newMonths}
-                onChange={setNewMonths}
-                label={t("billing.monthsLabel")}
-                {...monthPickerSharedProps}
-              />
-
-              <PriceSummary
-                currency={currency}
-                stores={resolvedNewSlots}
-                months={newMonths}
-                breakdownLabel={t("billing.priceBreakdown", {
-                  price: fmt(currency, PRICES[currency]),
-                  count: resolvedNewSlots,
-                  months: newMonths,
-                })}
-                discountLabel={t("billing.yearDiscountLine")}
-                totalLabel={t("common.total")}
-              />
-
-              <DialogFooter>{payBtn}</DialogFooter>
+              <DialogFooter className="grid gap-2">
+                {payBtn}
+                {pendingTx && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    disabled={verifying}
+                    onClick={() => void verifyRecent()}
+                  >
+                    {verifying ? t("billing.verifying") : t("billing.verifyRecent")}
+                  </Button>
+                )}
+              </DialogFooter>
               <p className="text-center text-xs text-muted-foreground">
                 {t("billing.payProviders")}
               </p>
@@ -1178,6 +1166,18 @@ export function Billing({ locked }: { locked?: boolean }) {
                 <div className="text-xs text-muted-foreground">{t("billing.mobileMoneyDesc")}</div>
               </div>
             </Card>
+            {/* Mobile money is approved by hand on the phone, so the three steps live
+                right where the owner picks it — no separate help page to find. */}
+            <div className="rounded-xl border bg-muted/30 px-3.5 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("billing.mmStepsTitle")}
+              </p>
+              <ol className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                <li>1. {t("billing.mmStep1")}</li>
+                <li>2. {t("billing.mmStep2")}</li>
+                <li>3. {t("billing.mmStep3")}</li>
+              </ol>
+            </div>
             <Card className="flex items-center gap-3 p-3.5">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-4 text-muted-foreground" />
@@ -1203,6 +1203,11 @@ export function Billing({ locked }: { locked?: boolean }) {
             <Button variant="outline" onClick={() => setPayOpen(false)}>
               {t("common.close")}
             </Button>
+            {pendingTx && (
+              <Button variant="ghost" disabled={verifying} onClick={() => void verifyRecent()}>
+                {verifying ? t("billing.verifying") : t("billing.verifyRecent")}
+              </Button>
+            )}
             {canPay && (
               <Button
                 onClick={() => {

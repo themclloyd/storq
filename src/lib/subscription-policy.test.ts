@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { subscriptionAccess, type Subscription } from "@/lib/subscription-policy";
+import { GRACE_DAYS, subscriptionAccess, type Subscription } from "@/lib/subscription-policy";
 
 // Fixed clock so expiry is deterministic: "now" is mid-2026.
 const NOW = new Date("2026-06-15T12:00:00Z").getTime();
 const FUTURE = new Date("2026-12-01T00:00:00Z").toISOString();
 const PAST = new Date("2026-01-01T00:00:00Z").toISOString();
+// Terms that lapsed at various distances from NOW, to walk the grace window.
+const LAPSED_1D = new Date("2026-06-14T12:00:00Z").toISOString();
+const LAPSED_2D12H = new Date("2026-06-13T00:00:00Z").toISOString();
+const LAPSED_4D = new Date("2026-06-11T00:00:00Z").toISOString();
 
 const sub = (over: Partial<Subscription> = {}): Subscription => ({
   trial_ends_at: PAST,
@@ -82,5 +86,54 @@ describe("subscriptionAccess — entitlement is derived in SQL, mirrored here", 
     expect(a.suspended).toBe(false);
     expect(a.closed).toBe(false);
     expect(a.active).toBe(true);
+  });
+});
+
+describe("grace window — mirrors the 3-day expiry stretch in subscription_active()", () => {
+  it("keeps a just-lapsed term selling and counts the days left", () => {
+    const a = subscriptionAccess(sub({ paid_until: LAPSED_1D }), 2, NOW);
+    expect(a.paid).toBe(false);
+    expect(a.inGrace).toBe(true);
+    expect(a.graceDaysRemaining).toBe(GRACE_DAYS - 1);
+    expect(a.active).toBe(true);
+  });
+
+  it("rounds a partial final day up so the banner never shows zero too early", () => {
+    const a = subscriptionAccess(sub({ paid_until: LAPSED_2D12H }), 2, NOW);
+    expect(a.inGrace).toBe(true);
+    expect(a.graceDaysRemaining).toBe(1);
+  });
+
+  it("locks the till once the grace has run out", () => {
+    const a = subscriptionAccess(sub({ paid_until: LAPSED_4D }), 2, NOW);
+    expect(a.inGrace).toBe(false);
+    expect(a.graceDaysRemaining).toBe(0);
+    expect(a.active).toBe(false);
+  });
+
+  it("does not excuse over-capacity: too many stores blocks inside the window too", () => {
+    // SQL applies the store-count test in the same branch as the stretched clock.
+    const a = subscriptionAccess(sub({ paid_until: LAPSED_1D, paid_store_limit: 2 }), 5, NOW);
+    expect(a.inGrace).toBe(false);
+    expect(a.active).toBe(false);
+  });
+
+  it("cannot be used to shrug off an operator suspension", () => {
+    const a = subscriptionAccess(sub({ paid_until: LAPSED_1D, suspended_at: PAST }), 2, NOW);
+    expect(a.inGrace).toBe(false);
+    expect(a.active).toBe(false);
+  });
+
+  it("a closure keeps blocking while the grace clock is still running", () => {
+    const a = subscriptionAccess(sub({ paid_until: LAPSED_1D, closed_at: PAST }), 2, NOW);
+    expect(a.inGrace).toBe(false);
+    expect(a.active).toBe(false);
+  });
+
+  it("gives the trial no grace — it already ends with a soft landing", () => {
+    // No paid_until at all: nothing to stretch, so the trial branch decides alone.
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: PAST }), 1, NOW);
+    expect(a.inGrace).toBe(false);
+    expect(a.active).toBe(false);
   });
 });

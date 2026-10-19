@@ -29,12 +29,12 @@ export const Route = createFileRoute("/_authenticated/app/transfers")({
       { title: "Stock transfers | Storq" },
       {
         name: "description",
-        content: "Move stock between your stores and track it in transit.",
+        content: "Move stock directly between your stores.",
       },
       { property: "og:title", content: "Stock transfers | Storq" },
       {
         property: "og:description",
-        content: "Move stock between your stores and track it in transit.",
+        content: "Move stock directly between your stores.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -44,9 +44,9 @@ export const Route = createFileRoute("/_authenticated/app/transfers")({
 
 type Draft = { product_id: string; name: string; qty: string };
 
-// Transfer status is a stored code; only its display label is localized.
+// Transfer history is a stored code; only its display label is localized.
+// New moves complete atomically, so only received/cancelled rows exist.
 const TRF_STATUS_KEYS: Record<Transfer["status"], string> = {
-  in_transit: "trf.statusInTransit",
   received: "trf.statusReceived",
   cancelled: "trf.statusCancelled",
 };
@@ -61,19 +61,6 @@ function Transfers() {
   if (!can("admin", "manager")) return <Empty>{t("trf.onlyAdmins")}</Empty>;
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(transfers.data ?? [], page);
   const storeName = (id: string) => stores.find((s) => s.id === id)?.name ?? t("trf.storeWord");
-  const acting = muts.isPending;
-
-  async function act(action: "receive_transfer" | "cancel_transfer", id: string) {
-    if (action === "cancel_transfer" && !confirm(t("trf.cancelConfirm"))) return;
-    try {
-      await muts.mutateAsync({ action, args: { p_id: id } });
-      toast.success(
-        action === "receive_transfer" ? t("trf.receivedToast") : t("trf.cancelledToast"),
-      );
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }
 
   return (
     <>
@@ -99,15 +86,7 @@ function Transfers() {
         <>
           <div className="space-y-2">
             {pageRows.map((tr) => (
-              <TransferRow
-                key={tr.id}
-                transfer={tr}
-                storeName={storeName}
-                canReceive={store?.id === tr.to_store}
-                busy={acting}
-                onReceive={() => void act("receive_transfer", tr.id)}
-                onCancel={() => void act("cancel_transfer", tr.id)}
-              />
+              <TransferRow key={tr.id} transfer={tr} storeName={storeName} />
             ))}
           </div>
           <Pager
@@ -124,7 +103,6 @@ function Transfers() {
 }
 
 const statusTone: Record<Transfer["status"], string> = {
-  in_transit: "bg-warning-soft text-warning-foreground",
   received: "bg-success-soft text-success",
   cancelled: "bg-destructive-soft text-destructive",
 };
@@ -132,17 +110,9 @@ const statusTone: Record<Transfer["status"], string> = {
 function TransferRow({
   transfer,
   storeName,
-  canReceive,
-  busy,
-  onReceive,
-  onCancel,
 }: {
   transfer: Transfer;
   storeName: (id: string) => string;
-  canReceive: boolean;
-  busy: boolean;
-  onReceive: () => void;
-  onCancel: () => void;
 }) {
   const { t } = useI18n();
   const units = transfer.stock_transfer_lines.reduce((a, l) => a + l.qty, 0);
@@ -174,18 +144,6 @@ function TransferRow({
         ))}
       </div>
       {transfer.note && <div className="mt-1.5 text-xs italic">{transfer.note}</div>}
-      {transfer.status === "in_transit" && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {canReceive && (
-            <Button size="sm" variant="success" disabled={busy} onClick={onReceive}>
-              {t("trf.receiveAt", { store: storeName(transfer.to_store) })}
-            </Button>
-          )}
-          <Button size="sm" variant="outline" disabled={busy} onClick={onCancel}>
-            {t("common.cancel")}
-          </Button>
-        </div>
-      )}
       {transfer.status === "received" && transfer.received_at && (
         <div className="mt-1.5 text-xs text-muted-foreground">
           {t("trf.receivedWord")} {fmtDate(transfer.received_at)}
@@ -205,9 +163,9 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState("");
   const dq = useDebouncedValue(q);
   const [draft, setDraft] = useState<Draft[]>([]);
-  // The picker lists the SOURCE store's own catalog: transfer lines can only
-  // draw down items the origin store actually owns. The destination copy is
-  // created server-side on receive.
+  // The picker lists the SOURCE store's own catalog: moves can only draw down
+  // items the origin store actually owns. The destination copy is created
+  // server-side in the same transaction that books the move.
   const products = useProducts(from || undefined);
   const stock = useStock(from || undefined);
   const muts = useTransferMutations(onClose);
@@ -235,7 +193,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
   const valid =
     from && to && from !== to && draft.length > 0 && draft.every((d) => Number(d.qty) > 0);
 
-  async function dispatch() {
+  async function move() {
     if (!valid) return;
     if (from === to) {
       toast.error(t("trf.pickTwo"));
@@ -251,7 +209,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           p_items: draft.map((d) => ({ product_id: d.product_id, qty: Number(d.qty) })),
         },
       });
-      toast.success(t("trf.dispatched"));
+      toast.success(t("trf.movedToast"));
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -352,8 +310,8 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           <Button variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button disabled={!valid || muts.isPending} onClick={() => void dispatch()}>
-            {t("trf.dispatch")}
+          <Button disabled={!valid || muts.isPending} onClick={() => void move()}>
+            {t("trf.moveCta")}
           </Button>
         </div>
       </DialogContent>

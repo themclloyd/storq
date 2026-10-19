@@ -1,8 +1,11 @@
 // Shared input standards. Every form in the app funnels user text through here
 // before it reaches a Postgres RPC, so a paste of markup, a control-character blob
-// or a 5 MB string never leaves the browser. The database enforces the same bounds
-// again (CHECK constraints + RPC validation) — this layer exists so the user gets a
-// readable message instead of a server error.
+// or a 5 MB string never leaves the browser. The database is the authority: these
+// functions mirror the same CHECK/RPC bounds (lengths, phone and SKU shapes) purely
+// so the user reads a message instead of a server error. Rules with no server
+// counterpart are the credential ones — email, password and PIN are enforced by
+// Supabase auth — while phone mirrors `sales_phone_shape` and SKU `products_sku_shape`.
+// Nothing here prevents injection: every write goes through parameterized RPCs.
 
 import { t } from "@/lib/i18n";
 
@@ -26,16 +29,16 @@ export const LIMITS = {
   money: 10_000_000_000,
 } as const;
 
-/** Control characters, HTML/JSFCK delimiters and the SQL comment opener. */
+/** Control characters and markup delimiters — defense-in-depth for CSV/print output. */
 // eslint-disable-next-line no-control-regex
-const UNSAFE = /[\u0000-\u001f\u007f-\u009f<>`]|--/;
+const UNSAFE = /[\u0000-\u001f\u007f-\u009f<>`]/;
 const EMAIL_RE =
   /^[^\s@+]+(?:[.+_-][^\s@+]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 const PHONE_RE = /^[+0-9() -]{6,32}$/;
 const PIN_RE = /^[0-9]{4,8}$/;
 const SKU_RE = /^[A-Za-z0-9._\- ]{1,64}$/;
 
-/** Trim, collapse whitespace and drop anything that could start markup or a comment. */
+/** Trim, collapse whitespace and drop anything that could start markup. */
 export function sanitizeText(value: string, max: number = LIMITS.note): string {
   // eslint-disable-next-line no-control-regex
   const stripped = value.replace(/[\u0000-\u001f\u007f-\u009f<>`]/g, "");

@@ -97,6 +97,31 @@ type PosCtx = {
 const Ctx = createContext<PosCtx | null>(null);
 
 /**
+ * Stable per-register identity. Every till in a shop signs in with the one
+ * business email, so auth.uid() is shared across counters; the server scopes PIN
+ * throttling and staff sessions by this id so one till's bad PINs never lock out
+ * — or log out — another register. Persisted for the life of the device.
+ */
+const DEVICE_ID_KEY = "storq.device-id";
+function getDeviceId(): string {
+  try {
+    if (typeof localStorage === "undefined") return "";
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `d-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    // Unavailable storage just means an unscoped (legacy) unlock.
+    return "";
+  }
+}
+
+/**
  * The server throws controlled business messages ("Only 4 left in stock", etc.).
  * Anything carrying SQL internals — relation names, columns, policy text — is
  * replaced by a generic message so a raw Postgres error never reaches the UI.
@@ -208,7 +233,10 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     const pinErr = validatePin(pin);
     if (pinErr) throw new Error(pinErr);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)("unlock_with_pin", { p_pin: pin });
+    const { data, error } = await (supabase.rpc as any)("unlock_with_pin", {
+      p_pin: pin,
+      p_device_id: getDeviceId(),
+    });
     if (error) throw new Error(maskRpcError(error.message));
     localStorage.setItem(staffKey, JSON.stringify(data));
     setStaff(data as StaffSession);

@@ -27,7 +27,12 @@ describe("requireText — server bounds mirrored with a readable message", () =>
     expect(requireText("   ", "item name")).not.toBeNull();
     expect(requireText("x".repeat(LIMITS.name + 1), "name", LIMITS.name)).not.toBeNull();
     expect(requireText("a<b", "name", LIMITS.name)).not.toBeNull(); // angle bracket
-    expect(requireText("drop--users", "name", LIMITS.name)).not.toBeNull(); // SQL comment
+  });
+  it("no longer rejects a double dash — writes are parameterized, not interpolated", () => {
+    expect(requireText("drop--users", "name", LIMITS.name)).toBeNull();
+    expect(requireText("Tee -- blue", "name", LIMITS.name)).toBeNull();
+    // Markup is still refused on the same path.
+    expect(requireText("drop<script>", "name", LIMITS.name)).not.toBeNull();
   });
 });
 

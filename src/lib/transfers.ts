@@ -1,5 +1,7 @@
 // Stock transfers + low-stock reads. Tables are SELECT-only under RLS
 // (managers/admins); every write goes through the require_staff RPCs.
+// A transfer is now a single atomic move: create_transfer books both sides
+// in one transaction, so only completed (received/cancelled) rows exist.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
@@ -13,7 +15,7 @@ export type TransferLine = {
 export type Transfer = {
   id: string;
   number: number;
-  status: "in_transit" | "received" | "cancelled";
+  status: "received" | "cancelled";
   note: string | null;
   created_at: string;
   received_at: string | null;
@@ -25,7 +27,6 @@ export type Transfer = {
 };
 
 export const TRANSFER_STATUS_LABELS: Record<Transfer["status"], string> = {
-  in_transit: "In transit",
   received: "Received",
   cancelled: "Cancelled",
 };
@@ -114,15 +115,13 @@ export function useLowStock(storeId?: string) {
   });
 }
 
-/** Dispatch/receive/cancel via RPC; one mutation so busy state is shared. */
+/** Book a direct move via RPC; invalidation covers both stores' stock. */
 export function useTransferMutations(onDone?: () => void) {
   const { rpc } = usePos();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: {
-      action: "create_transfer" | "receive_transfer" | "cancel_transfer";
-      args: Record<string, unknown>;
-    }) => rpc(vars.action, vars.args),
+    mutationFn: async (vars: { action: "create_transfer"; args: Record<string, unknown> }) =>
+      rpc(vars.action, vars.args),
     onSuccess: () => {
       // a moved unit changes the ledger, the stock map and reorder alerts
       for (const queryKey of [

@@ -32,6 +32,7 @@ import { DrawerChip } from "@/components/pos/DrawerChip";
 import { useSubscription } from "@/lib/billing";
 import { useOnce } from "@/hooks/use-once";
 import { Billing } from "@/components/pos/Billing";
+import { GraceBanner } from "@/components/pos/GraceBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -662,6 +663,14 @@ function Shell() {
           <ApprovalsAlert count={pendingCount} compact onGo={goToApprovals} />
           <UserMenu variant="icon" settingsTo={settingsEntry?.to} />
         </header>
+        {/* The grace window is a business-wide state, so it appears exactly once per
+            screen: here above every workspace page, and inside Billing on the billing
+            page itself. */}
+        {path !== "/app/billing" && (
+          <div className="mx-auto w-full max-w-[1400px] px-4 pt-3 md:px-6 lg:px-11">
+            <GraceBanner />
+          </div>
+        )}
         <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">
           {staff && (
             <WorkspaceTabs
