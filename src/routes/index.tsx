@@ -149,7 +149,7 @@ export const Route = createFileRoute("/")({
       ...seo,
       // Fetchpriority hints let the hero shot start downloading with the HTML
       // instead of after the bundle has rendered it.
-      links: [...seo.links, { rel: "preload", as: "image", href: heroShop, fetchpriority: "high" }],
+      links: [...seo.links, { rel: "preload", as: "image", href: heroShop, fetchPriority: "high" }],
       scripts: [{ type: "application/ld+json", children: JSON.stringify(landingJsonLd) }],
     };
   },
