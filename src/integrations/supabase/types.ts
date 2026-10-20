@@ -1565,7 +1565,6 @@ export type Database = {
         Returns: undefined
       }
       effective_price: { Args: { p_product: string }; Returns: number }
-      get_shared_collection: { Args: { p_slug: string }; Returns: Json }
       get_shift_summary: {
         Args: { p_shift: string; p_token: string }
         Returns: Json
