@@ -1,0 +1,14 @@
+// Minimal Wrangler config for deployment sync. Nitro's cloudflare preset
+// reads this file at build time and merges it into the generated deploy
+// config (.output/server/wrangler.json); `main`, `assets` and `name` stay
+// build-generated and must NOT be declared here or they get overridden.
+//
+// vars: runtime environment for the deployed Worker. VITE_SITE_URL pins the
+// canonical production origin (matching the Supabase Auth site_url and
+// uri_allow_list) so server-rendered SEO URLs and absolute links stay stable
+// regardless of the host the request arrived on.
+{
+  "vars": {
+    "VITE_SITE_URL": "https://storq.xyz",
+  },
+}
