@@ -194,10 +194,13 @@ export const ny = {
     forgotPassword: "Mwaiwala mawu achinsinsi?",
     backToSignIn: "Bwererani ku kulowa",
     checkYourEmail: "Onani imelo yanu",
-    resetSent:
-      "Tatumiza ulalo wobwezeretsa mawu achinsinsi ku {email}. Utsegulireni pa chipangizochi kuti musankhenso mawu achinsinsi.",
+    // Account-enumeration safe: identical wording whether or not the address
+    // is registered, so this screen cannot be used to probe for accounts.
+    resetAny:
+      "Ngati akaunti ilipo ya imelo imeneyi, tatumiza malangizo obwezeretsa mawu achinsinsi. Utsegulireni pa chipangizochi.",
     confirmSent:
       "Tatumiza ulalo wotsimikizira ku {email}. Utsegulireni pa chipangizochi kuti mupitirize.",
+    invalidCredentials: "Imelo kapena mawu achinsinsi si olondola.",
     passwordUpdated: "Mawu achinsinsi asinthidwa — mwalowa.",
   },
   consent: {

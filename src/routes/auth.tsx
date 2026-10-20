@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,6 +10,8 @@ import { LIMITS, validateEmail, validatePassword } from "@/lib/validate";
 import { landingRouteFor } from "@/lib/ops";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Turnstile, type TurnstileHandle } from "@/components/Turnstile";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -30,6 +32,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<null | "signup" | "reset">(null);
+  const turnstile = useRef<TurnstileHandle>(null);
 
   // When a reset-link lands here, supabase-js reads the token from the URL and
   // fires PASSWORD_RECOVERY; flip into the set-new-password step so it isn't lost.
@@ -66,11 +69,19 @@ function AuthPage() {
     }
     setBusy(true);
     const cleanEmail = email.trim();
+    // Credential endpoints (not the authenticated password-update step) prove a
+    // human, not a bot, before the request goes out. Tokens are single-use, so a
+    // fresh challenge is drawn on every attempt once CAPTCHA is configured.
+    let captchaToken: string | undefined;
+    if (TURNSTILE_SITE_KEY && mode !== "recover") {
+      captchaToken = (await turnstile.current?.getToken()) || undefined;
+    }
     try {
       if (mode === "in") {
         const { error } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password,
+          options: { ...(captchaToken ? { captchaToken } : {}) },
         });
         if (error) throw error;
         // A platform operator owns no business, so /app would dead-end on setup;
@@ -80,7 +91,10 @@ function AuthPage() {
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { emailRedirectTo: window.location.origin + "/app" },
+          options: {
+            emailRedirectTo: window.location.origin + "/app",
+            ...(captchaToken ? { captchaToken } : {}),
+          },
         });
         if (error) throw error;
         if (data.session) nav({ to: "/app" });
@@ -88,6 +102,7 @@ function AuthPage() {
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: window.location.origin + "/auth",
+          ...(captchaToken ? { captchaToken } : {}),
         });
         if (error) throw error;
         setSent("reset");
@@ -98,12 +113,24 @@ function AuthPage() {
         nav({ to: "/app" });
       }
     } catch (err) {
-      // Surpass raw server wording but stay helpful for genuine failures.
-      toast.error(
-        /rate limit|too many/i.test((err as Error).message)
-          ? t("errors.tooManyAttempts")
-          : (err as Error).message,
-      );
+      // A spent or failed challenge must be redrawn before the next try.
+      turnstile.current?.reset();
+      // Never leak account state through error text: a failed sign-in — unknown
+      // email, wrong password or unconfirmed account — always reads the same.
+      // OWASP asks for consistent responses; Supabase's own wording already is.
+      if (
+        mode === "in" &&
+        /invalid login credentials|email not confirmed/i.test((err as Error).message)
+      ) {
+        toast.error(t("auth.invalidCredentials"));
+      } else {
+        // Surpass raw server wording but stay helpful for genuine failures.
+        toast.error(
+          /rate limit|too many/i.test((err as Error).message)
+            ? t("errors.tooManyAttempts")
+            : (err as Error).message,
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -141,9 +168,9 @@ function AuthPage() {
             <Alert>
               <AlertTitle>{t("auth.checkYourEmail")}</AlertTitle>
               <AlertDescription>
-                {sent === "reset"
-                  ? t("auth.resetSent", { email })
-                  : t("auth.confirmSent", { email })}
+                {/* Reset stays neutral and never names the address: confirming or
+                    denying an account would turn this screen into an enumerator. */}
+                {sent === "reset" ? t("auth.resetAny") : t("auth.confirmSent", { email })}
               </AlertDescription>
             </Alert>
             {sent === "reset" && (
@@ -220,6 +247,9 @@ function AuthPage() {
                     <p className="text-xs text-muted-foreground">{t("auth.passwordHint")}</p>
                   )}
                 </div>
+              )}
+              {mode !== "recover" && TURNSTILE_SITE_KEY && (
+                <Turnstile ref={turnstile} action={mode} />
               )}
               <Button className="h-12 w-full" size="lg" disabled={busy}>
                 {busy

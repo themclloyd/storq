@@ -184,9 +184,12 @@ export const en = {
     forgotPassword: "Forgot password?",
     backToSignIn: "Back to sign in",
     checkYourEmail: "Check your email",
-    resetSent:
-      "We sent a password reset link to {email}. Open it on this device to choose a new password.",
+    // Account-enumeration safe: identical wording whether or not the address
+    // is registered, so this screen cannot be used to probe for accounts.
+    resetAny:
+      "If an account exists for that email, we've sent reset instructions. Open the link on this device.",
     confirmSent: "We sent a confirmation link to {email}. Open it on this device to continue.",
+    invalidCredentials: "Email or password is incorrect.",
     passwordUpdated: "Password updated — you're signed in.",
   },
   consent: {

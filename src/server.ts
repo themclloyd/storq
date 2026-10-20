@@ -26,15 +26,18 @@ async function getServerEntry(): Promise<ServerEntry> {
 // allowed. Public marketing pages remain independent of this header.
 // PayChangu popup.js is loaded on demand for subscription payments; it also
 // opens a hosted checkout frame and posts to its API, so script-src, frame-src,
-// and connect-src must allow its domain.
+// and connect-src must allow its domain. Cloudflare Turnstile loads its embed
+// script and runs the challenge in its own frame, so both script-src and
+// frame-src must allow challenges.cloudflare.com — only when a site key (and
+// therefore the widget) is actually in use; harmless to allow otherwise.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://in.paychangu.com",
+  "script-src 'self' 'unsafe-inline' https://in.paychangu.com https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob: https:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.paychangu.com",
-  "frame-src 'none' https://*.paychangu.com",
+  "frame-src 'none' https://*.paychangu.com https://challenges.cloudflare.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
