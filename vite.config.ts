@@ -18,10 +18,10 @@ export default defineConfig({
     // never ships empty and blank-screens. These are safe to publish.
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-        process.env.VITE_SUPABASE_URL || "https://gtkfczmudhzhbdooftsa.supabase.co",
+        process.env["VITE_SUPABASE_URL"] || "https://gtkfczmudhzhbdooftsa.supabase.co",
       ),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-        process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+        process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0a2Zjem11ZGh6aGJkb29mdHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNDAwMzcsImV4cCI6MjEwNjkxNjAzN30.60j4606POwzMRuC-wDZdEwRf-J9sSuEWj7-2SYqL45E",
       ),
     },
