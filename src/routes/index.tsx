@@ -608,9 +608,7 @@ function Landing() {
             <h2 className="font-display mt-3 max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
               {t("marketing.vsH2")}
             </h2>
-            <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-              {t("marketing.vsLead")}
-            </p>
+            <p className="mt-5 max-w-2xl text-lg text-muted-foreground">{t("marketing.vsLead")}</p>
           </Reveal>
           <div className="mt-14 grid gap-6 md:grid-cols-2">
             <Reveal>
@@ -914,9 +912,7 @@ function Landing() {
       {/* Sticky trial bar — keeps the next step one tap away on phones */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-medium text-muted-foreground">
-            {t("marketing.stickyNote")}
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">{t("marketing.stickyNote")}</p>
           <Button asChild size="sm" className="shrink-0 rounded-lg px-4 font-semibold">
             <Link to="/auth">{t("marketing.trial")}</Link>
           </Button>
