@@ -13,6 +13,18 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    // Fallback for hosted builds that run without .env (it is git-ignored):
+    // inline the PUBLIC backend URL + publishable key so the browser bundle
+    // never ships empty and blank-screens. These are safe to publish.
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        process.env.VITE_SUPABASE_URL || "https://gtkfczmudhzhbdooftsa.supabase.co",
+      ),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0a2Zjem11ZGh6aGJkb29mdHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNDAwMzcsImV4cCI6MjEwNjkxNjAzN30.60j4606POwzMRuC-wDZdEwRf-J9sSuEWj7-2SYqL45E",
+      ),
+    },
     optimizeDeps: {
       // Pre-bundle the libraries the route graph only reaches after the first
       // navigation. Discovering one mid-session makes Vite optimise deps again
