@@ -1234,6 +1234,10 @@ export const ny = {
     heroLead:
       "Storq imayendetsa sitolo yanu yonse mokonzedwa pa foni ili m'thumba mwanu — katundu yense alipo, phindu lenileni la malonda, ndi zochita za ogwira ntchito. Yang'anirani bizinesi ndi zoona, osati kukayika.",
     heroNote: "Palibe kadi. Palibe zida zatsopano. Yambani kugulitsa m'mphindi 5.",
+    heroChip1: "Imagwira ntchito popanda intaneti",
+    heroChip2: "Airtel Money & TNM Mpamba",
+    heroChip3: "Palibe zida zogula",
+    heroChip4: "PIN ya wogwira ntchito aliyense",
     heroTakings: "Phindu lalikulu lero · Sitolo ya ku Limbe",
     heroTrend: "▲ 32% margin pa malonda a lero",
     shopsH2: "Yopangidwira Masitolo Ngati Anu",
@@ -1274,6 +1278,20 @@ export const ny = {
     stockSellsDesc: "zikuonetsa zomwe zilipo — zimasinthidwa ndi malonda onse",
     stockLow: "Zikuchepa",
     stockLowDesc: "zimaonetsedwa chinthu chisanathe",
+    vsEyebrow: "Chifukwa eni masitolo amasintha",
+    vsH2: "Buku lakuthandizani kufika pano. Silikuthandizani kupita patsogolo.",
+    vsLead:
+      "Sitolo iliyonse imayamba ndi buku ndi kukumbukira. Izi ndizomwe zimasintha tsiku lomwe Storq imalowa pa kauntala.",
+    vsOldTitle: "Njira ya buku",
+    vsOld1: "Mumadziwa zomwe tsiku lapanga mutatseka — ngati munawerengako",
+    vsOld2: "Katundu amatha ndipo mumamva kuchokera kwa kasitomala",
+    vsOld3: "Ndalama zosowa pa bokosi zilibe dzina",
+    vsOld4: "Ngongole zimakhala m'buku limodzi, m'sitolo imodzi, pansi pa kauntala",
+    vsNewTitle: "Njira ya Storq",
+    vsNew1: "Malonda, zotulutsa ndi phindu la lero zili pa foni yanu masana othawa",
+    vsNew2: "Katundu wochepa amadziwitsa pokha shelufu isanathe",
+    vsNew3: "Malonda, zotulutsa ndi zobwezedwa zonse zili ndi dzina la kashiya",
+    vsNew4: "Ngongole zonse, ku nthambi iliyonse, zowerengedwa bwino mpaka kwacha yomaliza",
     laybyEyebrow: "Ngongole",
     laybyH2: "Sinthani 'Ndilipira mwezi wamawa' kukhala ndalama lero.",
     laybyLead:
@@ -1329,6 +1347,7 @@ export const ny = {
     pricingPerStore: "/sitolo /mwezi",
     pricingNote:
       "Sitolo imodzi kapena 6 — mumalipira pa sitolo iliyonse yomwe mwatsegula, mwezi uliwonse. Lipirani chaka chonse ndipo musunge 15%, kudzera pa Airtel Money, TNM Mpamba kapena khadi.",
+    pricingYearly: "Lipirani chaka chonse: MK{yearly} pa sitolo — mumasunga MK{save}.",
     pricingFoot:
       "Kuyesa kumaphatikizapo sitolo imodzi ndi ma PIN a ogwira ntchito mpaka 3. Palibe khadi yofunika kuti muyambe.",
     feat1: "Malonda onse, marisiti ndi malipoti a kugulitsa",
@@ -1340,6 +1359,7 @@ export const ny = {
     closeH2: "Dziwani zomwe lero lapanga, musanatseke sitolo.",
     closeFoot: "Kuyesa kwaulere kwa sitolo yanu yoyamba · Palibe khadi · Siyani nthawi iliyonse",
     footerTag: "Kugulitsa Kwanu · Katundu Wanu · Ogwira Ntchito Anu",
+    stickyNote: "Kuyesa kwaulere · kenaka MK60,000/sitolo/mwezi",
     faqH2: "Mafunso Omwe Eni Masitolo Amafunsa",
     faq1Q: "Zimawononga Ndalama Zingati?",
     faq1A:

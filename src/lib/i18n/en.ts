@@ -1211,6 +1211,10 @@ export const en = {
     heroLead:
       "Storq gives your counter what Square and Shopify POS give theirs — fast checkout, live stock, staff PINs and real profit — on the phone you already own. It keeps selling when the network drops, takes mobile money and laybys, and sends receipts on WhatsApp.",
     heroNote: "No card. No new hardware. Works offline. Selling in five minutes.",
+    heroChip1: "Works offline",
+    heroChip2: "Airtel Money & TNM Mpamba",
+    heroChip3: "No hardware to buy",
+    heroChip4: "A PIN for every staff member",
     heroTakings: "Gross profit today · Limbe store",
     heroTrend: "▲ 32% margin on today's sales",
     shopsH2: "Made for shops like yours",
@@ -1251,6 +1255,20 @@ export const en = {
     stockSellsDesc: "and what sits — moved with every sale",
     stockLow: "Running low",
     stockLowDesc: "flagged before your best seller finishes",
+    vsEyebrow: "Why owners switch",
+    vsH2: "The notebook got you here. It won't get you further.",
+    vsLead:
+      "Every shop starts with a book and a good memory. Here is what changes the day Storq takes over the counter.",
+    vsOldTitle: "The notebook way",
+    vsOld1: "You find out what today made after you close — if you count at all",
+    vsOld2: "Stock runs out and you hear it from the customer",
+    vsOld3: "A shortage at the drawer has no name on it",
+    vsOld4: "Layby balances live in one book, in one shop, under the counter",
+    vsNewTitle: "The Storq way",
+    vsNew1: "Today's sales, expenses and profit are on your phone by lunch",
+    vsNew2: "Low stock flags itself before the shelf is empty",
+    vsNew3: "Every sale, discount and refund carries the cashier's name",
+    vsNew4: "Every layby, at every branch, balanced to the last kwacha",
     laybyEyebrow: "Layby",
     laybyH2: 'Turn "I\'ll pay next month" into money today.',
     laybyLead:
@@ -1307,6 +1325,7 @@ export const en = {
     pricingPerStore: "/store /month",
     pricingNote:
       "One till or six — you pay per store you open, monthly. Pay for the year and keep 15% back, with Airtel Money, TNM Mpamba or card.",
+    pricingYearly: "Pay yearly: MK{yearly} per store — you keep MK{save}.",
     pricingFoot: "The trial covers one store and up to 3 staff PINs. No card needed to start.",
     feat1: "Every sale, receipt and till report",
     feat2: "Layby, credit sales and refunds",
@@ -1317,6 +1336,7 @@ export const en = {
     closeH2: "Know what today made, before you close the shutter.",
     closeFoot: "Free trial on your first store · No card · Stop whenever you stop trading",
     footerTag: "Your till · Your stock · Your staff",
+    stickyNote: "Free trial · then MK60,000/store/mo",
     faqH2: "Questions shop owners ask",
     faq1Q: "What does it cost?",
     faq1A:
