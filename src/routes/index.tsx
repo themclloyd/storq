@@ -31,9 +31,11 @@ import {
   BoxesIcon,
   UserMultipleIcon,
   BarChartIcon,
+  Download01Icon,
 } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { PRICES, YEARLY_FACTOR } from "@/lib/billing";
+import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { buildSeo, absUrl, SITE_NAME } from "@/lib/seo";
@@ -277,6 +279,28 @@ function Cta({ label, invert = false }: { label?: string; invert?: boolean }) {
   );
 }
 
+function DownloadCta() {
+  const { t } = useI18n();
+  return (
+    <Button
+      asChild
+      size="lg"
+      variant="outline"
+      className="group/dl h-14 rounded-lg px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+    >
+      <a
+        href={DESKTOP_DOWNLOAD_URL}
+        download
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <HugeiconsIcon icon={Download01Icon} className="mr-2 h-5 w-5 text-accent" />
+        {t("marketing.downloadWin")}
+      </a>
+    </Button>
+  );
+}
+
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <Badge className="rounded-full border-0 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-accent hover:bg-accent/10">
@@ -301,6 +325,7 @@ function Landing() {
               ["#shops", "marketing.navShops"],
               ["#features", "marketing.navFeatures"],
               ["#layby", "marketing.navLayby"],
+              ["#desktop", "marketing.navDesktop"],
               ["#pricing", "marketing.navPricing"],
             ].map(([href, labelKey]) => (
               <a
@@ -827,6 +852,44 @@ function Landing() {
         <Reveal delay={120} className="mt-12">
           <Cta />
         </Reveal>
+      </section>
+
+      {/* Desktop till — the offline-first counter app, one download away */}
+      <section id="desktop" className="border-t border-border bg-card">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
+          <div>
+            <Reveal>
+              <Eyebrow>{t("marketing.navDesktop")}</Eyebrow>
+            </Reveal>
+            <Reveal delay={80}>
+              <h2 className="font-display mt-5 text-4xl leading-tight tracking-tight md:text-5xl">
+                {t("marketing.downloadH2")}
+              </h2>
+            </Reveal>
+            <Reveal delay={140}>
+              <p className="mt-5 max-w-xl text-lg text-muted-foreground">
+                {t("marketing.downloadLead")}
+              </p>
+            </Reveal>
+            <Reveal delay={200} className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <DownloadCta />
+              <p className="text-sm text-muted-foreground">{t("marketing.downloadNote")}</p>
+            </Reveal>
+          </div>
+          <Reveal delay={160}>
+            <ul className="grid gap-4">
+              {["marketing.heroChip1", "marketing.feat1", "marketing.feat3"].map((k) => (
+                <li
+                  key={k}
+                  className="flex items-start gap-3 rounded-xl border border-border bg-background p-4"
+                >
+                  <HugeiconsIcon icon={Tick01Icon} className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+                  <span className="text-foreground">{t(k)}</span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
       </section>
 
       {/* Single plan: everything included, priced per store. Trial is part of it, not a tier. */}

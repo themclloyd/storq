@@ -18,8 +18,10 @@ import {
   Settings01Icon,
   LanguagesIcon,
   Alert02Icon,
+  Download01Icon,
 } from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
+import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop";
 import { PosProvider, usePos } from "@/lib/pos";
 import { usePendingApprovals } from "@/lib/sales";
 import {
@@ -632,6 +634,25 @@ function Shell() {
                     </SidebarMenuItem>
                   );
                 })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={t("nav.downloadDesktop")}>
+                    <a
+                      href={DESKTOP_DOWNLOAD_URL}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <HugeiconsIcon icon={Download01Icon} />
+                      <span>{t("nav.downloadDesktop")}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

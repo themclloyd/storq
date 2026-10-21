@@ -72,6 +72,7 @@ export const en = {
     menu: "Account menu",
     signOut: "Sign out",
     language: "Language",
+    downloadDesktop: "Desktop till",
   },
   drawer: {
     status: "Cash drawer",
@@ -1206,6 +1207,12 @@ export const en = {
     logIn: "Log in",
     trial: "Start free trial",
     seeHow: "See how it works",
+    navDesktop: "Desktop",
+    downloadH2: "Take Storq offline — on your own computer.",
+    downloadLead:
+      "The desktop till keeps selling when the network drops and files every sale the moment it returns. It installs in about a minute and updates itself.",
+    downloadWin: "Download for Windows",
+    downloadNote: "Free with your plan · Windows 10/11 (64-bit) · Keeps trading offline",
     heroEyebrow: "The lite POS built for African shops",
     heroH1: "Big-brand POS power. Without the big-brand cost.",
     heroLead:

@@ -80,6 +80,7 @@ export const ny = {
     menu: "Menyu ya akaunti",
     signOut: "Tulukani",
     language: "Chinenero",
+    downloadDesktop: "Pa Kompyuta",
   },
   drawer: {
     status: "Bokosi la ndalama",
@@ -1229,6 +1230,12 @@ export const ny = {
     logIn: "Lowani",
     trial: "Yesani Kwaulere",
     seeHow: "Onani Momwe Imagwirira Ntchito",
+    navDesktop: "Pa Kompyuta",
+    downloadH2: "Tengani Storq popanda intaneti — pa kompyuta yanu.",
+    downloadLead:
+      "Chipangizo cha pa kompyuta chimapitiriza kugulitsa ngakhale intaneti itazima, ndikusunga malonda onse intaneti itabweeranso. Chimayikidwa mu mphindi imodzi ndipo chimadzisintha lokha.",
+    downloadWin: "Tatsani pa Windows",
+    downloadNote: "Zaulere ndi ndondomeko yanu · Windows 10/11 (64-bit) · Zimagulitsa ngakhale popanda intaneti",
     heroEyebrow: "Yopangidwira Masitolo a ku Africa",
     heroH1: "Dziwani Katundu. Dziwani Phindu. Tongani Bizinesi Yanu.",
     heroLead:
