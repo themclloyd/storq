@@ -285,7 +285,7 @@ function DownloadCta() {
     <Button
       asChild
       size="lg"
-      variant="outline"
+      variant="default"
       className="group/dl h-14 rounded-lg px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
     >
       <a
@@ -294,7 +294,7 @@ function DownloadCta() {
         target="_blank"
         rel="noopener noreferrer"
       >
-        <HugeiconsIcon icon={Download01Icon} className="mr-2 h-5 w-5 text-accent" />
+        <HugeiconsIcon icon={Download01Icon} className="mr-2 h-5 w-5" />
         {t("marketing.downloadWin")}
       </a>
     </Button>
@@ -341,6 +341,21 @@ function Landing() {
             <LanguageSwitcher className="mr-1" />
             <Button asChild variant="ghost" className="hidden rounded-lg sm:inline-flex">
               <Link to="/auth">{t("marketing.logIn")}</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="hidden rounded-lg border-primary/45 px-5 font-semibold text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex"
+            >
+              <a
+                href={DESKTOP_DOWNLOAD_URL}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <HugeiconsIcon icon={Download01Icon} className="mr-1.5 h-4 w-4" />
+                {t("marketing.downloadShort")}
+              </a>
             </Button>
             <Button
               asChild
@@ -976,9 +991,23 @@ function Landing() {
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-medium text-muted-foreground">{t("marketing.stickyNote")}</p>
-          <Button asChild size="sm" className="shrink-0 rounded-lg px-4 font-semibold">
-            <Link to="/auth">{t("marketing.trial")}</Link>
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button asChild size="sm" variant="outline" className="rounded-lg px-3 font-semibold">
+              <a
+                href={DESKTOP_DOWNLOAD_URL}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("marketing.downloadShort")}
+              >
+                <HugeiconsIcon icon={Download01Icon} className="mr-1 h-4 w-4" />
+                <span className="hidden sm:inline">{t("marketing.downloadShort")}</span>
+              </a>
+            </Button>
+            <Button asChild size="sm" className="rounded-lg px-4 font-semibold">
+              <Link to="/auth">{t("marketing.trial")}</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

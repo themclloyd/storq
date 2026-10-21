@@ -1212,6 +1212,7 @@ export const en = {
     downloadLead:
       "The desktop till keeps selling when the network drops and files every sale the moment it returns. It installs in about a minute and updates itself.",
     downloadWin: "Download for Windows",
+    downloadShort: "Download",
     downloadNote: "Free with your plan · Windows 10/11 (64-bit) · Keeps trading offline",
     heroEyebrow: "The lite POS built for African shops",
     heroH1: "Big-brand POS power. Without the big-brand cost.",

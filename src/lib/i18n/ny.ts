@@ -1235,6 +1235,7 @@ export const ny = {
     downloadLead:
       "Chipangizo cha pa kompyuta chimapitiriza kugulitsa ngakhale intaneti itazima, ndikusunga malonda onse intaneti itabweeranso. Chimayikidwa mu mphindi imodzi ndipo chimadzisintha lokha.",
     downloadWin: "Tatsani pa Windows",
+    downloadShort: "Tatsani",
     downloadNote: "Zaulere ndi ndondomeko yanu · Windows 10/11 (64-bit) · Zimagulitsa ngakhale popanda intaneti",
     heroEyebrow: "Yopangidwira Masitolo a ku Africa",
     heroH1: "Dziwani Katundu. Dziwani Phindu. Tongani Bizinesi Yanu.",
