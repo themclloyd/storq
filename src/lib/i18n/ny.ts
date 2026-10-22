@@ -533,7 +533,7 @@ export const ny = {
     renamedWord: "zosintha dzina",
     renameTag: "Sinthani Dzina",
     columnsHint:
-      "Makholamu: name, sku, cost, price, quantity, active. Zinthu zimafananizidwa ndi SKU kaye, kenako dzina. SKU yopezeka imasintha chinthu — khodi zatsopano zimapanga zinthu zatsopano.",
+      "Makholamu: name, sku, cost, price, quantity, active. Dzina lokha ndi lofunika — makholamu opanda kanthu amalandiridwa, koma ndi bwino kudzaza onse. Zinthu zimafananizidwa ndi SKU kaye, kenako dzina. SKU yopezeka imasintha chinthu — khodi zatsopano zimapanga zinthu zatsopano.",
     importing: "Mukulowetsa {done}/{total}…",
     importItems: "Lowetsani zinthu {count}",
     itemsImported: "Zinthu {count} zalowetsedwa",

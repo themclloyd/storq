@@ -532,7 +532,7 @@ export const en = {
     renamedWord: "renames",
     renameTag: "Rename",
     columnsHint:
-      "Columns: name, sku (or code), cost, price, quantity, active. Items are matched by SKU/code first, then by name. An existing SKU will update that item — new codes create a new item. Download the template to get started.",
+      "Columns: name, sku (or code), cost, price, quantity, active. Only name is required — blank cells are accepted, but filling every column is recommended. Items are matched by SKU/code first, then by name. An existing SKU will update that item — new codes create a new item. Download the template to get started.",
     searchPlaceholder: "Search name or item code",
     importing: "Importing {done}/{total}…",
     importItems: "Import {count} items",
