@@ -1,11 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusSignIcon } from "@/lib/icons";
+import { ArrowRight01Icon, Delete02Icon, PlusSignIcon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useCollections } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
-import { BackLink, Empty, PageHeader, Pager } from "@/components/pos/bits";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Empty, PageHeader, Pager } from "@/components/pos/bits";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { pageSlice } from "@/lib/paging";
 import { useI18n } from "@/lib/i18n";
 
@@ -29,21 +43,61 @@ export const Route = createFileRoute("/_authenticated/app/collections/")({
 });
 
 function Collections() {
-  const { can } = usePos();
+  const { can, rpc } = usePos();
   const { t } = useI18n();
+  const qc = useQueryClient();
   const [page, setPage] = useState(0);
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const cols = useCollections();
-  if (!can("admin", "manager")) return <Empty>{t("col.onlyAdmins")}</Empty>;
   const list = cols.data?.list ?? [];
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(list, page);
-  const count = (id: string) =>
-    Object.values(cols.data?.byProduct ?? {}).filter((ids) => ids.includes(id)).length;
+  const countByCollection = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const ids of Object.values(cols.data?.byProduct ?? {}))
+      for (const id of ids) out[id] = (out[id] ?? 0) + 1;
+    return out;
+  }, [cols.data]);
+  const pickedIds = Object.keys(picked).filter((id) => picked[id]);
+  const pickedOnPage = pageRows.filter((c) => picked[c.id]).length;
+  const allPicked = pageRows.length > 0 && pickedOnPage === pageRows.length;
+
+  if (!can("admin", "manager")) return <Empty>{t("col.onlyAdmins")}</Empty>;
+
+  // Collections are removed one RPC at a time; failures stay selected so a
+  // retry targets only what is left. Items themselves are never touched.
+  async function removePicked() {
+    const ids = pickedIds;
+    if (ids.length === 0) return;
+    setDeleting(true);
+    try {
+      const failed: string[] = [];
+      let firstError = "";
+      for (const id of ids) {
+        try {
+          await rpc("delete_collection", { p_id: id });
+        } catch (e) {
+          failed.push(id);
+          if (!firstError) firstError = (e as Error).message;
+        }
+      }
+      await qc.invalidateQueries({ queryKey: ["collections"] });
+      setPicked(Object.fromEntries(failed.map((id) => [id, true])));
+      setConfirmOpen(false);
+      const removed = ids.length - failed.length;
+      if (removed === 1) toast.success(t("col.deleted"));
+      else if (removed > 1) toast.success(t("col.deletedCount", { count: removed }));
+      if (firstError) toast.error(firstError);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <>
-      <BackLink to="/app/inventory" label={t("nav.items")} />
       <PageHeader
-        breadcrumb={`${t("nav.inventory")} / ${t("nav.collections")}`}
+        back={{ to: "/app/inventory", label: t("nav.items") }}
         title={t("col.title")}
         sub={t("col.listSub")}
         actions={
@@ -58,39 +112,107 @@ function Collections() {
         <Empty>{t("col.noneYet")}</Empty>
       ) : (
         <>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {pageRows.map((c) => (
-              <div key={c.id} className="pos-card flex min-w-0 flex-col gap-2 p-3">
-                <Link
-                  to="/app/collections/$id"
-                  params={{ id: c.id }}
-                  className="flex items-start justify-between gap-2"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-medium hover:underline">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t("col.itemsCount", { count: count(c.id) })}
-                    </div>
-                  </div>
-                  {c.discount_pct > 0 && (
-                    <span className="shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
-                      −{c.discount_pct}%
-                    </span>
-                  )}
-                </Link>
-                <div className="mt-auto flex gap-2">
-                  <Button size="sm" variant="outline" asChild>
-                    <Link to="/app/collections/$id" params={{ id: c.id }}>
-                      {t("col.open")}
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          {pickedIds.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="destructive" onClick={() => setConfirmOpen(true)}>
+                <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")} · {pickedIds.length}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground"
+                onClick={() => setPicked({})}
+              >
+                {t("col.clearSelection")}
+              </Button>
+            </div>
+          )}
+          <Card className="overflow-hidden">
+            <Table className="text-[13px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8 pr-0">
+                    <Checkbox
+                      aria-label={t("col.selectAll")}
+                      checked={allPicked ? true : pickedOnPage > 0 ? "indeterminate" : false}
+                      onCheckedChange={(v) =>
+                        setPicked((s) => {
+                          const next = { ...s };
+                          for (const c of pageRows) next[c.id] = v === true;
+                          return next;
+                        })
+                      }
+                    />
+                  </TableHead>
+                  <TableHead className="pl-4">{t("common.name")}</TableHead>
+                  <TableHead className="w-24">{t("col.items")}</TableHead>
+                  <TableHead className="w-24">{t("col.discount")}</TableHead>
+                  <TableHead className="w-10 pr-4" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pageRows.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="w-8 pr-0">
+                      <Checkbox
+                        aria-label={t("col.selectItem", { name: c.name })}
+                        checked={!!picked[c.id]}
+                        onCheckedChange={(v) => setPicked((s) => ({ ...s, [c.id]: v === true }))}
+                      />
+                    </TableCell>
+                    <TableCell className="py-3 pl-4">
+                      <Link
+                        to="/app/collections/$id"
+                        params={{ id: c.id }}
+                        className="font-medium hover:underline"
+                      >
+                        {c.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="tabular text-muted-foreground">
+                      {countByCollection[c.id] ?? 0}
+                    </TableCell>
+                    <TableCell>
+                      {c.discount_pct > 0 ? (
+                        <Badge className="rounded-full border-transparent bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
+                          −{c.discount_pct}%
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3 pr-4">
+                      <Link
+                        to="/app/collections/$id"
+                        params={{ id: c.id }}
+                        aria-label={t("col.open")}
+                        className="flex justify-end text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
           <Pager page={curPage} pageCount={pageCount} total={list.length} onPage={setPage} />
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={
+          pickedIds.length === 1
+            ? t("col.deleteTitle")
+            : t("col.bulkDeleteTitle", { count: pickedIds.length })
+        }
+        description={pickedIds.length === 1 ? t("col.deleteConfirm") : t("col.bulkDeleteConfirm")}
+        confirmLabel={t("common.delete")}
+        busy={deleting}
+        onConfirm={removePicked}
+      />
     </>
   );
 }

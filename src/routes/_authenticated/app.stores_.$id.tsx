@@ -21,7 +21,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BackLink, PageHeader } from "@/components/pos/bits";
+import { PageHeader } from "@/components/pos/bits";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import {
   DropdownMenu,
@@ -613,9 +613,8 @@ function StoreForm({ store }: { store: Store }) {
 
   return (
     <>
-      <BackLink to="/app/stores" label={t("store.title")} />
       <PageHeader
-        breadcrumb={`${t("nav.settings")} / ${t("store.title")} / ${store.name}`}
+        back={{ to: "/app/stores", label: t("store.title") }}
         title={store.name}
         sub={<StoreTypeTag type={store.store_type} />}
         actions={

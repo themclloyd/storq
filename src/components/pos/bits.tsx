@@ -18,41 +18,45 @@ import {
 } from "@/components/ui/select";
 
 export function PageHeader({
+  back,
   breadcrumb,
   title,
   sub,
   actions,
 }: {
+  /**
+   * Parent-page link rendered on the trail line itself, replacing the old
+   * stacked BackLink row so a nested page keeps one compact header.
+   */
+  back?: { to: WorkspacePath; label: ReactNode };
   breadcrumb?: ReactNode;
   title: ReactNode;
   sub?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        {breadcrumb && <div className="mb-1 text-xs text-muted-foreground">{breadcrumb}</div>}
+        {(back || breadcrumb) && (
+          <div className="mb-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            {back && (
+              <Link
+                to={back.to}
+                className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+              >
+                <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
+                {back.label}
+              </Link>
+            )}
+            {back && breadcrumb && <span aria-hidden>/</span>}
+            {breadcrumb}
+          </div>
+        )}
         <h1 className="font-display text-3xl leading-tight">{title}</h1>
         {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
-  );
-}
-
-/**
- * Parent-page link for screens whose group no longer renders a shell tab row
- * (Transfers, Collections, Stock takes). Sits above the PageHeader, mirroring
- * the trail shown in its breadcrumb.
- */
-export function BackLink({ to, label }: { to: WorkspacePath; label: ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-    >
-      <HugeiconsIcon icon={ArrowLeft01Icon} size={16} /> {label}
-    </Link>
   );
 }
 

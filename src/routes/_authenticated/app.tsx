@@ -50,7 +50,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -664,14 +663,6 @@ function Shell() {
       </Sidebar>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="hidden h-12 items-center border-b px-3 md:flex lg:px-4">
-          <SidebarTrigger />
-          {/* The drawer runs itself, so the shell only has to keep it visible. */}
-          <div className="ml-auto flex items-center gap-2">
-            <ApprovalsAlert count={pendingCount} onGo={goToApprovals} />
-            <DrawerChip storeId={store?.id} />
-          </div>
-        </header>
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
           <NativeSelect
             className="flex-1"

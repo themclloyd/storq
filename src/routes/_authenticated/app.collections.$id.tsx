@@ -10,7 +10,8 @@ import { useCollections } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BackLink, Empty, Field, PageHeader } from "@/components/pos/bits";
+import { Empty, Field, PageHeader } from "@/components/pos/bits";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useI18n } from "@/lib/i18n";
 
@@ -49,6 +50,8 @@ function CollectionPage() {
   const [q, setQ] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (loaded || !cols.data) return;
@@ -104,7 +107,8 @@ function CollectionPage() {
       await rpc("set_collection_products", { p_collection: newId, p_products: [...sel] });
       toast.success(t("col.saved"));
       await qc.invalidateQueries({ queryKey: ["collections"] });
-      if (isNew && newId) nav({ to: "/app/collections/$id", params: { id: newId }, replace: true });
+      // Saving ends the edit, whether it created or updated the collection.
+      nav({ to: "/app/collections", replace: true });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -112,23 +116,25 @@ function CollectionPage() {
     }
   }
   async function remove() {
-    if (!c || !confirm(t("col.deleteConfirm"))) return;
+    if (!c) return;
+    setDeleting(true);
     try {
       await rpc("delete_collection", { p_id: c.id });
       await qc.invalidateQueries({ queryKey: ["collections"] });
-      nav({ to: "/app/collections" });
+      toast.success(t("col.deleted"));
+      setConfirmOpen(false);
+      nav({ to: "/app/collections", replace: true });
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setDeleting(false);
     }
   }
 
   return (
     <>
-      <BackLink to="/app/collections" label={t("col.title")} />
       <PageHeader
-        breadcrumb={`${t("nav.inventory")} / ${t("nav.collections")} / ${
-          isNew ? t("col.newCollection") : f.name || t("col.collectionWord")
-        }`}
+        back={{ to: "/app/collections", label: t("col.title") }}
         title={isNew ? t("col.newCollection") : f.name || t("col.collectionWord")}
         sub={
           t("col.itemsCount", { count: sel.size }) +
@@ -137,7 +143,7 @@ function CollectionPage() {
         actions={
           <div className="flex gap-1.5">
             {c && (
-              <Button size="sm" variant="ghost" onClick={remove}>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(true)}>
                 <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")}
               </Button>
             )}
@@ -232,6 +238,16 @@ function CollectionPage() {
           <p className="text-xs text-muted-foreground">{t("col.changesKept")}</p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t("col.deleteTitle")}
+        description={t("col.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        busy={deleting}
+        onConfirm={remove}
+      />
     </>
   );
 }

@@ -9,15 +9,7 @@ import { useTransferMutations, useTransfers, type Transfer } from "@/lib/transfe
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  BackLink,
-  Empty,
-  Field,
-  NativeSelect,
-  PageHeader,
-  Pager,
-  fmtDate,
-} from "@/components/pos/bits";
+import { Empty, Field, NativeSelect, PageHeader, Pager, fmtDate } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -64,9 +56,8 @@ function Transfers() {
 
   return (
     <>
-      <BackLink to="/app/inventory" label={t("nav.items")} />
       <PageHeader
-        breadcrumb={`${t("nav.inventory")} / ${t("nav.transfers")}`}
+        back={{ to: "/app/inventory", label: t("nav.items") }}
         title={t("trf.title")}
         sub={t("trf.sub", { store: store?.name ?? t("trf.yourStore") })}
         actions={

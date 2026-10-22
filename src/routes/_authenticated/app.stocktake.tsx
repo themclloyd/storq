@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BackLink, Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
+import { Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
 import { pageSlice } from "@/lib/paging";
 import { useI18n } from "@/lib/i18n";
 
@@ -108,9 +108,8 @@ function StockTakeList() {
 
   return (
     <>
-      <BackLink to="/app/inventory" label={t("nav.items")} />
       <PageHeader
-        breadcrumb={`${t("nav.inventory")} / ${t("nav.stocktakes")}`}
+        back={{ to: "/app/inventory", label: t("nav.items") }}
         title={t("stk.title")}
         sub={
           open

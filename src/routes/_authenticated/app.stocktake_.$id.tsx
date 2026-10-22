@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BackLink, Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
+import { Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -162,21 +162,18 @@ function StockTakeDetail() {
     }
   }
 
-  const back = <BackLink to="/app/stocktake" label={t("nav.stocktakes")} />;
-  const crumb = `${t("nav.inventory")} / ${t("nav.stocktakes")}`;
+  const back = { to: "/app/stocktake" as const, label: t("nav.stocktakes") };
   if (takeQ.isPending)
     return (
       <>
-        {back}
-        <PageHeader breadcrumb={crumb} title={t("stk.title")} />
+        <PageHeader back={back} title={t("stk.title")} />
         <Empty>{t("common.loading")}</Empty>
       </>
     );
   if (!take)
     return (
       <>
-        {back}
-        <PageHeader breadcrumb={crumb} title={t("stk.title")} />
+        <PageHeader back={back} title={t("stk.title")} />
         <Empty>{t("stk.notFound")}</Empty>
       </>
     );
@@ -217,9 +214,8 @@ function StockTakeDetail() {
 
   return (
     <>
-      {back}
       <PageHeader
-        breadcrumb={crumb}
+        back={back}
         title={
           <span className="flex flex-wrap items-center gap-2.5">
             {t("stk.title")} <Status s={take.status} />
