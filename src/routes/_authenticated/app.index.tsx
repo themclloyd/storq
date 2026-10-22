@@ -58,6 +58,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Empty, Field, NativeSelect } from "@/components/pos/bits";
+import { PasswordInput } from "@/components/password-input";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
 import { QuickAddItem } from "@/components/pos/QuickAddItem";
@@ -1118,9 +1119,8 @@ function CheckoutDialog({
 
           {needsPin && (
             <Field label={t("till.managerPinOverCap")}>
-              <Input
+              <PasswordInput
                 inputMode="numeric"
-                type="password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 placeholder={t("till.enterManagerPin")}

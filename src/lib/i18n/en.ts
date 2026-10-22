@@ -41,6 +41,8 @@ export const en = {
     of: "of",
     prev: "Previous",
     next: "Next",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
   },
   nav: {
     dashboard: "Dashboard",

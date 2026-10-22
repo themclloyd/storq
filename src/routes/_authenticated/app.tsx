@@ -35,6 +35,7 @@ import { useSubscription } from "@/lib/billing";
 import { useOnce } from "@/hooks/use-once";
 import { Billing } from "@/components/pos/Billing";
 import { GraceBanner } from "@/components/pos/GraceBanner";
+import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -258,7 +259,7 @@ function Setup() {
             <Input required maxLength={LIMITS.name} value={f.owner} onChange={set("owner")} />
           </Field>
           <Field label={t("setup.yourAdminPin")}>
-            <Input
+            <PasswordInput
               required
               inputMode="numeric"
               pattern="[0-9]{4}"

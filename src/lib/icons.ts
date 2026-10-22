@@ -53,6 +53,8 @@ export { default as SmartPhone01Icon } from "@hugeicons/core-free-icons/SmartPho
 export { default as Tick01Icon } from "@hugeicons/core-free-icons/Tick01Icon";
 export { default as Tick02Icon } from "@hugeicons/core-free-icons/Tick02Icon";
 export { default as UserMultipleIcon } from "@hugeicons/core-free-icons/UserMultipleIcon";
+export { default as ViewIcon } from "@hugeicons/core-free-icons/ViewIcon";
+export { default as ViewOffIcon } from "@hugeicons/core-free-icons/ViewOffIcon";
 export { default as Wallet01Icon } from "@hugeicons/core-free-icons/Wallet01Icon";
 
 // Three names we use only exist as aliases inside the barrel, so they have no

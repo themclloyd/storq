@@ -7,6 +7,7 @@ import { PlusSignIcon } from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos, type Role } from "@/lib/pos";
 import { NativeSelect, PageHeader } from "@/components/pos/bits";
+import { PasswordInput } from "@/components/password-input";
 import { useI18n } from "@/lib/i18n";
 import { LIMITS, validatePin, requireText, sanitizeText } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
@@ -252,7 +253,7 @@ function StaffDialog({ s, onClose }: { s: Partial<StaffRow>; onClose: () => void
           <span className="text-[11px] font-medium text-muted-foreground">
             {s.id ? t("staff.newPin") : t("staff.pinLabel")}
           </span>
-          <Input
+          <PasswordInput
             inputMode="numeric"
             maxLength={4}
             value={f.pin}

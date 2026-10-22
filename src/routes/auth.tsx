@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PasswordInput } from "@/components/password-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -233,11 +234,10 @@ function AuthPage() {
                   <Label htmlFor="password" className="text-xs font-medium text-muted-foreground">
                     {t("auth.password")}
                   </Label>
-                  <Input
+                  <PasswordInput
                     id="password"
                     className="h-12"
                     autoComplete={mode === "in" ? "current-password" : "new-password"}
-                    type="password"
                     required
                     maxLength={LIMITS.password}
                     value={password}

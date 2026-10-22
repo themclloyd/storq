@@ -35,6 +35,8 @@ export const ny = {
     of: "mwa",
     prev: "Kumbuyo",
     next: "Kutsogolo",
+    showPassword: "Onetsani mawu achinsinsi",
+    hidePassword: "Bisani mawu achinsinsi",
   },
   nav: {
     dashboard: "Dashibodi",
