@@ -759,6 +759,10 @@ export const ny = {
     closeConfirm:
       "Mukufuna kutseka kuwerengera katundu? Zinthu zomwe zawerengedwa zisintha kuchuluka kwa katundu.",
     levelsUpdated: "Kuchuluka kwa katundu kwasinthidwa",
+    doneTitle: "Kuwerengera katundu kwamalizidwa",
+    doneExport:
+      "Kuchuluka kwa katundu kwasinthidwa. Mukufuna kutsitsa lipoti la kuwerengera katundu?",
+    notNow: "Osati pano",
     findItem: "Fufuzani chinthu",
     notCounted: "Zosawerengedwa",
     countedStat: "{counted} / {total} zawerengedwa",

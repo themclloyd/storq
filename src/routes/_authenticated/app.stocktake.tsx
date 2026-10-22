@@ -7,11 +7,21 @@ import { FilterIcon } from "@/lib/icons";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
+import { useProducts } from "@/lib/products";
 import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useStaffNames } from "@/lib/sales";
+import { downloadStockTakeReport, useStockTake, useStockTakeLines } from "@/lib/stock-take";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +39,15 @@ import {
 } from "@/components/ui/table";
 import { Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
 import { pageSlice } from "@/lib/paging";
+import { useOnce } from "@/hooks/use-once";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/stocktake")({
+  // The session screen sends the just-finished take back here as ?export=<id>
+  // so the list can ask whether to download its report.
+  validateSearch: (search: Record<string, unknown>): { export?: string | undefined } => ({
+    export: typeof search["export"] === "string" && search["export"] ? search["export"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Stock takes | Storq" },
@@ -61,13 +77,31 @@ type Take = {
 type TakeFilter = "all" | "open" | "closed";
 
 function StockTakeList() {
-  const { store, can, rpc } = usePos();
+  const { store, stores, can, rpc, business } = usePos();
   const { t } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const names = useStaffNames();
   const [filter, setFilter] = useState<TakeFilter>("all");
   const [page, setPage] = useState(0);
+  // Blind counting: variance-bearing reports stay with admins and managers.
+  const canExport = can("admin", "manager");
+  const { export: exportId } = Route.useSearch();
+  // The detail screen already cached the take, its lines and that store's
+  // catalog, so the prompt opens with data in hand; a cold link fetches them.
+  const reportTake = useStockTake(exportId);
+  const reportLines = useStockTakeLines(exportId);
+  const reportProducts = useProducts(reportTake.data?.store_id);
+  const reportNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of reportProducts.data ?? []) m[p.id] = p.name;
+    return m;
+  }, [reportProducts.data]);
+  const reportSkuById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of reportProducts.data ?? []) if (p.sku) m[p.id] = p.sku;
+    return m;
+  }, [reportProducts.data]);
   // Sessions change only on start/close, which invalidate ["takes"]; live
   // per-line counts are polled on the session screen instead.
   const takes = useQuery({
@@ -93,6 +127,25 @@ function StockTakeList() {
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(rows, page);
   const person = (id: string | null) => (id ? names.data?.[id] : undefined);
   const go = (id: string) => navigate({ to: "/app/stocktake/$id", params: { id } });
+  const closeExport = () => navigate({ to: "/app/stocktake", search: {}, replace: true });
+  const { run: runExport, running: exporting } = useOnce(async (kind: "csv" | "pdf") => {
+    const take = reportTake.data;
+    if (!take || !canExport) return;
+    try {
+      await downloadStockTakeReport(kind, {
+        take,
+        lines: reportLines.data ?? [],
+        nameById: reportNameById,
+        skuById: reportSkuById,
+        staffNames: names.data ?? {},
+        storeName: stores.find((s) => s.id === take.store_id)?.name ?? store?.name,
+        businessName: business?.name,
+      });
+      closeExport();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  });
 
   async function start() {
     if (!store) return;
@@ -216,6 +269,40 @@ function StockTakeList() {
           <Pager page={curPage} pageCount={pageCount} total={rows.length} onPage={setPage} />
         </>
       )}
+      <Dialog open={!!exportId && canExport} onOpenChange={(open) => !open && closeExport()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("stk.doneTitle")}</DialogTitle>
+            <DialogDescription>
+              {reportTake.isPending || reportLines.isPending
+                ? t("common.loading")
+                : t("stk.doneExport")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" disabled={exporting} onClick={closeExport}>
+              {t("stk.notNow")}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={
+                exporting || !reportTake.data || !reportLines.data || reportProducts.isPending
+              }
+              onClick={() => void runExport("csv")}
+            >
+              {t("common.exportCsv")}
+            </Button>
+            <Button
+              disabled={
+                exporting || !reportTake.data || !reportLines.data || reportProducts.isPending
+              }
+              onClick={() => void runExport("pdf")}
+            >
+              {t("common.exportPdf")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

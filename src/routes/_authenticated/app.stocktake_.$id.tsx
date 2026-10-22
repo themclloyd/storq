@@ -1,13 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
 import { useProducts } from "@/lib/products";
 import { useStaffNames } from "@/lib/sales";
 import { invalidateKeys } from "@/lib/cache-invalidation";
-import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
+import {
+  downloadStockTakeReport,
+  stockTakeSubtitle,
+  useStockTake,
+  useStockTakeLines,
+  type StockTake,
+  type StockTakeLine,
+} from "@/lib/stock-take";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
+import { Empty, PageHeader, Pager, Status } from "@/components/pos/bits";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import { cn } from "@/lib/utils";
@@ -48,25 +54,10 @@ export const Route = createFileRoute("/_authenticated/app/stocktake_/$id")({
   component: StockTakeDetail,
 });
 
-type Take = {
-  id: string;
-  store_id: string;
-  status: string;
-  created_at: string;
-  closed_at: string | null;
-  started_by: string | null;
-  closed_by: string | null;
-};
-type LineRow = {
-  product_id: string;
-  expected: number;
-  counted: number | null;
-  counted_by: string | null;
-};
 type LineFilter = "all" | "diff" | "left";
 
 /** The count currently shown: an edit on this screen outranks the polled row. */
-function lineCount(l: LineRow, drafts: Record<string, string>): number | null {
+function lineCount(l: StockTakeLine, drafts: Record<string, string>): number | null {
   if (l.product_id in drafts) {
     const raw = (drafts[l.product_id] ?? "").trim();
     if (raw === "") return null;
@@ -92,40 +83,14 @@ function StockTakeDetail() {
   const [closing, setClosing] = useState(false);
   const isManager = can("admin", "manager");
 
-  const takeQ = useQuery({
-    queryKey: ["take", id],
-    // Start/close invalidate ["take"]; a revisit inside the minute is instant.
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stock_takes")
-        .select("id,store_id,status,created_at,closed_at,started_by,closed_by")
-        .eq("id", id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as unknown as Take | null;
-    },
-  });
+  const navigate = useNavigate();
+  const takeQ = useStockTake(id);
   const take = takeQ.data;
   // The take's lines reference its own store's item copies, so the catalog is
   // scoped to that store (not whichever store the operator last switched to).
   const products = useProducts(take?.store_id);
   const open = take?.status === "open";
-  const lines = useQuery({
-    queryKey: ["take-lines", id],
-    // Live team count while the session is open; a closed session never changes.
-    refetchInterval: open ? 15_000 : false,
-    // A background tab must not keep polling; the count re-syncs on visibility.
-    refetchIntervalInBackground: false,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stock_take_lines")
-        .select("product_id,expected,counted,counted_by")
-        .eq("stock_take_id", id);
-      if (error) throw error;
-      return data as unknown as LineRow[];
-    },
-  });
+  const lines = useStockTakeLines(id, open);
   const nameById = useMemo(() => {
     const m: Record<string, string> = {};
     for (const p of products.data ?? []) m[p.id] = p.name;
@@ -180,7 +145,7 @@ function StockTakeDetail() {
     });
   }
   function patchLine(pid: string, counted: number | null, countedBy: string | null) {
-    qc.setQueryData<LineRow[]>(["take-lines", id], (old) =>
+    qc.setQueryData<StockTakeLine[]>(["take-lines", id], (old) =>
       old?.map((l) => (l.product_id === pid ? { ...l, counted, counted_by: countedBy } : l)),
     );
   }
@@ -220,7 +185,7 @@ function StockTakeDetail() {
       await rpc("close_stock_take", { p_take: take.id });
       // Flip the session closed right away so the count inputs lock without
       // waiting for the refetch; invalidation reconciles the timestamps.
-      qc.setQueryData<Take | null>(["take", id], (old) =>
+      qc.setQueryData<StockTake | null>(["take", id], (old) =>
         old
           ? {
               ...old,
@@ -240,77 +205,30 @@ function StockTakeDetail() {
         ["movements"],
         ["dash-alerts"],
       ]);
+      // The list owns the post-close flow and asks whether to export the report.
+      navigate({ to: "/app/stocktake", search: { export: take.id }, replace: true });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setClosing(false);
     }
   }
-  const allRows = useMemo(
-    () =>
-      [...(lines.data ?? [])].sort((a, b) =>
-        (nameById[a.product_id] ?? "").localeCompare(nameById[b.product_id] ?? ""),
-      ),
-    [lines.data, nameById],
-  );
-  const { run: runExport, running: exporting } = useOnce((kind: "csv" | "pdf") => {
+  const { run: runExport, running: exporting } = useOnce(async (kind: "csv" | "pdf") => {
     if (!take) return;
-    const countedBy = (pid: string | null) => (pid ? (names.data?.[pid] ?? "") : "");
-    const documentRows = allRows.map((l) => {
-      const c = lineCount(l, drafts);
-      return { line: l, counted: c, diff: c === null ? null : c - Number(l.expected) };
-    });
-    if (kind === "csv") {
-      downloadCsv(`storq-stocktake-${fileStamp()}.csv`, [
-        ["item", "sku", "expected", "counted", "difference", "counted_by"],
-        ...documentRows.map(({ line, counted: c, diff }) => [
-          nameById[line.product_id] ?? "",
-          skuById[line.product_id] ?? "",
-          Number(line.expected),
-          c ?? "",
-          diff ?? "",
-          countedBy(line.counted_by),
-        ]),
-      ]);
-      return;
+    try {
+      await downloadStockTakeReport(kind, {
+        take,
+        // Unsaved edits are part of what the screen shows, so export them too.
+        lines: (lines.data ?? []).map((l) => ({ ...l, counted: lineCount(l, drafts) })),
+        nameById,
+        skuById,
+        staffNames: names.data ?? {},
+        storeName,
+        businessName: business?.name,
+      });
+    } catch (e) {
+      toast.error((e as Error).message);
     }
-    return downloadPdf({
-      filename: `storq-stocktake-${fileStamp()}`,
-      title: t("stk.reportTitle"),
-      business: business?.name,
-      subtitle: sub,
-      badge: t(`status.${take.status}`),
-      orientation: "landscape",
-      kpis: [
-        [t("stk.itemsWord"), String(total)],
-        [t("stk.countedWord"), `${counted} / ${total}`],
-        [t("stk.withDiff"), String(diffs)],
-        [t("stk.netVariance"), net > 0 ? `+${net}` : String(net)],
-      ],
-      sections: [
-        {
-          type: "table",
-          head: [
-            t("doc.item"),
-            "SKU",
-            t("stk.expectedCol"),
-            t("stk.countedWord"),
-            t("stk.varianceCol"),
-            t("stk.countedByCol"),
-          ],
-          align: ["left", "left", "right", "right", "right", "left"],
-          body: documentRows.map(({ line, counted: c, diff }) => [
-            nameById[line.product_id] ?? "",
-            skuById[line.product_id] ?? "",
-            Number(line.expected),
-            c === null ? "—" : String(c),
-            diff === null ? "—" : diff > 0 ? `+${diff}` : String(diff),
-            countedBy(line.counted_by),
-          ]),
-        },
-      ],
-      footerNote: total > counted ? t("stk.notCountedNote", { n: total - counted }) : undefined,
-    });
   });
 
   const back = { to: "/app/stocktake" as const, label: t("nav.stocktakes") };
@@ -330,21 +248,7 @@ function StockTakeDetail() {
     );
 
   const storeName = stores.find((s) => s.id === take.store_id)?.name ?? store?.name;
-  const startedBy = take.started_by ? names.data?.[take.started_by] : undefined;
-  const closedBy = take.closed_by ? names.data?.[take.closed_by] : undefined;
-  const sub = [
-    storeName,
-    startedBy
-      ? t("stk.startedBy", { date: fmtDate(take.created_at), name: startedBy })
-      : `${t("stk.startedWord")} ${fmtDate(take.created_at)}`,
-    take.closed_at
-      ? closedBy
-        ? t("stk.closedBy", { date: fmtDate(take.closed_at), name: closedBy })
-        : `${t("stk.closedWord")} ${fmtDate(take.closed_at)}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const sub = stockTakeSubtitle(take, storeName, names.data ?? {});
   const filterOptions: SegmentOption<LineFilter>[] = [
     { value: "all", label: t("common.all") },
     ...(isManager ? [{ value: "diff" as LineFilter, label: t("stk.diffOnly") }] : []),
