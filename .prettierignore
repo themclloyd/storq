@@ -10,6 +10,13 @@ routeTree.gen.ts
 # Auto-generated / tool-managed — never hand-formatted (each regenerates on its own)
 .qoder/
 .lovable/
+.wrangler/
+.tanstack/
+tmp/
 src/integrations/supabase/
+
+# Binary/hand-authored assets
+public/
+
 # i18n catalogs are hand-tuned and must never be prettified
 src/lib/i18n/

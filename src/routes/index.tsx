@@ -288,12 +288,7 @@ function DownloadCta() {
       variant="default"
       className="group/dl h-14 rounded-lg px-8 text-base font-semibold transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
     >
-      <a
-        href={DESKTOP_DOWNLOAD_URL}
-        download
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <a href={DESKTOP_DOWNLOAD_URL} download target="_blank" rel="noopener noreferrer">
         <HugeiconsIcon icon={Download01Icon} className="mr-2 h-5 w-5" />
         {t("marketing.downloadWin")}
       </a>
@@ -347,12 +342,7 @@ function Landing() {
               variant="outline"
               className="hidden rounded-lg border-primary/45 px-5 font-semibold text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex"
             >
-              <a
-                href={DESKTOP_DOWNLOAD_URL}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={DESKTOP_DOWNLOAD_URL} download target="_blank" rel="noopener noreferrer">
                 <HugeiconsIcon icon={Download01Icon} className="mr-1.5 h-4 w-4" />
                 {t("marketing.downloadShort")}
               </a>
@@ -898,7 +888,10 @@ function Landing() {
                   key={k}
                   className="flex items-start gap-3 rounded-xl border border-border bg-background p-4"
                 >
-                  <HugeiconsIcon icon={Tick01Icon} className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+                  <HugeiconsIcon
+                    icon={Tick01Icon}
+                    className="mt-0.5 h-5 w-5 shrink-0 text-accent"
+                  />
                   <span className="text-foreground">{t(k)}</span>
                 </li>
               ))}

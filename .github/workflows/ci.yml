@@ -1,8 +1,11 @@
 name: CI
 
-# Gate every push and PR: typecheck-free lint, unit tests and a real build.
+# Gate every push and PR: audit, lint, format, unit tests and a real build.
 # This is the guard against the "fix one screen, silently break another"
-# failure mode — nothing reaches main without all three passing.
+# failure mode — nothing reaches main without all of them passing.
+#
+# Lint and formatting are separate gates on purpose: ESLint reports defects,
+# Prettier reports style. A formatting nit must never surface as a lint error.
 
 on:
   push:
@@ -20,9 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned rather than `latest` so a bun release cannot change resolution or
+      # audit behaviour out from under a green build.
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.3
 
       # 24h supply-chain guard lives in bunfig.toml; a fresh lockfile install
       # fails loudly if a dependency was yanked or the lock is out of date.

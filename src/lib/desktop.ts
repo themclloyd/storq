@@ -6,8 +6,7 @@
  * the link. The bucket is public read-only; real integrity comes from the minisign
  * signature the app verifies on update, not from this URL.
  */
-const rawSupabaseUrl =
-  (import.meta.env?.["VITE_SUPABASE_URL"] as string | undefined) ?? "";
+const rawSupabaseUrl = (import.meta.env?.["VITE_SUPABASE_URL"] as string | undefined) ?? "";
 
 // Fall back to the live project so a missing build-time variable can never render
 const host =

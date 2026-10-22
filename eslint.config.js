@@ -1,5 +1,5 @@
 import js from "@eslint/js";
-import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
+import prettier from "eslint-config-prettier/flat";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
@@ -8,13 +8,24 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   {
     ignores: [
+      // Build output
       "dist",
       ".output",
       ".vinxi",
+      // Tool-managed state and agent scratch space
+      ".wrangler",
+      ".tanstack",
+      ".qoder",
+      ".lovable",
+      "tmp",
+      // Not application source
+      "public",
+      "supabase",
       // Auto-generated: Lovable Cloud rewrites the Supabase integration files,
       // and shadcn/ui primitives are vendored — neither should be hand-linted.
       "src/integrations/supabase",
       "src/components/ui",
+      "src/routeTree.gen.ts",
     ],
   },
   {
@@ -46,5 +57,16 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
-  eslintPluginPrettier,
+  {
+    // Build and tooling config runs in Node, not in the browser.
+    files: ["*.config.{js,ts,mjs}", "eslint.config.js"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  // Keep this last. It switches off every rule Prettier owns, so `bun run lint`
+  // reports real defects only and `bun run format:check` owns code style.
+  // Formatting used to surface as thousands of `prettier/prettier` lint errors,
+  // which buried genuine problems and made lint slower than the build.
+  prettier,
 );
