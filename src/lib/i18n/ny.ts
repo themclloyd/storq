@@ -755,9 +755,9 @@ export const ny = {
     startedWord: "Kwayamba",
     closedWord: "Kwatsekedwa",
     noPast: "Palibe kuwerengera kwakale.",
-    closeTitle: "Malizitsani kuwerengera katundu?",
+    closeTitle: "Malizitsani ndi kusintha katundu?",
     closeConfirm:
-      "Mukufuna kutseka kuwerengera katundu? Zinthu zomwe zawerengedwa zisintha kuchuluka kwa katundu.",
+      "Ziwerengero za gawo lino zidzalowa m'malo a kuchuluka kwa katundu wa sitolo iyi.",
     levelsUpdated: "Kuchuluka kwa katundu kwasinthidwa",
     doneTitle: "Kuwerengera katundu kwamalizidwa",
     doneExport:

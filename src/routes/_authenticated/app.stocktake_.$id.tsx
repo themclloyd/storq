@@ -431,7 +431,39 @@ function StockTakeDetail() {
         confirmLabel={t("stk.finish")}
         busy={closing}
         onConfirm={() => void finish()}
-      />
+      >
+        {/* What the finish is about to write, so the decision is made on
+            numbers rather than on a promise. */}
+        <dl className="space-y-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5 text-[13px]">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">{t("stk.countedWord")}</dt>
+            <dd className="tabular font-medium">
+              {counted} / {total}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">{t("stk.withDiff")}</dt>
+            <dd className="tabular font-medium">{diffs}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">{t("stk.netVariance")}</dt>
+            <dd
+              className={cn(
+                "tabular font-medium",
+                net < 0 && "text-destructive",
+                net > 0 && "text-success",
+              )}
+            >
+              {net > 0 ? `+${net}` : net}
+            </dd>
+          </div>
+        </dl>
+        {total > counted && (
+          <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
+            {t("stk.notCountedNote", { n: total - counted })}
+          </p>
+        )}
+      </ConfirmDialog>
     </>
   );
 }

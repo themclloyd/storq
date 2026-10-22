@@ -752,8 +752,9 @@ export const en = {
     startedWord: "Started",
     closedWord: "Closed",
     noPast: "No past stock takes.",
-    closeTitle: "Finish stock take?",
-    closeConfirm: "Close the stock take? Counted items will replace the current stock levels.",
+    closeTitle: "Finish and update stock?",
+    closeConfirm:
+      "The counts in this session will replace the current stock levels for this store.",
     levelsUpdated: "Stock levels updated",
     doneTitle: "Stock take finished",
     doneExport: "Stock levels are updated. Export the stock take report?",

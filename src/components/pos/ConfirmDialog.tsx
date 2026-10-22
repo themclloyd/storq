@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +23,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   busy = false,
+  children,
   onOpenChange,
   onConfirm,
 }: {
@@ -30,6 +32,8 @@ export function ConfirmDialog({
   description?: string;
   confirmLabel: string;
   busy?: boolean;
+  /** Extra context, such as the numbers the action is about to apply. */
+  children?: ReactNode;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
@@ -46,6 +50,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
+        {children}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
