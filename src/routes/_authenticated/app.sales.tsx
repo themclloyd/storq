@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { PageHeader } from "@/components/pos/bits";
+import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import {
   Table,
@@ -91,7 +91,13 @@ function StatusBadge({ s }: { s: string }) {
 }
 
 function Sales() {
-  const { store, stores, money, can, business } = usePos();
+  const { can } = usePos();
+  if (!can("sell", "view_sales")) return <NoAccess />;
+  return <SalesContent />;
+}
+
+function SalesContent() {
+  const { store, stores, money, staff, business } = usePos();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [range, setRange] = useState<keyof typeof ranges>("today");
@@ -253,7 +259,7 @@ function Sales() {
                 label: t(rangeKey[r]),
               }))}
             />
-            {stores.length > 1 && can("admin", "manager") && (
+            {stores.length > 1 && !staff?.store_id && (
               <Button
                 size="sm"
                 variant={all ? "secondary" : "outline"}

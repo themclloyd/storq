@@ -57,7 +57,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Empty, Field, NativeSelect } from "@/components/pos/bits";
+import { Empty, Field, NativeSelect, NoAccess } from "@/components/pos/bits";
 import { PasswordInput } from "@/components/password-input";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
@@ -110,7 +110,14 @@ function calcChange(tenders: TenderRow[], total: number, kind: "sale" | "layby")
   return Math.max(0, round2(cash - Math.max(0, total - other)));
 }
 
+/** The till acts on money and stock, so it is never a read-only screen. */
 function Register() {
+  const { can } = usePos();
+  if (!can("sell")) return <NoAccess />;
+  return <RegisterContent />;
+}
+
+function RegisterContent() {
   const { store, money, business, staff, checkout, can } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -179,11 +186,12 @@ function Register() {
   const tax = rate > 0 ? (incl ? netSub - netSub / (1 + rate / 100) : (netSub * rate) / 100) : 0;
   const total = rate > 0 && !incl ? netSub + tax : netSub;
   const approval = store?.store_type === "approval";
-  const cashier = !can("admin", "manager");
-  // Cashiers need a manager PIN once any line or the basket passes the 10% cap.
+  const capped = !can("approvals");
+  // Without approval access, a discount past the 10% cap needs someone who holds
+  // it to enter their PIN.
   const overCap =
     discountTotal > 0 &&
-    cashier &&
+    capped &&
     (cartCapBlocked(grossSub, discountTotal) ||
       cart.some((l) => lineCapBlocked(lineGross(l), lineDisc(l))));
 
@@ -285,7 +293,7 @@ function Register() {
       setPendingScan(null);
     } else if (products.isFetched) {
       toast.error(t("till.noBarcodeMatch", { code: pendingScan }));
-      if (can("admin", "manager")) {
+      if (can("stock")) {
         setScanning(false);
         setQuickAdd(pendingScan.trim());
       }

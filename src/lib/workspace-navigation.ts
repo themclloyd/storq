@@ -1,4 +1,5 @@
-import type { Role, Store } from "@/lib/pos";
+import type { Store } from "@/lib/pos";
+import { areaPerms, permits, type Access, type Permission } from "@/lib/permissions";
 
 export type WorkspacePath =
   | "/app/dashboard"
@@ -28,7 +29,11 @@ type Page = {
    * same URL reads "Invoices" there while direct stores keep "Sales history".
    */
   approvalLabelKey?: string;
-  roles: Role[];
+  /**
+   * Grants that open this page (any one of them). An empty list means every
+   * signed-in person; the owner always sees everything.
+   */
+  perms: Permission[];
   group: WorkspaceGroup;
   approvalOnly?: boolean;
 };
@@ -37,8 +42,8 @@ type Page = {
 export function pageLabelKey(page: Page, type?: Store["store_type"]) {
   return page.approvalLabelKey && type === "approval" ? page.approvalLabelKey : page.labelKey;
 }
-const all: Role[] = ["admin", "manager", "cashier"];
-const managers: Role[] = ["admin", "manager"];
+
+const everyone: Permission[] = [];
 
 export const workspacePages: Page[] = [
   {
@@ -46,15 +51,15 @@ export const workspacePages: Page[] = [
     label: "Dashboard",
     labelKey: "nav.dashboard",
     group: "dashboard",
-    roles: all,
+    perms: everyone,
   },
-  { to: "/app", label: "POS", labelKey: "nav.pos", group: "register", roles: all },
+  { to: "/app", label: "POS", labelKey: "nav.pos", group: "register", perms: ["sell"] },
   {
     to: "/app/shifts",
     label: "Cash drawer",
     labelKey: "nav.cashDrawer",
     group: "register",
-    roles: all,
+    perms: ["sell"],
   },
   {
     to: "/app/sales",
@@ -62,79 +67,95 @@ export const workspacePages: Page[] = [
     labelKey: "nav.salesHistory",
     approvalLabelKey: "nav.invoices",
     group: "sales",
-    roles: all,
+    perms: areaPerms("sales"),
   },
   {
     to: "/app/invoices",
     label: "Approvals",
     labelKey: "nav.approvals",
     group: "sales",
-    roles: all,
+    perms: areaPerms("approvals"),
     approvalOnly: true,
   },
-  { to: "/app/laybys", label: "Laybys", labelKey: "nav.laybys", group: "sales", roles: all },
+  {
+    to: "/app/laybys",
+    label: "Laybys",
+    labelKey: "nav.laybys",
+    group: "sales",
+    perms: areaPerms("sales"),
+  },
   {
     to: "/app/inventory",
     label: "Items",
     labelKey: "nav.items",
     group: "inventory",
-    roles: managers,
+    perms: areaPerms("stock"),
   },
   {
     to: "/app/transfers",
     label: "Transfers",
     labelKey: "nav.transfers",
     group: "inventory",
-    roles: managers,
+    perms: areaPerms("stock"),
   },
   {
     to: "/app/collections",
     label: "Collections",
     labelKey: "nav.collections",
     group: "inventory",
-    roles: managers,
+    perms: areaPerms("stock"),
   },
   {
     to: "/app/stocktake",
     label: "Stock takes",
     labelKey: "nav.stocktakes",
     group: "inventory",
-    roles: all,
+    perms: areaPerms("stock"),
   },
   {
     to: "/app/reports",
     label: "Overview",
     labelKey: "nav.overview",
     group: "finance",
-    roles: managers,
+    perms: areaPerms("money"),
   },
   {
     to: "/app/expenses",
     label: "Expenses",
     labelKey: "nav.expenses",
     group: "finance",
-    roles: all,
+    // Tills record what they spend; only money access may delete an entry.
+    perms: ["sell", ...areaPerms("money")],
   },
   {
     to: "/app/stores",
     label: "Locations",
     labelKey: "nav.locations",
     group: "settings",
-    roles: ["admin"],
+    perms: areaPerms("locations"),
   },
-  { to: "/app/staff", label: "Staff", labelKey: "nav.staff", group: "settings", roles: ["admin"] },
+  {
+    to: "/app/staff",
+    label: "Staff",
+    labelKey: "nav.staff",
+    group: "settings",
+    perms: areaPerms("staff"),
+  },
   {
     to: "/app/billing",
     label: "Subscription",
     labelKey: "nav.subscription",
     group: "settings",
-    roles: managers,
+    perms: areaPerms("money"),
   },
 ];
 
-export function visibleWorkspacePages(role: Role, type?: Store["store_type"]) {
+export function visibleWorkspacePages(
+  access: Access | null | undefined,
+  type?: Store["store_type"],
+) {
   return workspacePages.filter(
-    (page) => page.roles.includes(role) && (!page.approvalOnly || type === "approval"),
+    (page) => permits(access, page.perms) && (!page.approvalOnly || type === "approval"),
   );
 }
 
@@ -152,14 +173,16 @@ export function workspacePageAt(path: string) {
   );
 }
 
-export function workspaceNavigation(role: Role, type?: Store["store_type"]) {
-  const pages = visibleWorkspacePages(role, type);
+export function workspaceNavigation(access: Access | null | undefined, type?: Store["store_type"]) {
+  const pages = visibleWorkspacePages(access, type);
+  // The finance group is named after the screen this person can open.
+  const money = permits(access, areaPerms("money"));
   const labels: Record<WorkspaceGroup, string> = {
     dashboard: "Dashboard",
     register: "POS",
     sales: "Sales",
     inventory: "Inventory",
-    finance: role === "cashier" ? "Expenses" : "Reports",
+    finance: money ? "Reports" : "Expenses",
     settings: "Settings",
   };
   const labelKeys: Record<WorkspaceGroup, string> = {
@@ -167,7 +190,7 @@ export function workspaceNavigation(role: Role, type?: Store["store_type"]) {
     register: "nav.pos",
     sales: type === "approval" ? "nav.invoices" : "nav.sales",
     inventory: "nav.inventory",
-    finance: role === "cashier" ? "nav.expenses" : "nav.reports",
+    finance: money ? "nav.reports" : "nav.expenses",
     settings: "nav.settings",
   };
   return (

@@ -176,6 +176,25 @@ export function Empty({ children }: { children: ReactNode }) {
   return <Card className="p-6 text-center text-sm text-muted-foreground">{children}</Card>;
 }
 
+/**
+ * A screen this session may not open. The dashboard is the one page every
+ * signed-in person has, so the card offers a way out instead of a dead end.
+ */
+export function NoAccess() {
+  const { t } = useI18n();
+  return (
+    <Card className="p-6 text-center text-sm text-muted-foreground">
+      <p>{t("common.noAccess")}</p>
+      <Link
+        to="/app/dashboard"
+        className="mt-2 inline-block font-medium text-foreground underline-offset-4 hover:underline"
+      >
+        {t("nav.dashboard")}
+      </Link>
+    </Card>
+  );
+}
+
 export function StoreTypeTag({ type }: { type: string }) {
   const { t } = useI18n();
   return (

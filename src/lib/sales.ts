@@ -90,7 +90,7 @@ export function usePendingApprovals() {
   // Only an approver sitting in an approval-based store has a queue to watch;
   // direct stores and cashiers never poll or badge at all.
   const storeId =
-    can("admin", "manager") &&
+    can("approvals") &&
     store?.store_type === "approval" &&
     (!staff?.store_id || staff.store_id === store.id)
       ? store.id

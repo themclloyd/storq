@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, PageHeader, Pager, Status } from "@/components/pos/bits";
+import { Empty, NoAccess, PageHeader, Pager, Status } from "@/components/pos/bits";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import { cn } from "@/lib/utils";
@@ -68,6 +68,12 @@ function lineCount(l: StockTakeLine, drafts: Record<string, string>): number | n
 }
 
 function StockTakeDetail() {
+  const { can } = usePos();
+  if (!can("stock", "view_stock")) return <NoAccess />;
+  return <StockTakeDetailContent />;
+}
+
+function StockTakeDetailContent() {
   const { id } = Route.useParams();
   const { store, stores, can, rpc, staff, business } = usePos();
   const { t } = useI18n();
@@ -81,7 +87,7 @@ function StockTakeDetail() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [confirmClose, setConfirmClose] = useState(false);
   const [closing, setClosing] = useState(false);
-  const isManager = can("admin", "manager");
+  const seesVariance = can("stock");
 
   const navigate = useNavigate();
   const takeQ = useStockTake(id);
@@ -251,11 +257,12 @@ function StockTakeDetail() {
   const sub = stockTakeSubtitle(take, storeName, names.data ?? {});
   const filterOptions: SegmentOption<LineFilter>[] = [
     { value: "all", label: t("common.all") },
-    ...(isManager ? [{ value: "diff" as LineFilter, label: t("stk.diffOnly") }] : []),
+    ...(seesVariance ? [{ value: "diff" as LineFilter, label: t("stk.diffOnly") }] : []),
     { value: "left", label: t("stk.notCounted") },
   ];
-  // Cashiers count blind: system quantities and variances stay with managers.
-  const cards: [string, string | number][] = isManager
+  // Blind counting: everyone without stock access counts the shelf without
+  // seeing the system figure or the variance.
+  const cards: [string, string | number][] = seesVariance
     ? [
         [t("stk.itemsWord"), total],
         [t("stk.countedWord"), `${counted} / ${total}`],
@@ -278,7 +285,7 @@ function StockTakeDetail() {
         }
         sub={sub}
         actions={
-          isManager ? (
+          seesVariance ? (
             <>
               {total > 0 && (
                 <ExportMenu disabled={exporting} onExport={(kind) => void runExport(kind)} />
@@ -338,10 +345,10 @@ function StockTakeDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">{t("doc.item")}</TableHead>
-                  {isManager && <TableHead>{t("stk.systemWord")}</TableHead>}
+                  {seesVariance && <TableHead>{t("stk.systemWord")}</TableHead>}
                   <TableHead className="w-28">{t("stk.countedWord")}</TableHead>
-                  {isManager && <TableHead className="w-24">{t("stk.varianceCol")}</TableHead>}
-                  {isManager && (
+                  {seesVariance && <TableHead className="w-24">{t("stk.varianceCol")}</TableHead>}
+                  {seesVariance && (
                     <TableHead className="hidden md:table-cell">{t("stk.countedByCol")}</TableHead>
                   )}
                 </TableRow>
@@ -357,13 +364,13 @@ function StockTakeDetail() {
                           {nameById[l.product_id] ?? "…"}
                         </span>
                       </TableCell>
-                      {isManager && (
+                      {seesVariance && (
                         <TableCell className="tabular text-muted-foreground">
                           {Number(l.expected)}
                         </TableCell>
                       )}
                       <TableCell>
-                        {open ? (
+                        {open && can("stock") ? (
                           <Input
                             className="tabular h-8 w-24 text-right"
                             inputMode="decimal"
@@ -390,7 +397,7 @@ function StockTakeDetail() {
                           </span>
                         )}
                       </TableCell>
-                      {isManager && (
+                      {seesVariance && (
                         <TableCell
                           className={cn(
                             "tabular font-medium",
@@ -406,7 +413,7 @@ function StockTakeDetail() {
                           {diff === null ? "—" : diff > 0 ? `+${diff}` : diff}
                         </TableCell>
                       )}
-                      {isManager && (
+                      {seesVariance && (
                         <TableCell className="hidden text-muted-foreground md:table-cell">
                           {(l.counted_by && names.data?.[l.counted_by]) || "—"}
                         </TableCell>

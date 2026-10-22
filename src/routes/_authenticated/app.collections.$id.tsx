@@ -10,7 +10,7 @@ import { useCollections } from "@/lib/collections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Empty, Field, PageHeader } from "@/components/pos/bits";
+import { Empty, Field, NoAccess, PageHeader } from "@/components/pos/bits";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useI18n } from "@/lib/i18n";
@@ -83,8 +83,11 @@ function CollectionPage() {
     );
   }, [products.data, sel, dq]);
 
-  if (!can("admin", "manager")) return <Empty>{t("col.onlyAdmins")}</Empty>;
+  if (!can("stock", "view_stock")) return <NoAccess />;
   if (!isNew && cols.data && !c) return <Empty>{t("col.notFound")}</Empty>;
+  // A viewer reads the collection and its prices; every editor control follows
+  // the change grant.
+  const canEdit = can("stock");
   const pct = Number(f.discount || 0);
   const toggle = (pid: string) =>
     setSel((s) => {
@@ -141,16 +144,18 @@ function CollectionPage() {
           (pct > 0 ? ` · ${t("col.offPct", { pct })}` : "")
         }
         actions={
-          <div className="flex gap-1.5">
-            {c && (
-              <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(true)}>
-                <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")}
+          canEdit ? (
+            <div className="flex gap-1.5">
+              {c && (
+                <Button size="sm" variant="ghost" onClick={() => setConfirmOpen(true)}>
+                  <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")}
+                </Button>
+              )}
+              <Button size="sm" disabled={!f.name || saving} onClick={save}>
+                {saving ? t("col.saving") : t("common.save")}
               </Button>
-            )}
-            <Button size="sm" disabled={!f.name || saving} onClick={save}>
-              {saving ? t("col.saving") : t("common.save")}
-            </Button>
-          </div>
+            </div>
+          ) : undefined
         }
       />
 
@@ -158,12 +163,17 @@ function CollectionPage() {
         <div className="pos-card flex flex-col gap-3 self-start p-4">
           <div className="font-display text-sm font-medium">{t("col.details")}</div>
           <Field label={t("common.name")}>
-            <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+            <Input
+              value={f.name}
+              readOnly={!canEdit}
+              onChange={(e) => setF({ ...f, name: e.target.value })}
+            />
           </Field>
           <Field label={t("col.discountPct")}>
             <Input
               inputMode="decimal"
               value={f.discount}
+              readOnly={!canEdit}
               onChange={(e) => setF({ ...f, discount: e.target.value })}
             />
           </Field>
@@ -171,6 +181,7 @@ function CollectionPage() {
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={f.shared}
+              disabled={!canEdit}
               onCheckedChange={(v) => setF({ ...f, shared: v === true })}
             />{" "}
             {t("col.shareHint")}
@@ -192,50 +203,58 @@ function CollectionPage() {
                     </span>
                   )}
                   <span className="tabular font-semibold">{money(p.price * (1 - pct / 100))}</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggle(p.id)}
-                    aria-label={t("col.remove")}
-                  >
-                    <HugeiconsIcon icon={Cancel01Icon} size={16} />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggle(p.id)}
+                      aria-label={t("col.remove")}
+                    >
+                      <HugeiconsIcon icon={Cancel01Icon} size={16} />
+                    </Button>
+                  )}
                 </div>
               ))}
               {inCol.length === 0 && (
                 <p className="p-4 text-center text-sm text-muted-foreground">
-                  {t("col.noItemsAdd")}
+                  {t(canEdit ? "col.noItemsAdd" : "common.none")}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="pos-card">
-            <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
-              <div className="font-display text-sm font-medium">{t("col.addItems")}</div>
-              <Input
-                className="h-8 max-w-56"
-                placeholder={t("col.searchItems")}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
-            <div className="max-h-80 divide-y overflow-y-auto">
-              {available.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 px-4 py-1.5 text-[13px]">
-                  <span className="flex-1 truncate">{p.name}</span>
-                  <span className="tabular text-muted-foreground">{money(p.price)}</span>
-                  <Button size="sm" variant="outline" onClick={() => toggle(p.id)}>
-                    {t("col.add")}
-                  </Button>
+          {canEdit && (
+            <>
+              <div className="pos-card">
+                <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
+                  <div className="font-display text-sm font-medium">{t("col.addItems")}</div>
+                  <Input
+                    className="h-8 max-w-56"
+                    placeholder={t("col.searchItems")}
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
                 </div>
-              ))}
-              {available.length === 0 && (
-                <p className="p-4 text-center text-sm text-muted-foreground">{t("col.noMore")}</p>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">{t("col.changesKept")}</p>
+                <div className="max-h-80 divide-y overflow-y-auto">
+                  {available.map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 px-4 py-1.5 text-[13px]">
+                      <span className="flex-1 truncate">{p.name}</span>
+                      <span className="tabular text-muted-foreground">{money(p.price)}</span>
+                      <Button size="sm" variant="outline" onClick={() => toggle(p.id)}>
+                        {t("col.add")}
+                      </Button>
+                    </div>
+                  ))}
+                  {available.length === 0 && (
+                    <p className="p-4 text-center text-sm text-muted-foreground">
+                      {t("col.noMore")}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{t("col.changesKept")}</p>
+            </>
+          )}
         </div>
       </div>
 

@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { NoAccess } from "@/components/pos/bits";
 import { ReceiptIcon, Refresh01Icon } from "@/lib/icons";
 import { REFUNDABLE, useRefunds } from "@/lib/refunds";
 import type { SaleRow } from "@/lib/sales";
@@ -141,6 +142,12 @@ function StateDots({ s }: { s: SaleRow }) {
 }
 
 function SaleDetail() {
+  const { can } = usePos();
+  if (!can("sell", "view_sales")) return <NoAccess />;
+  return <SaleDetailContent />;
+}
+
+function SaleDetailContent() {
   const { id } = Route.useParams();
   const { money, can, stores } = usePos();
   const { t } = useI18n();
@@ -222,7 +229,7 @@ function SaleDetail() {
               staff={names.data ?? {}}
               refunds={refunds.data ?? []}
             />
-            {can("admin", "manager") && REFUNDABLE.includes(s.status) && (
+            {can("approvals") && REFUNDABLE.includes(s.status) && (
               <button type="button" onClick={() => setRefundOpen(true)} className={TILE_CLASS}>
                 <HugeiconsIcon icon={Refresh01Icon} size={20} />
                 <span className="text-sm font-semibold">{t("sdetail.returnRefund")}</span>

@@ -101,7 +101,7 @@ export function QuickAddItem({
     }
   }
 
-  if (!can("admin", "manager")) return null;
+  if (!can("stock")) return null;
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent className="max-w-sm">

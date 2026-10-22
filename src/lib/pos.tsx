@@ -25,6 +25,7 @@ import {
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
 import { t, useI18n } from "@/lib/i18n";
+import { permits, toPermissions, type Access, type Permission } from "@/lib/permissions";
 
 export type CheckoutResult = {
   id: string;
@@ -35,8 +36,6 @@ export type CheckoutResult = {
   offline?: boolean;
 };
 
-export type Role = "admin" | "manager" | "cashier";
-
 /**
  * Why a PIN entry did not open a session. Wrong PINs are counted server-side
  * (`pin_throttle`), and a throttled answer carries the seconds still to wait;
@@ -46,11 +45,14 @@ export type UnlockResult =
   | { ok: true }
   | { ok: false; code: "wrong_pin"; attemptsLeft: number }
   | { ok: false; code: "throttled"; retryAfter: number };
-export type StaffSession = {
+/**
+ * Who this device is unlocked as: the PIN session token plus the access the
+ * database grants that person. `store_id` binds them to one location.
+ */
+export type StaffSession = Access & {
   token: string;
   id: string;
   name: string;
-  role: Role;
   store_id: string | null;
   expires_at?: string;
 };
@@ -88,7 +90,8 @@ type PosCtx = {
   compactMoney: (n: number | string | null | undefined) => string;
   /** Configured currency symbol (e.g. "MWK", "R"), or null before the business loads. */
   currency: string | null;
-  can: (...roles: Role[]) => boolean;
+  /** True when the signed-in person holds any of these grants (the owner: always). */
+  can: (...perms: Permission[]) => boolean;
   refresh: () => void;
   /** Sale checkout that queues direct-store cash/card/mobile sales on this device when offline. */
   checkout: (
@@ -173,13 +176,16 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       const raw = localStorage.getItem(staffKey);
       if (raw) {
         const parsed = JSON.parse(raw) as StaffSession;
-        // A stale token is worse than no token. Sessions created before the
-        // security migration have no expires_at field; they also have no
-        // auth_uid in the DB, so app.session_role() returns NULL and every
-        // RLS-gated table comes back empty. Reject them here and let the
-        // PinPad reappear so a proper session is created.
-        if (parsed?.token && parsed.expires_at && new Date(parsed.expires_at) > new Date()) {
-          setStaff(parsed);
+        // A stale token is worse than no token. Sessions written before the
+        // access model carry a role but no grants, so every screen would be
+        // refused; drop them and let the PIN pad mint a fresh session.
+        if (
+          parsed?.token &&
+          parsed.expires_at &&
+          new Date(parsed.expires_at) > new Date() &&
+          Array.isArray(parsed.permissions)
+        ) {
+          setStaff({ ...parsed, permissions: toPermissions(parsed.permissions) });
         } else {
           localStorage.removeItem(staffKey);
         }
@@ -222,7 +228,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   });
   const stores = storesQ.data ?? [];
 
-  const effectiveStoreId = staff?.role === "cashier" && staff.store_id ? staff.store_id : storeId;
+  // An assigned location binds whoever holds it, not only the old cashier tier.
+  const effectiveStoreId = staff?.store_id ?? storeId;
   const store = stores.find((s) => s.id === effectiveStoreId) ?? stores[0] ?? null;
 
   const setStoreId = (id: string) => {
@@ -261,7 +268,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       token: String(res["token"]),
       id: String(res["id"]),
       name: String(res["name"]),
-      role: res["role"] as Role,
+      owner: res["owner"] === true,
+      permissions: toPermissions(res["permissions"]),
       store_id: (res["store_id"] as string | null | undefined) ?? null,
     };
     if (typeof res["expires_at"] === "string") session.expires_at = res["expires_at"];
@@ -452,7 +460,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     money,
     compactMoney,
     currency,
-    can: (...roles) => !!staff && roles.includes(staff.role),
+    can: (...perms) => !!staff && permits(staff, perms),
     refresh: () => qc.invalidateQueries(),
   };
   const failed = queue.filter((x) => x.error);
@@ -507,10 +515,3 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     </Ctx.Provider>
   );
 }
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const roleLabel: Record<Role, string> = {
-  admin: "Admin",
-  manager: "Manager / Approver",
-  cashier: "Cashier",
-};

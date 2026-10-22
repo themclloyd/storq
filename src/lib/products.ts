@@ -22,7 +22,7 @@ export type Product = {
 // owns its own item copies now, so the catalog is scoped to the current store.
 export function useProducts(storeId?: string, opts: { withCost?: boolean } = {}) {
   const { can } = usePos();
-  const withCost = !!opts.withCost && can("admin", "manager");
+  const withCost = !!opts.withCost && can("money");
   return useQuery({
     queryKey: ["products", storeId, withCost],
     enabled: !!storeId,

@@ -1,6 +1,6 @@
 // Manual discount sheet: per-line flat amounts with a % quick fill. Mirrors
-// the server cap (10% of a line / the cart for cashiers). Past the cap the
-// checkout asks for a manager PIN (verified server-side) — this sheet only
+// the server cap (10% of a line / the cart without `approvals`). Past the cap the
+// checkout asks for an approval PIN (verified server-side) — this sheet only
 // edits the discount amounts, which live on the cart in the register.
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -39,7 +39,7 @@ export function DiscountDialog({
 }) {
   const { money, can } = usePos();
   const { t } = useI18n();
-  const cashier = !can("admin", "manager");
+  const capped = !can("approvals");
   // raw text keeps the caret sane while typing "12."; parsed/clamped on apply
   const [amt, setAmt] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -89,7 +89,7 @@ export function DiscountDialog({
         <DialogHeader className="space-y-0 border-b px-5 py-4 pr-12 text-left">
           <DialogTitle>{t("till.discountsTitle")}</DialogTitle>
           <DialogDescription className="mt-1.5 text-xs">
-            {cashier
+            {capped
               ? t("till.cashierCapNote", { pct: DISCOUNT_CAP_RATIO * 100 })
               : t("till.lineLimitNote")}
           </DialogDescription>
@@ -114,7 +114,7 @@ export function DiscountDialog({
           <div className="divide-y px-5">
             {lines.map((l) => {
               const lineGross = round2(l.unit * l.qty);
-              const blocked = cashier && lineCapBlocked(lineGross, parsed[l.id] ?? 0);
+              const blocked = capped && lineCapBlocked(lineGross, parsed[l.id] ?? 0);
               return (
                 <div key={l.id} className="flex items-center gap-3 py-3">
                   <div className="min-w-0 flex-1">
@@ -158,7 +158,7 @@ export function DiscountDialog({
             <span className="text-sm text-muted-foreground">{t("till.totalDiscount")}</span>
             <span className="tabular text-lg font-extrabold">-{money(totalDisc)}</span>
           </div>
-          {overCap && cashier && (
+          {overCap && capped && (
             <Alert className="border-warning/40 bg-warning/15 text-warning-foreground">
               <AlertDescription className="text-xs [&_p]:leading-relaxed">
                 {t("till.capAlert", { pct: DISCOUNT_CAP_RATIO * 100 })}

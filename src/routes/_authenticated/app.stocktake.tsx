@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
+import { Empty, NoAccess, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
 import { pageSlice } from "@/lib/paging";
 import { useOnce } from "@/hooks/use-once";
 import { useI18n } from "@/lib/i18n";
@@ -77,6 +77,12 @@ type Take = {
 type TakeFilter = "all" | "open" | "closed";
 
 function StockTakeList() {
+  const { can } = usePos();
+  if (!can("stock", "view_stock")) return <NoAccess />;
+  return <StockTakeListContent />;
+}
+
+function StockTakeListContent() {
   const { store, stores, can, rpc, business } = usePos();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -85,7 +91,7 @@ function StockTakeList() {
   const [filter, setFilter] = useState<TakeFilter>("all");
   const [page, setPage] = useState(0);
   // Blind counting: variance-bearing reports stay with admins and managers.
-  const canExport = can("admin", "manager");
+  const canExport = can("stock");
   const { export: exportId } = Route.useSearch();
   // The detail screen already cached the take, its lines and that store's
   // catalog, so the prompt opens with data in hand; a cold link fetches them.
@@ -198,7 +204,7 @@ function StockTakeList() {
             </DropdownMenu>
             {open ? (
               <Button onClick={() => go(open.id)}>{t("stk.resume")}</Button>
-            ) : can("admin", "manager") ? (
+            ) : can("stock") ? (
               <Button onClick={() => void start()}>{t("stk.start")}</Button>
             ) : undefined}
           </>

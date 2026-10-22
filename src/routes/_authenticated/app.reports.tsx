@@ -42,12 +42,12 @@ const RANGE_LABEL_KEY: Record<keyof typeof rangeDays, string> = {
 function Reports() {
   const { can } = usePos();
   const { t } = useI18n();
-  // Gate before any heavy read mounts: a cashier deep-linking to
-  // /app/reports would otherwise fire sales + expenses + refunds + stock +
-  // products + the sale-item-costs chunk chain before the "admins only"
-  // card rendered. Splitting the shell here means the child hooks never
-  // mount for a session that cannot see the data anyway.
-  if (!can("admin", "manager")) {
+  // Gate before any heavy read mounts: a session without money access
+  // deep-linking to /app/reports would otherwise fire sales + expenses +
+  // refunds + stock + products + the sale-item-costs chunk chain before the
+  // "admins only" card rendered. Splitting the shell here means the child
+  // hooks never mount for a session that cannot see the data anyway.
+  if (!can("money", "view_money")) {
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">
         {t("reports.onlyAdmins")}

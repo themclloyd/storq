@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/table";
 import type { DashIcon } from "@/components/dashboard";
 import { ExportMenu } from "@/components/pos/ExportMenu";
-import { Field, NativeSelect, PageHeader, Pager } from "@/components/pos/bits";
+import { Field, NativeSelect, NoAccess, PageHeader, Pager } from "@/components/pos/bits";
 
 export const Route = createFileRoute("/_authenticated/app/expenses")({
   head: () => ({
@@ -112,11 +112,20 @@ const fmtDay = (d: string) =>
   });
 
 function Expenses() {
+  const { can } = usePos();
+  // Tills record what they spend; money access reads the whole ledger.
+  if (!can("sell", "money", "view_money")) return <NoAccess />;
+  return <ExpensesContent />;
+}
+
+function ExpensesContent() {
   const { store, rpc, money, can, business } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const srcLabel = (s: Expense["source"]) => t(SOURCE_KEYS[s]);
-  const canDelete = can("admin", "manager");
+  const canDelete = can("money");
+  // Recording is the tills' job; a view-only money grant reads the ledger only.
+  const canRecord = can("sell") || can("money");
   const [range, setRange] = useState<keyof typeof rangeDays>("7 days");
   const [source, setSource] = useState<"all" | Expense["source"]>("all");
   const [category, setCategory] = useState("all");
@@ -318,9 +327,11 @@ function Expenses() {
               </DropdownMenuContent>
             </DropdownMenu>
             <ExportMenu disabled={exporting} onExport={(kind) => void runExport(kind)} />
-            <Button onClick={() => setRecording(true)} disabled={!store}>
-              <HugeiconsIcon icon={PlusSignIcon} /> {t("exp.recordExpense")}
-            </Button>
+            {canRecord && (
+              <Button onClick={() => setRecording(true)} disabled={!store}>
+                <HugeiconsIcon icon={PlusSignIcon} /> {t("exp.recordExpense")}
+              </Button>
+            )}
           </>
         }
       />
@@ -373,9 +384,11 @@ function Expenses() {
                 {t("exp.clearFilters")}
               </Button>
             ) : (
-              <Button onClick={() => setRecording(true)} disabled={!store}>
-                <HugeiconsIcon icon={PlusSignIcon} /> {t("exp.recordExpense")}
-              </Button>
+              canRecord && (
+                <Button onClick={() => setRecording(true)} disabled={!store}>
+                  <HugeiconsIcon icon={PlusSignIcon} /> {t("exp.recordExpense")}
+                </Button>
+              )
             )}
           </div>
         </Card>

@@ -8,8 +8,8 @@ const QUEUE_PREFIX = "storq-offline-";
 // re-reading the database on every refresh (v1 snapshots are discarded).
 const CACHE_VERSION = 2;
 
-// Reference data the register needs to open instantly. Never persist role-gated
-// data (buying costs, reports) — only what every staff role can already read.
+// Reference data the register needs to open instantly. Never persist gated
+// data (buying costs, reports) — only what every staff member can already read.
 const PERSIST = new Set([
   "business",
   "stores",
@@ -25,7 +25,7 @@ const persistable = (key: readonly unknown[]) =>
   !(key[0] === "subscription" && key[1] === "history");
 
 /**
- * Role-neutral reference data every staff role may read. It survives PIN
+ * Access-neutral reference data every staff member may read. It survives PIN
  * lock/unlock so the till stays warm; everything else (costs, reports, staff
  * lists, history) is dropped on lock and refetched for the next person.
  */

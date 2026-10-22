@@ -32,6 +32,8 @@ import { Route as AuthenticatedAppTransfersRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppCollectionsIndexRouteImport } from './routes/_authenticated/app.collections.index'
 import { Route as AuthenticatedAppCollectionsIdRouteImport } from './routes/_authenticated/app.collections.$id'
 import { Route as AuthenticatedAppSalesIdRouteImport } from './routes/_authenticated/app.sales_.$id'
+import { Route as AuthenticatedAppStaffIdRouteImport } from './routes/_authenticated/app.staff_.$id'
+import { Route as AuthenticatedAppStaffNewRouteImport } from './routes/_authenticated/app.staff_.new'
 import { Route as AuthenticatedAppStocktakeIdRouteImport } from './routes/_authenticated/app.stocktake_.$id'
 import { Route as AuthenticatedAppStoresIdRouteImport } from './routes/_authenticated/app.stores_.$id'
 
@@ -158,6 +160,17 @@ const AuthenticatedAppSalesIdRoute = AuthenticatedAppSalesIdRouteImport.update({
   path: '/sales/$id',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppStaffIdRoute = AuthenticatedAppStaffIdRouteImport.update({
+  id: '/staff_/$id',
+  path: '/staff/$id',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppStaffNewRoute =
+  AuthenticatedAppStaffNewRouteImport.update({
+    id: '/staff_/new',
+    path: '/staff/new',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppStocktakeIdRoute =
   AuthenticatedAppStocktakeIdRouteImport.update({
     id: '/stocktake_/$id',
@@ -193,6 +206,8 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/collections/$id': typeof AuthenticatedAppCollectionsIdRoute
   '/app/sales/$id': typeof AuthenticatedAppSalesIdRoute
+  '/app/staff/$id': typeof AuthenticatedAppStaffIdRoute
+  '/app/staff/new': typeof AuthenticatedAppStaffNewRoute
   '/app/stocktake/$id': typeof AuthenticatedAppStocktakeIdRoute
   '/app/stores/$id': typeof AuthenticatedAppStoresIdRoute
   '/app/collections/': typeof AuthenticatedAppCollectionsIndexRoute
@@ -217,6 +232,8 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/collections/$id': typeof AuthenticatedAppCollectionsIdRoute
   '/app/sales/$id': typeof AuthenticatedAppSalesIdRoute
+  '/app/staff/$id': typeof AuthenticatedAppStaffIdRoute
+  '/app/staff/new': typeof AuthenticatedAppStaffNewRoute
   '/app/stocktake/$id': typeof AuthenticatedAppStocktakeIdRoute
   '/app/stores/$id': typeof AuthenticatedAppStoresIdRoute
   '/app/collections': typeof AuthenticatedAppCollectionsIndexRoute
@@ -245,6 +262,8 @@ export interface FileRoutesById {
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/collections/$id': typeof AuthenticatedAppCollectionsIdRoute
   '/_authenticated/app/sales_/$id': typeof AuthenticatedAppSalesIdRoute
+  '/_authenticated/app/staff_/$id': typeof AuthenticatedAppStaffIdRoute
+  '/_authenticated/app/staff_/new': typeof AuthenticatedAppStaffNewRoute
   '/_authenticated/app/stocktake_/$id': typeof AuthenticatedAppStocktakeIdRoute
   '/_authenticated/app/stores_/$id': typeof AuthenticatedAppStoresIdRoute
   '/_authenticated/app/collections/': typeof AuthenticatedAppCollectionsIndexRoute
@@ -273,6 +292,8 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/collections/$id'
     | '/app/sales/$id'
+    | '/app/staff/$id'
+    | '/app/staff/new'
     | '/app/stocktake/$id'
     | '/app/stores/$id'
     | '/app/collections/'
@@ -297,6 +318,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/collections/$id'
     | '/app/sales/$id'
+    | '/app/staff/$id'
+    | '/app/staff/new'
     | '/app/stocktake/$id'
     | '/app/stores/$id'
     | '/app/collections'
@@ -324,6 +347,8 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/app/collections/$id'
     | '/_authenticated/app/sales_/$id'
+    | '/_authenticated/app/staff_/$id'
+    | '/_authenticated/app/staff_/new'
     | '/_authenticated/app/stocktake_/$id'
     | '/_authenticated/app/stores_/$id'
     | '/_authenticated/app/collections/'
@@ -498,6 +523,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSalesIdRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/staff_/$id': {
+      id: '/_authenticated/app/staff_/$id'
+      path: '/staff/$id'
+      fullPath: '/app/staff/$id'
+      preLoaderRoute: typeof AuthenticatedAppStaffIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/staff_/new': {
+      id: '/_authenticated/app/staff_/new'
+      path: '/staff/new'
+      fullPath: '/app/staff/new'
+      preLoaderRoute: typeof AuthenticatedAppStaffNewRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/stocktake_/$id': {
       id: '/_authenticated/app/stocktake_/$id'
       path: '/stocktake/$id'
@@ -549,6 +588,8 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppTransfersRoute: typeof AuthenticatedAppTransfersRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppSalesIdRoute: typeof AuthenticatedAppSalesIdRoute
+  AuthenticatedAppStaffIdRoute: typeof AuthenticatedAppStaffIdRoute
+  AuthenticatedAppStaffNewRoute: typeof AuthenticatedAppStaffNewRoute
   AuthenticatedAppStocktakeIdRoute: typeof AuthenticatedAppStocktakeIdRoute
   AuthenticatedAppStoresIdRoute: typeof AuthenticatedAppStoresIdRoute
 }
@@ -571,6 +612,8 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppTransfersRoute: AuthenticatedAppTransfersRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppSalesIdRoute: AuthenticatedAppSalesIdRoute,
+  AuthenticatedAppStaffIdRoute: AuthenticatedAppStaffIdRoute,
+  AuthenticatedAppStaffNewRoute: AuthenticatedAppStaffNewRoute,
   AuthenticatedAppStocktakeIdRoute: AuthenticatedAppStocktakeIdRoute,
   AuthenticatedAppStoresIdRoute: AuthenticatedAppStoresIdRoute,
 }

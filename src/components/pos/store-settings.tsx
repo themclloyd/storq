@@ -30,21 +30,25 @@ export function RadioCard({
   onSelect,
   title,
   desc,
+  disabled = false,
 }: {
   checked: boolean;
   onSelect: () => void;
   title: string;
   desc: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={checked}
+      disabled={disabled}
       onClick={onSelect}
       className={cn(
         "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
         checked ? "border-primary bg-secondary/50" : "border-input bg-card hover:bg-muted",
+        disabled && "cursor-not-allowed opacity-60 hover:bg-card",
       )}
     >
       <span

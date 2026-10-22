@@ -7,7 +7,8 @@ import {
   workspacePageAt,
   type WorkspaceGroup,
 } from "@/lib/workspace-navigation";
-import type { Role, Store } from "@/lib/pos";
+import type { Store } from "@/lib/pos";
+import type { Access } from "@/lib/permissions";
 import { useI18n } from "@/lib/i18n";
 
 const GROUP_LABEL_KEY: Record<WorkspaceGroup, string> = {
@@ -21,12 +22,12 @@ const GROUP_LABEL_KEY: Record<WorkspaceGroup, string> = {
 
 export function WorkspaceTabs({
   path,
-  role,
+  access,
   storeType,
   pendingCount,
 }: {
   path: string;
-  role: Role;
+  access: Access | null | undefined;
   storeType?: Store["store_type"] | undefined;
   /** Live pending-approval count, badged onto the Approvals tab until cleared. */
   pendingCount?: number;
@@ -34,7 +35,7 @@ export function WorkspaceTabs({
   const { t } = useI18n();
   const current = workspacePageAt(path);
   const group = current?.group ?? "sales";
-  const pages = visibleWorkspacePages(role, storeType).filter(
+  const pages = visibleWorkspacePages(access, storeType).filter(
     (page) => page.group === current?.group,
   );
   // Some groups move their sibling pages into the page's own actions menu; the

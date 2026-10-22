@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageHeader } from "@/components/pos/bits";
+import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import { pluralize } from "@/lib/format";
 import { useSubscription } from "@/lib/billing";
@@ -51,10 +51,10 @@ function Stores() {
   const { t } = useI18n();
   const subscription = useSubscription(business?.id, stores.length);
   const [adding, setAdding] = useState(false);
-  if (!can("admin"))
-    return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">{t("store.onlyAdmins")}</Card>
-    );
+  if (!can("locations", "view_locations")) return <NoAccess />;
+  // A viewer reads the locations and their receipt setup; creating one or
+  // buying capacity stays with the change grant.
+  const canEdit = can("locations");
   return (
     <>
       <PageHeader
@@ -62,7 +62,7 @@ function Stores() {
         title={t("store.title")}
         sub={pluralize(stores.length, t("store.oneLocation"), t("store.manyLocations"))}
         actions={
-          subscription.data?.canAddStore ? (
+          !canEdit ? undefined : subscription.data?.canAddStore ? (
             <Button onClick={() => setAdding(true)}>
               <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
             </Button>
@@ -85,7 +85,7 @@ function Stores() {
                 capacity: subscription.data?.capacity ?? 0,
               })}
         </p>
-        {!subscription.data?.canAddStore && (
+        {canEdit && !subscription.data?.canAddStore && (
           <Link to="/app/billing" className="font-medium underline">
             {t("store.payMore")}
           </Link>

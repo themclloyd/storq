@@ -455,17 +455,12 @@ function UserMenu({
   settingsTo: string | undefined;
 }) {
   const { t, locale, setLocale } = useI18n();
-  const { staff, lock, stores } = usePos();
+  const { staff, lock } = usePos();
   const signOut = useSignOut();
   const initial = staff?.name.slice(0, 2).toUpperCase() ?? "";
-  // "Approver" only means something where invoices actually await review, so
-  // direct-sale businesses just see the plain Manager label.
-  const roleLabel =
-    staff?.role === "manager" && stores.some((s) => s.store_type === "approval")
-      ? t("roles.managerApprover")
-      : staff
-        ? t(`roles.${staff.role}`)
-        : "";
+  // The owner created the business; everyone else is a team member whose access
+  // is the checklist of grants on their row.
+  const accessLabel = staff ? (staff.owner ? t("staff.owner") : t("staff.member")) : "";
   const avatar = (
     <Avatar className="size-8 border">
       <AvatarFallback className="text-xs">{initial}</AvatarFallback>
@@ -479,7 +474,7 @@ function UserMenu({
             {avatar}
             <span className="grid min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <span className="truncate text-[13px] font-medium">{staff?.name}</span>
-              <span className="truncate text-[11px] text-muted-foreground">{roleLabel}</span>
+              <span className="truncate text-[11px] text-muted-foreground">{accessLabel}</span>
             </span>
             <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </button>
@@ -583,12 +578,12 @@ function Shell() {
   const { staff, stores, store, setStoreId, lock } = usePos();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const items = staff ? workspaceNavigation(staff.role, store?.store_type) : [];
+  const items = staff ? workspaceNavigation(staff, store?.store_type) : [];
   // Settings moves into the user-menu card, so the sidebar only lists work screens.
   const settingsEntry = items.find((n) => n.group === "settings");
   const navItems = items.filter((n) => n.group !== "settings");
   const current = workspacePageAt(path);
-  const lockedToStore = staff?.role === "cashier" && !!staff.store_id;
+  const lockedToStore = !!staff?.store_id;
   const unavailableApproval = current?.approvalOnly && store?.store_type !== "approval";
   // Mode chips only mean something when stores actually differ; a single-mode
   // business never sees "Approval"/"Direct sale" vocabulary in the switcher.
@@ -746,7 +741,7 @@ function Shell() {
           {staff && (
             <WorkspaceTabs
               path={path}
-              role={staff.role}
+              access={staff}
               storeType={store?.store_type}
               pendingCount={pendingCount}
             />

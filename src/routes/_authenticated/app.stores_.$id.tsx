@@ -21,7 +21,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/pos/bits";
+import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import {
   DropdownMenu,
@@ -61,10 +61,7 @@ function StorePage() {
   const { id } = Route.useParams();
   const { stores, can } = usePos();
   const { t } = useI18n();
-  if (!can("admin"))
-    return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">{t("store.onlyAdmins")}</Card>
-    );
+  if (!can("locations", "view_locations")) return <NoAccess />;
   const store = stores.find((s) => s.id === id);
   if (!store)
     return (
@@ -73,10 +70,10 @@ function StorePage() {
       </Card>
     );
   // Keyed so a refreshed store row resets the draft once the query returns.
-  return <StoreForm key={store.id} store={store} />;
+  return <StoreForm key={store.id} store={store} readOnly={!can("locations")} />;
 }
 
-function StoreForm({ store }: { store: Store }) {
+function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
   const { rpc, money, business } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -618,53 +615,55 @@ function StoreForm({ store }: { store: Store }) {
         title={store.name}
         sub={<StoreTypeTag type={store.store_type} />}
         actions={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={anyX}>
-                <HugeiconsIcon icon={Download01Icon} />
-                {anyX ? t("xport.downloading") : t("common.export")}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>{t("xport.storeExportLabel")}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={xPdf} className="font-medium">
-                <HugeiconsIcon icon={Download01Icon} className="text-primary" />
-                {t("xport.pdfReportTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">PDF</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={xAll}>
-                {t("xport.downloadAllBtn")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">ZIP</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={xSales}>
-                {t("xport.salesTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={xSaleItems}>
-                {t("xport.saleItemsTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={xRefunds}>
-                {t("xport.refundsTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={xExpenses}>
-                {t("xport.expensesTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={xProducts}>
-                {t("xport.productsTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={xMovements}>
-                {t("xport.movementsTitle")}
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          readOnly ? undefined : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={anyX}>
+                  <HugeiconsIcon icon={Download01Icon} />
+                  {anyX ? t("xport.downloading") : t("common.export")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>{t("xport.storeExportLabel")}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={xPdf} className="font-medium">
+                  <HugeiconsIcon icon={Download01Icon} className="text-primary" />
+                  {t("xport.pdfReportTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">PDF</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={xAll}>
+                  {t("xport.downloadAllBtn")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">ZIP</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={xSales}>
+                  {t("xport.salesTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={xSaleItems}>
+                  {t("xport.saleItemsTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={xRefunds}>
+                  {t("xport.refundsTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={xExpenses}>
+                  {t("xport.expensesTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={xProducts}>
+                  {t("xport.productsTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={xMovements}>
+                  {t("xport.movementsTitle")}
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
         }
       />
 
@@ -681,6 +680,7 @@ function StoreForm({ store }: { store: Store }) {
             <Input
               maxLength={LIMITS.storeName}
               value={name}
+              readOnly={readOnly}
               onChange={(e) => setName(e.target.value.slice(0, LIMITS.storeName))}
             />
           </Label>
@@ -692,6 +692,7 @@ function StoreForm({ store }: { store: Store }) {
               inputMode="tel"
               maxLength={LIMITS.phone}
               value={phone}
+              readOnly={readOnly}
               onChange={(e) => setPhone(e.target.value)}
             />
           </Label>
@@ -704,6 +705,7 @@ function StoreForm({ store }: { store: Store }) {
               inputMode="email"
               maxLength={LIMITS.email}
               value={email}
+              readOnly={readOnly}
               onChange={(e) => setEmail(e.target.value)}
             />
           </Label>
@@ -714,6 +716,7 @@ function StoreForm({ store }: { store: Store }) {
             <Input
               maxLength={LIMITS.address}
               value={address}
+              readOnly={readOnly}
               onChange={(e) => setAddress(e.target.value.slice(0, LIMITS.address))}
             />
           </Label>
@@ -724,6 +727,7 @@ function StoreForm({ store }: { store: Store }) {
             <Input
               maxLength={LIMITS.taxId}
               value={taxNumber}
+              readOnly={readOnly}
               onChange={(e) => setTaxNumber(e.target.value.slice(0, LIMITS.taxId))}
             />
           </Label>
@@ -742,6 +746,7 @@ function StoreForm({ store }: { store: Store }) {
               inputMode="decimal"
               maxLength={5}
               value={rate}
+              readOnly={readOnly}
               onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ""))}
             />
           </Label>
@@ -755,6 +760,7 @@ function StoreForm({ store }: { store: Store }) {
               <RadioCard
                 key={String(v)}
                 checked={incl === v}
+                disabled={readOnly}
                 onSelect={() => setIncl(v)}
                 title={t(ti)}
                 desc={t(di)}
@@ -794,6 +800,7 @@ function StoreForm({ store }: { store: Store }) {
             <RadioCard
               key={opt.v}
               checked={type === opt.v}
+              disabled={readOnly}
               onSelect={() => setType(opt.v)}
               title={t(opt.tKey)}
               desc={t(opt.dKey)}
@@ -802,9 +809,11 @@ function StoreForm({ store }: { store: Store }) {
         </div>
       </div>
 
-      <Button className="mt-5" disabled={busy || !name || !phone} onClick={save}>
-        {t("common.save")}
-      </Button>
+      {!readOnly && (
+        <Button className="mt-5" disabled={busy || !name || !phone} onClick={save}>
+          {t("common.save")}
+        </Button>
+      )}
     </>
   );
 }

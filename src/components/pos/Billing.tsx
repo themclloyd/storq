@@ -583,7 +583,7 @@ export function Billing({ locked }: { locked?: boolean }) {
 
   // A closed account cannot pay its way back — SQL refuses the intent outright — so
   // it gets no payment affordance at all. A suspension does: paying clears it.
-  const canPay = can("admin", "manager") && !s?.closed;
+  const canPay = can("money") && !s?.closed;
   const lastPaid = history.data?.find((r) => r.status === "paid") ?? null;
   const paidInvoices = (history.data ?? []).filter((r) => r.status === "paid");
   const usagePct = s?.capacity ? Math.min(100, Math.round((stores.length / s.capacity) * 100)) : 0;

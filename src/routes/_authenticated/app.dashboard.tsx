@@ -67,9 +67,10 @@ function Dashboard() {
   const approval = store?.store_type === "approval";
 
   // Buying costs (and therefore the nested sale_items join) are gated to
-  // managers/admins. A cashier's chart only needs parent totals, so we skip the
-  // item join entirely instead of pulling sale_items for up to 1000 sales.
-  const seesProfit = can("admin", "manager");
+  // whoever may read the money numbers. A session without money access only
+  // needs parent totals, so we skip the item join entirely instead of pulling
+  // sale_items for up to 1000 sales.
+  const seesProfit = can("money", "view_money");
   const sales = useSales("dash", { storeId, since, items: seesProfit });
   const expenses = useExpenses({ storeId, since });
   const costs = useSaleItemCosts(seesProfit ? sales.data : undefined);
@@ -77,7 +78,7 @@ function Dashboard() {
 
   // Alerts: pending invoices, open laybys, low stock
   const alerts = useQuery({
-    queryKey: ["dash-alerts", storeId, store?.store_type, can("admin", "manager"), locale],
+    queryKey: ["dash-alerts", storeId, store?.store_type, can("money", "view_money"), locale],
     enabled: !!storeId,
     // The feed is in SALE_TOUCHED and invalidated by every stock write, so it
     // can stay cached across remounts rather than re-running its count queries.
@@ -127,7 +128,7 @@ function Dashboard() {
           out.push({
             icon: MoneyBag02Icon,
             text: t("dashboard.alertLowStock", { name, qty: Number((r as { qty: number }).qty) }),
-            to: can("admin", "manager") ? "/app/inventory" : "/app/stocktake",
+            to: can("stock", "view_stock") ? "/app/inventory" : "/app/stocktake",
             tone: "warn",
           });
         }
@@ -247,7 +248,7 @@ function Dashboard() {
               (alerts.data ?? []).map((a, i) => <AlertRow key={i} item={a} />)
             )}
           </div>
-          {!can("admin", "manager") && (
+          {!can("money", "view_money") && (
             <p className="mt-2 text-[11px] text-muted-foreground">
               {t("dashboard.profitVisibilityNote")}
             </p>
@@ -269,7 +270,7 @@ function NeedsReorder({ storeId }: { storeId?: string | undefined }) {
   const { t } = useI18n();
   const { can } = usePos();
   const low = useLowStock(storeId);
-  if (!can("admin", "manager") || !storeId) return null;
+  if (!can("stock", "view_stock") || !storeId) return null;
   const rows = low.data ?? [];
   return (
     <DashboardSection

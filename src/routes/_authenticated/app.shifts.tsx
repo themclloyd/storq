@@ -11,7 +11,7 @@ import { useStaffNames } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, PageHeader, Status, fmtDate } from "@/components/pos/bits";
+import { Empty, Field, NoAccess, PageHeader, Status, fmtDate } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -61,6 +61,13 @@ type Summary = {
 };
 
 function Shifts() {
+  const { can } = usePos();
+  // The drawer summary is a till RPC; there is no read-only version of it.
+  if (!can("sell")) return <NoAccess />;
+  return <ShiftsContent />;
+}
+
+function ShiftsContent() {
   const { store, rpc, money, can, staff } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -114,9 +121,9 @@ function Shifts() {
   // shouting about is one that has been left open since before today — that is
   // yesterday's cash sitting in today's expected amount.
   const stale = !!open && new Date(open.opened_at).toDateString() !== new Date().toDateString();
-  // The seller who opened the drawer (or a manager) may correct the float that
-  // was in the till before the first sale.
-  const canSetFloat = !!open && (can("admin", "manager") || open.opened_by === staff?.id);
+  // The seller who opened the drawer (or anyone who holds approvals) may
+  // correct the float that was in the till before the first sale.
+  const canSetFloat = !!open && (can("approvals") || open.opened_by === staff?.id);
 
   return (
     <>
@@ -242,7 +249,7 @@ function Shifts() {
         />
       )}
       {report && <ZReport s={report} names={names.data ?? {}} onClose={() => setReport(null)} />}
-      {!can("admin", "manager") && (
+      {!can("approvals") && (
         <p className="mt-4 text-xs text-muted-foreground">{t("shift.managerNote")}</p>
       )}
     </>

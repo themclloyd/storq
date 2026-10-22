@@ -906,7 +906,9 @@ export type Database = {
           business_id: string
           created_at: string
           id: string
+          is_owner: boolean
           name: string
+          permissions: string[]
           pin_hash: string
           role: string
           store_id: string | null
@@ -916,7 +918,9 @@ export type Database = {
           business_id: string
           created_at?: string
           id?: string
+          is_owner?: boolean
           name: string
+          permissions?: string[]
           pin_hash: string
           role: string
           store_id?: string | null
@@ -926,7 +930,9 @@ export type Database = {
           business_id?: string
           created_at?: string
           id?: string
+          is_owner?: boolean
           name?: string
+          permissions?: string[]
           pin_hash?: string
           role?: string
           store_id?: string | null
@@ -1751,8 +1757,8 @@ export type Database = {
           p_active: boolean
           p_id: string
           p_name: string
+          p_permissions: string[]
           p_pin: string
-          p_role: string
           p_store: string
           p_token: string
         }

@@ -141,7 +141,7 @@ function Inventory() {
   // The shell no longer renders an inventory tab row, so the actions menu is the
   // switcher between this page and Transfers / Collections / Stock takes.
   const siblingPages = staff
-    ? visibleWorkspacePages(staff.role, store?.store_type).filter(
+    ? visibleWorkspacePages(staff, store?.store_type).filter(
         (p) => p.group === "inventory" && p.to !== "/app/inventory",
       )
     : [];
@@ -170,6 +170,9 @@ function Inventory() {
   const [page, setPage] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const low = useLowStock(store?.id);
+  // Reading the catalog and changing it are separate grants: a viewer gets the
+  // list, the codes and the exports, but no import, new-item or stock writes.
+  const canEdit = can("stock");
   // A hardware scanner on the inventory page jumps to the matching item in the
   // table (by setting the search field) or opens a pre-filled New Item dialog
   // when the code is unknown — the same shortcuts as the till, without a sale.
@@ -189,7 +192,7 @@ function Inventory() {
       setEdit({ active: true, price: 0, cost: 0, sku: normalizeCode(code) });
       return true;
     },
-    { enabled: !edit && !adj && !qr && !sheet && !imp },
+    { enabled: canEdit && !edit && !adj && !qr && !sheet && !imp },
   );
   // The filter, sort and stock-value total scan the whole cached catalog, so
   // memoize them (unrelated re-renders no longer re-scan every product) and
@@ -333,7 +336,7 @@ function Inventory() {
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(rows, page);
   // Filters that narrow the list (sorting is excluded) drive the trigger badge.
   const activeFilters = (lowOnly ? 1 : 0) + (colFilter !== "all" ? 1 : 0);
-  if (!can("admin", "manager"))
+  if (!can("stock", "view_stock"))
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">{t("inv.noAccess")}</Card>
     );
@@ -351,38 +354,40 @@ function Inventory() {
         }
         actions={
           <>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (!f) return;
-                // `accept` only filters the picker: a dragged, renamed or
-                // "All files" upload still arrives here. Check the file itself
-                // — size included — before reading it into memory.
-                const fileErr = validateCsvFile(f);
-                if (fileErr) {
-                  toast.error(fileErr);
-                  return;
-                }
-                try {
-                  const text = await readCsvText(f);
-                  // Contents, not just the name: a renamed workbook or a saved
-                  // web page must not be parsed as item rows.
-                  const shapeErr = csvFileIssue(text);
-                  if (shapeErr) {
-                    toast.error(shapeErr);
+            {canEdit && (
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  // `accept` only filters the picker: a dragged, renamed or
+                  // "All files" upload still arrives here. Check the file itself
+                  // — size included — before reading it into memory.
+                  const fileErr = validateCsvFile(f);
+                  if (fileErr) {
+                    toast.error(fileErr);
                     return;
                   }
-                  setImp(readImport(text, products.data ?? []));
-                } catch (err) {
-                  toast.error((err as Error).message);
-                }
-              }}
-            />
+                  try {
+                    const text = await readCsvText(f);
+                    // Contents, not just the name: a renamed workbook or a saved
+                    // web page must not be parsed as item rows.
+                    const shapeErr = csvFileIssue(text);
+                    if (shapeErr) {
+                      toast.error(shapeErr);
+                      return;
+                    }
+                    setImp(readImport(text, products.data ?? []));
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                  }
+                }}
+              />
+            )}
             <div className="relative w-full sm:w-56">
               <HugeiconsIcon
                 icon={Search01Icon}
@@ -473,9 +478,11 @@ function Inventory() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
-                  {t("inv.importCsv")}
-                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
+                    {t("inv.importCsv")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onSelect={() =>
                     downloadCsv(`storq-inventory-template.csv`, [
@@ -501,9 +508,11 @@ function Inventory() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
-              <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
-            </Button>
+            {canEdit && (
+              <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
+                <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
+              </Button>
+            )}
           </>
         }
       />
@@ -560,9 +569,11 @@ function Inventory() {
             <p className="max-w-xs text-sm text-muted-foreground">
               {q || lowOnly || colFilter !== "all" ? t("common.none") : t("inv.noItemsYet")}
             </p>
-            <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
-              <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
-            </Button>
+            {canEdit && (
+              <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
+                <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
+              </Button>
+            )}
           </div>
         </Card>
       ) : (
@@ -571,19 +582,21 @@ function Inventory() {
             <Table className="text-[13px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-8 pr-0">
-                    <Checkbox
-                      aria-label={t("code.selectAll")}
-                      checked={pageRows.every((p) => picked[p.id])}
-                      onCheckedChange={(v) =>
-                        setPicked((s) => {
-                          const next = { ...s };
-                          for (const p of pageRows) next[p.id] = v === true;
-                          return next;
-                        })
-                      }
-                    />
-                  </TableHead>
+                  {canEdit && (
+                    <TableHead className="w-8 pr-0">
+                      <Checkbox
+                        aria-label={t("code.selectAll")}
+                        checked={pageRows.every((p) => picked[p.id])}
+                        onCheckedChange={(v) =>
+                          setPicked((s) => {
+                            const next = { ...s };
+                            for (const p of pageRows) next[p.id] = v === true;
+                            return next;
+                          })
+                        }
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="pl-4">{t("doc.item")}</TableHead>
                   <TableHead>{t("inv.codeColumn")}</TableHead>
                   <TableHead>{t("inv.price")}</TableHead>
@@ -599,13 +612,17 @@ function Inventory() {
                   const costAbove = Number(p.cost) > Number(p.price);
                   return (
                     <TableRow key={p.id} className={cn(!p.active && "opacity-[0.45]")}>
-                      <TableCell className="w-8 pr-0">
-                        <Checkbox
-                          aria-label={t("code.selectItem", { name: p.name })}
-                          checked={!!picked[p.id]}
-                          onCheckedChange={(v) => setPicked((s) => ({ ...s, [p.id]: v === true }))}
-                        />
-                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="w-8 pr-0">
+                          <Checkbox
+                            aria-label={t("code.selectItem", { name: p.name })}
+                            checked={!!picked[p.id]}
+                            onCheckedChange={(v) =>
+                              setPicked((s) => ({ ...s, [p.id]: v === true }))
+                            }
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="py-3 pl-4">
                         <div className="flex items-center gap-3">
                           <span
@@ -668,14 +685,18 @@ function Inventory() {
                               <HugeiconsIcon icon={QrCode01Icon} className="size-4" />
                               {t("code.showTitle")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setAdj(p)}>
-                              <HugeiconsIcon icon={PackageIcon} className="size-4" />
-                              {t("inv.btnStock")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setEdit(p)}>
-                              <HugeiconsIcon icon={Settings01Icon} className="size-4" />
-                              {t("common.edit")}
-                            </DropdownMenuItem>
+                            {canEdit && (
+                              <>
+                                <DropdownMenuItem onSelect={() => setAdj(p)}>
+                                  <HugeiconsIcon icon={PackageIcon} className="size-4" />
+                                  {t("inv.btnStock")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => setEdit(p)}>
+                                  <HugeiconsIcon icon={Settings01Icon} className="size-4" />
+                                  {t("common.edit")}
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -828,7 +849,7 @@ function ProductDialog({
       toast.error((e as Error).message);
     }
   }
-  const stockEditable = can("admin", "manager") && !!store;
+  const stockEditable = can("stock") && !!store;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>

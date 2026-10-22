@@ -39,7 +39,10 @@ describe("offline reference cache", () => {
     );
     const qc = new QueryClient();
     hydrateCache(qc, user);
-    expect(qc.getQueryState(catalog)?.dataUpdatedAt).toBeLessThanOrEqual(now);
+    // The clamp stamps `Date.now()` when it hydrates, which can be a millisecond
+    // later than the `now` captured before the call; what matters is that the
+    // future timestamp was not kept.
+    expect(qc.getQueryState(catalog)?.dataUpdatedAt).toBeLessThanOrEqual(Date.now());
   });
 
   it("discards v1 snapshots, which carry no fetch times", () => {

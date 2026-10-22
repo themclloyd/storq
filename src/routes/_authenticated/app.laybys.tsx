@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
+import {
+  Empty,
+  Field,
+  NativeSelect,
+  NoAccess,
+  PageHeader,
+  Status,
+  fmtDate,
+} from "@/components/pos/bits";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { useI18n } from "@/lib/i18n";
 
@@ -26,6 +34,12 @@ export const Route = createFileRoute("/_authenticated/app/laybys")({
 });
 
 function Laybys() {
+  const { can } = usePos();
+  if (!can("sell", "view_sales")) return <NoAccess />;
+  return <LaybysContent />;
+}
+
+function LaybysContent() {
   const { store, money, can, rpc } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -107,19 +121,21 @@ function Laybys() {
               </p>
               {s.status === "layby_open" && (
                 <div className="mt-3 flex gap-2">
-                  {can("admin", "manager") && (
+                  {can("approvals") && (
                     <Button size="sm" variant="outline" onClick={() => cancel(s)}>
                       {t("common.cancel")}
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="flex-1"
-                    onClick={() => setPaying(s)}
-                  >
-                    {t("laybys.takePayment")}
-                  </Button>
+                  {can("sell") && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="flex-1"
+                      onClick={() => setPaying(s)}
+                    >
+                      {t("laybys.takePayment")}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

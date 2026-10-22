@@ -9,7 +9,15 @@ import { useTransferMutations, useTransfers, type Transfer } from "@/lib/transfe
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, NativeSelect, PageHeader, Pager, fmtDate } from "@/components/pos/bits";
+import {
+  Empty,
+  Field,
+  NativeSelect,
+  NoAccess,
+  PageHeader,
+  Pager,
+  fmtDate,
+} from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -50,7 +58,9 @@ function Transfers() {
   const [page, setPage] = useState(0);
   const transfers = useTransfers(store?.id);
   const muts = useTransferMutations();
-  if (!can("admin", "manager")) return <Empty>{t("trf.onlyAdmins")}</Empty>;
+  if (!can("stock", "view_stock")) return <NoAccess />;
+  // History is readable; starting a move is a stock change.
+  const canEdit = can("stock");
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(transfers.data ?? [], page);
   const storeName = (id: string) => stores.find((s) => s.id === id)?.name ?? t("trf.storeWord");
 
@@ -61,18 +71,18 @@ function Transfers() {
         title={t("trf.title")}
         sub={t("trf.sub", { store: store?.name ?? t("trf.yourStore") })}
         actions={
-          stores.length < 2 ? undefined : (
+          !canEdit || stores.length < 2 ? undefined : (
             <Button onClick={() => setCreating(true)}>
               <HugeiconsIcon icon={PlusSignIcon} /> {t("trf.newTransfer")}
             </Button>
           )
         }
       />
-      {stores.length < 2 && <Empty>{t("trf.needSecond")}</Empty>}
+      {canEdit && stores.length < 2 && <Empty>{t("trf.needSecond")}</Empty>}
       {transfers.isPending ? (
         <p className="text-sm text-muted-foreground">{t("trf.loading")}</p>
       ) : (transfers.data?.length ?? 0) === 0 ? (
-        <Empty>{t("trf.none")}</Empty>
+        <Empty>{t(canEdit ? "trf.none" : "common.none")}</Empty>
       ) : (
         <>
           <div className="space-y-2">

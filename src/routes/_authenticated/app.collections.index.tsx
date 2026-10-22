@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, PageHeader, Pager } from "@/components/pos/bits";
+import { Empty, NoAccess, PageHeader, Pager } from "@/components/pos/bits";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { pageSlice } from "@/lib/paging";
 import { useI18n } from "@/lib/i18n";
@@ -62,8 +62,11 @@ function Collections() {
   const pickedIds = Object.keys(picked).filter((id) => picked[id]);
   const pickedOnPage = pageRows.filter((c) => picked[c.id]).length;
   const allPicked = pageRows.length > 0 && pickedOnPage === pageRows.length;
+  // Viewing a collection never needs the delete tools: bulk removal, row
+  // selection and the New collection button follow the change grant.
+  const canEdit = can("stock");
 
-  if (!can("admin", "manager")) return <Empty>{t("col.onlyAdmins")}</Empty>;
+  if (!can("stock", "view_stock")) return <NoAccess />;
 
   // Collections are removed one RPC at a time; failures stay selected so a
   // retry targets only what is left. Items themselves are never touched.
@@ -101,18 +104,20 @@ function Collections() {
         title={t("col.title")}
         sub={t("col.listSub")}
         actions={
-          <Button asChild>
-            <Link to="/app/collections/$id" params={{ id: "new" }}>
-              <HugeiconsIcon icon={PlusSignIcon} /> {t("col.newCollection")}
-            </Link>
-          </Button>
+          canEdit ? (
+            <Button asChild>
+              <Link to="/app/collections/$id" params={{ id: "new" }}>
+                <HugeiconsIcon icon={PlusSignIcon} /> {t("col.newCollection")}
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       {list.length === 0 ? (
         <Empty>{t("col.noneYet")}</Empty>
       ) : (
         <>
-          {pickedIds.length > 0 && (
+          {canEdit && pickedIds.length > 0 && (
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Button size="sm" variant="destructive" onClick={() => setConfirmOpen(true)}>
                 <HugeiconsIcon icon={Delete02Icon} /> {t("common.delete")} · {pickedIds.length}
@@ -131,19 +136,21 @@ function Collections() {
             <Table className="text-[13px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-8 pr-0">
-                    <Checkbox
-                      aria-label={t("col.selectAll")}
-                      checked={allPicked ? true : pickedOnPage > 0 ? "indeterminate" : false}
-                      onCheckedChange={(v) =>
-                        setPicked((s) => {
-                          const next = { ...s };
-                          for (const c of pageRows) next[c.id] = v === true;
-                          return next;
-                        })
-                      }
-                    />
-                  </TableHead>
+                  {canEdit && (
+                    <TableHead className="w-8 pr-0">
+                      <Checkbox
+                        aria-label={t("col.selectAll")}
+                        checked={allPicked ? true : pickedOnPage > 0 ? "indeterminate" : false}
+                        onCheckedChange={(v) =>
+                          setPicked((s) => {
+                            const next = { ...s };
+                            for (const c of pageRows) next[c.id] = v === true;
+                            return next;
+                          })
+                        }
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="pl-4">{t("common.name")}</TableHead>
                   <TableHead className="w-24">{t("col.items")}</TableHead>
                   <TableHead className="w-24">{t("col.discount")}</TableHead>
@@ -153,13 +160,15 @@ function Collections() {
               <TableBody>
                 {pageRows.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell className="w-8 pr-0">
-                      <Checkbox
-                        aria-label={t("col.selectItem", { name: c.name })}
-                        checked={!!picked[c.id]}
-                        onCheckedChange={(v) => setPicked((s) => ({ ...s, [c.id]: v === true }))}
-                      />
-                    </TableCell>
+                    {canEdit && (
+                      <TableCell className="w-8 pr-0">
+                        <Checkbox
+                          aria-label={t("col.selectItem", { name: c.name })}
+                          checked={!!picked[c.id]}
+                          onCheckedChange={(v) => setPicked((s) => ({ ...s, [c.id]: v === true }))}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="py-3 pl-4">
                       <Link
                         to="/app/collections/$id"

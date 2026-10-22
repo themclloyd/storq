@@ -7,7 +7,15 @@ import { useSales, useStaffNames, type SaleRow } from "@/lib/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, Field, NativeSelect, PageHeader, Status, fmtDate } from "@/components/pos/bits";
+import {
+  Empty,
+  Field,
+  NativeSelect,
+  NoAccess,
+  PageHeader,
+  Status,
+  fmtDate,
+} from "@/components/pos/bits";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { useI18n } from "@/lib/i18n";
@@ -26,6 +34,12 @@ export const Route = createFileRoute("/_authenticated/app/invoices")({
 });
 
 function Invoices() {
+  const { can } = usePos();
+  if (!can("approvals", "view_approvals")) return <NoAccess />;
+  return <InvoicesContent />;
+}
+
+function InvoicesContent() {
   const { store, money, can, rpc, staff } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -39,7 +53,7 @@ function Invoices() {
   // The queue reads as two explicit tabs — what still waits for a decision
   // and the ones already done — so nobody wonders where an invoice went.
   const [tab, setTab] = useState<"waiting" | "done">("waiting");
-  const approver = can("admin", "manager");
+  const approver = can("approvals");
 
   async function review(s: SaleRow, approve: boolean, payment = 0, method = "cash") {
     try {
@@ -147,7 +161,7 @@ function Invoices() {
                       size="sm"
                       variant="success"
                       className="flex-1"
-                      disabled={s.created_by === staff?.id && staff?.role !== "admin"}
+                      disabled={s.created_by === staff?.id && !staff?.owner}
                       onClick={() => setApproving(s)}
                     >
                       {t("invoices.approve")}
