@@ -755,6 +755,7 @@ export const ny = {
     startedWord: "Kwayamba",
     closedWord: "Kwatsekedwa",
     noPast: "Palibe kuwerengera kwakale.",
+    closeTitle: "Malizitsani kuwerengera katundu?",
     closeConfirm:
       "Mukufuna kutseka kuwerengera katundu? Zinthu zomwe zawerengedwa zisintha kuchuluka kwa katundu.",
     levelsUpdated: "Kuchuluka kwa katundu kwasinthidwa",
@@ -763,7 +764,9 @@ export const ny = {
     countedStat: "{counted} / {total} zawerengedwa",
     finish: "Malizitsani ndi kusintha katundu",
     systemWord: "Dongosolo",
+    expectedCol: "Zoyembekezeka",
     countPh: "Werengani",
+    countInvalid: "Lowetsani chiwerengero cha zero kapena kupitirira.",
     nothing: "Palibe choonetsa.",
     subList: "Kuwerengera katundu kwa {store}, kwatsopano choyamba.",
     none: "Palibe kuwerengera katundu konse.",
@@ -782,6 +785,7 @@ export const ny = {
     startedBy: "Kwayamba {date} ndi {name}",
     closedBy: "Kwatsekedwa {date} ndi {name}",
     by: "ndi {name}",
+    reportTitle: "Lipoti la kuwerengera katundu",
     notFound: "Kuwerengera katundu sikupezeka.",
   },
   trf: {

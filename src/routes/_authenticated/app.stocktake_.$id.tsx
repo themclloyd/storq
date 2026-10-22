@@ -7,6 +7,7 @@ import { usePos } from "@/lib/pos";
 import { useProducts } from "@/lib/products";
 import { useStaffNames } from "@/lib/sales";
 import { invalidateKeys } from "@/lib/cache-invalidation";
+import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
+import { ExportMenu } from "@/components/pos/ExportMenu";
 import { cn } from "@/lib/utils";
 import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useOnce } from "@/hooks/use-once";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/stocktake_/$id")({
@@ -61,15 +65,31 @@ type LineRow = {
 };
 type LineFilter = "all" | "diff" | "left";
 
+/** The count currently shown: an edit on this screen outranks the polled row. */
+function lineCount(l: LineRow, drafts: Record<string, string>): number | null {
+  if (l.product_id in drafts) {
+    const raw = (drafts[l.product_id] ?? "").trim();
+    if (raw === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  return l.counted === null ? null : Number(l.counted);
+}
+
 function StockTakeDetail() {
   const { id } = Route.useParams();
-  const { store, stores, can, rpc } = usePos();
+  const { store, stores, can, rpc, staff, business } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const names = useStaffNames();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<LineFilter>("all");
   const [page, setPage] = useState(0);
+  // Per-item drafts double as the instant display value and the write source,
+  // so a typed count and its variance never wait on the RPC.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [closing, setClosing] = useState(false);
   const isManager = can("admin", "manager");
 
   const takeQ = useQuery({
@@ -93,7 +113,6 @@ function StockTakeDetail() {
   const open = take?.status === "open";
   const lines = useQuery({
     queryKey: ["take-lines", id],
-    enabled: !!take,
     // Live team count while the session is open; a closed session never changes.
     refetchInterval: open ? 15_000 : false,
     // A background tab must not keep polling; the count re-syncs on visibility.
@@ -112,43 +131,107 @@ function StockTakeDetail() {
     for (const p of products.data ?? []) m[p.id] = p.name;
     return m;
   }, [products.data]);
+  const skuById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of products.data ?? []) if (p.sku) m[p.id] = p.sku;
+    return m;
+  }, [products.data]);
   const dq = useDebouncedValue(q);
   const rows = useMemo(() => {
     const needle = dq.trim().toLowerCase();
     const label = (pid: string) => nameById[pid] ?? "";
-    return (lines.data ?? [])
-      .filter((l) => {
-        if (filter === "left" && l.counted !== null) return false;
-        if (filter === "diff" && (l.counted === null || Number(l.counted) === Number(l.expected)))
-          return false;
-        return !needle || label(l.product_id).toLowerCase().includes(needle);
-      })
-      .sort((a, b) => label(a.product_id).localeCompare(label(b.product_id)));
+    return (
+      (lines.data ?? [])
+        // Visibility follows the saved rows so a row cannot vanish (and drop the
+        // focused input's blur save) the moment a typed count fixes it.
+        .filter((l) => {
+          if (filter === "left" && l.counted !== null) return false;
+          if (filter === "diff" && (l.counted === null || Number(l.counted) === Number(l.expected)))
+            return false;
+          return !needle || label(l.product_id).toLowerCase().includes(needle);
+        })
+        .sort((a, b) => label(a.product_id).localeCompare(label(b.product_id)))
+    );
   }, [lines.data, filter, dq, nameById]);
   const { pageCount, page: curPage, rows: pageRows } = pageSlice(rows, page);
+  // Cards and variances read the drafts, so they move with every keystroke.
+  const summary = useMemo(() => {
+    let counted = 0;
+    let diffs = 0;
+    let net = 0;
+    for (const l of lines.data ?? []) {
+      const c = lineCount(l, drafts);
+      if (c === null) continue;
+      counted++;
+      const d = c - Number(l.expected);
+      if (d !== 0) diffs++;
+      net += d;
+    }
+    return { counted, diffs, net: Math.round(net * 100) / 100 };
+  }, [lines.data, drafts]);
   const total = lines.data?.length ?? 0;
-  const counted = lines.data?.filter((l) => l.counted !== null).length ?? 0;
-  const diffs = (lines.data ?? []).filter(
-    (l) => l.counted !== null && Number(l.counted) !== Number(l.expected),
-  );
-  const net =
-    Math.round(diffs.reduce((a, l) => a + Number(l.counted) - Number(l.expected), 0) * 100) / 100;
+  const { counted, diffs, net } = summary;
 
-  async function save(pid: string, v: string) {
-    if (v === "") return;
+  function clearDraft(pid: string) {
+    setDrafts((d) => {
+      const next = { ...d };
+      delete next[pid];
+      return next;
+    });
+  }
+  function patchLine(pid: string, counted: number | null, countedBy: string | null) {
+    qc.setQueryData<LineRow[]>(["take-lines", id], (old) =>
+      old?.map((l) => (l.product_id === pid ? { ...l, counted, counted_by: countedBy } : l)),
+    );
+  }
+  async function commit(pid: string, raw: string) {
+    if (take?.status !== "open") return;
+    const line = lines.data?.find((l) => l.product_id === pid);
+    if (!line) return;
+    const value = raw.trim() === "" ? null : Number(raw.trim());
+    if (value !== null && (!Number.isFinite(value) || value < 0)) {
+      clearDraft(pid);
+      toast.error(t("stk.countInvalid"));
+      return;
+    }
+    const before = line.counted === null ? null : Number(line.counted);
+    if (before === value) {
+      clearDraft(pid);
+      return;
+    }
+    // Paint the row and its variance immediately; persistence follows.
+    setDrafts((d) => ({ ...d, [pid]: value === null ? "" : String(value) }));
+    patchLine(pid, value, staff?.id ?? null);
     try {
-      await rpc("count_stock", { p_take: id, p_product: pid, p_counted: Number(v) });
-      qc.invalidateQueries({ queryKey: ["take-lines", id] });
+      await rpc("count_stock", { p_take: id, p_product: pid, p_counted: value });
+      // Re-assert after the write: a poll that started before it must not roll
+      // the row back until the next tick. The draft stays as the local truth.
+      patchLine(pid, value, staff?.id ?? null);
     } catch (e) {
+      patchLine(pid, before, line.counted_by);
+      clearDraft(pid);
       toast.error((e as Error).message);
     }
   }
-  async function close() {
+  async function finish() {
     if (!take) return;
-    if (!confirm(t("stk.closeConfirm"))) return;
+    setClosing(true);
     try {
       await rpc("close_stock_take", { p_take: take.id });
+      // Flip the session closed right away so the count inputs lock without
+      // waiting for the refetch; invalidation reconciles the timestamps.
+      qc.setQueryData<Take | null>(["take", id], (old) =>
+        old
+          ? {
+              ...old,
+              status: "closed",
+              closed_at: new Date().toISOString(),
+              closed_by: staff?.id ?? old.closed_by,
+            }
+          : old,
+      );
       toast.success(t("stk.levelsUpdated"));
+      setConfirmClose(false);
       invalidateKeys(qc, [
         ["takes"],
         ["take"],
@@ -159,8 +242,76 @@ function StockTakeDetail() {
       ]);
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setClosing(false);
     }
   }
+  const allRows = useMemo(
+    () =>
+      [...(lines.data ?? [])].sort((a, b) =>
+        (nameById[a.product_id] ?? "").localeCompare(nameById[b.product_id] ?? ""),
+      ),
+    [lines.data, nameById],
+  );
+  const { run: runExport, running: exporting } = useOnce((kind: "csv" | "pdf") => {
+    if (!take) return;
+    const countedBy = (pid: string | null) => (pid ? (names.data?.[pid] ?? "") : "");
+    const documentRows = allRows.map((l) => {
+      const c = lineCount(l, drafts);
+      return { line: l, counted: c, diff: c === null ? null : c - Number(l.expected) };
+    });
+    if (kind === "csv") {
+      downloadCsv(`storq-stocktake-${fileStamp()}.csv`, [
+        ["item", "sku", "expected", "counted", "difference", "counted_by"],
+        ...documentRows.map(({ line, counted: c, diff }) => [
+          nameById[line.product_id] ?? "",
+          skuById[line.product_id] ?? "",
+          Number(line.expected),
+          c ?? "",
+          diff ?? "",
+          countedBy(line.counted_by),
+        ]),
+      ]);
+      return;
+    }
+    return downloadPdf({
+      filename: `storq-stocktake-${fileStamp()}`,
+      title: t("stk.reportTitle"),
+      business: business?.name,
+      subtitle: sub,
+      badge: t(`status.${take.status}`),
+      orientation: "landscape",
+      kpis: [
+        [t("stk.itemsWord"), String(total)],
+        [t("stk.countedWord"), `${counted} / ${total}`],
+        [t("stk.withDiff"), String(diffs)],
+        [t("stk.netVariance"), net > 0 ? `+${net}` : String(net)],
+      ],
+      sections: [
+        {
+          type: "table",
+          head: [
+            t("doc.item"),
+            "SKU",
+            t("stk.expectedCol"),
+            t("stk.countedWord"),
+            t("stk.varianceCol"),
+            t("stk.countedByCol"),
+          ],
+          align: ["left", "left", "right", "right", "right", "left"],
+          body: documentRows.map(({ line, counted: c, diff }) => [
+            nameById[line.product_id] ?? "",
+            skuById[line.product_id] ?? "",
+            Number(line.expected),
+            c === null ? "—" : String(c),
+            diff === null ? "—" : diff > 0 ? `+${diff}` : String(diff),
+            countedBy(line.counted_by),
+          ]),
+        },
+      ],
+      footerNote: total > counted ? t("stk.notCountedNote", { n: total - counted }) : undefined,
+    });
+  });
 
   const back = { to: "/app/stocktake" as const, label: t("nav.stocktakes") };
   if (takeQ.isPending)
@@ -204,7 +355,7 @@ function StockTakeDetail() {
     ? [
         [t("stk.itemsWord"), total],
         [t("stk.countedWord"), `${counted} / ${total}`],
-        [t("stk.withDiff"), diffs.length],
+        [t("stk.withDiff"), diffs],
         [t("stk.netVariance"), net > 0 ? `+${net}` : net],
       ]
     : [
@@ -223,10 +374,17 @@ function StockTakeDetail() {
         }
         sub={sub}
         actions={
-          open && isManager ? (
-            <Button variant="success" onClick={() => void close()}>
-              {t("stk.finish")}
-            </Button>
+          isManager ? (
+            <>
+              {total > 0 && (
+                <ExportMenu disabled={exporting} onExport={(kind) => void runExport(kind)} />
+              )}
+              {open && (
+                <Button variant="success" onClick={() => setConfirmClose(true)}>
+                  {t("stk.finish")}
+                </Button>
+              )}
+            </>
           ) : undefined
         }
       />
@@ -286,7 +444,7 @@ function StockTakeDetail() {
               </TableHeader>
               <TableBody>
                 {pageRows.map((l) => {
-                  const countedValue = l.counted === null ? null : Number(l.counted);
+                  const countedValue = lineCount(l, drafts);
                   const diff = countedValue === null ? null : countedValue - Number(l.expected);
                   return (
                     <TableRow key={l.product_id}>
@@ -303,15 +461,16 @@ function StockTakeDetail() {
                       <TableCell>
                         {open ? (
                           <Input
-                            key={`${l.product_id}-${l.counted}`}
                             className="tabular h-8 w-24 text-right"
                             inputMode="decimal"
-                            defaultValue={l.counted ?? ""}
-                            placeholder={t("stk.countPh")}
-                            onBlur={(e) =>
-                              e.target.value !== String(l.counted ?? "") &&
-                              save(l.product_id, e.target.value)
+                            value={
+                              drafts[l.product_id] ?? (l.counted === null ? "" : String(l.counted))
                             }
+                            placeholder={t("stk.countPh")}
+                            onChange={(e) =>
+                              setDrafts((d) => ({ ...d, [l.product_id]: e.target.value }))
+                            }
+                            onBlur={(e) => void commit(l.product_id, e.target.value)}
                             onKeyDown={(e) =>
                               e.key === "Enter" && (e.target as HTMLInputElement).blur()
                             }
@@ -360,6 +519,15 @@ function StockTakeDetail() {
           <Pager page={curPage} pageCount={pageCount} total={rows.length} onPage={setPage} />
         </>
       )}
+      <ConfirmDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        title={t("stk.closeTitle")}
+        description={t("stk.closeConfirm")}
+        confirmLabel={t("stk.finish")}
+        busy={closing}
+        onConfirm={() => void finish()}
+      />
     </>
   );
 }
