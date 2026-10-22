@@ -1338,8 +1338,11 @@ function readImport(text: string, products: Product[]): ImportRow[] {
   const col = (...names: string[]) => h.findIndex((x) => names.includes(x));
   const ci = {
     name: col("name", "item", "product"),
-    sku: col("sku", "barcode", "code", "item code", "sku / barcode"),
-    cost: col("cost", "cost price", "buying price"),
+    // "Buying cost" / "SKU / code" are the headers our own store export
+    // writes, so a downloaded sheet re-imports instead of silently losing
+    // every cost cell and creating items without a code.
+    sku: col("sku", "barcode", "code", "item code", "sku / barcode", "sku / code"),
+    cost: col("cost", "cost price", "buying price", "buying cost"),
     price: col("price", "selling price"),
     qty: col("quantity", "qty", "stock", "in stock"),
     active: col("active", "available"),
