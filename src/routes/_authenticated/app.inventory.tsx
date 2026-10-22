@@ -28,11 +28,15 @@ import {
 import { useLowStock } from "@/lib/transfers";
 import {
   LIMITS,
+  csvFileIssue,
   firstError,
   optionalText,
+  parseAmountCell,
+  payloadKind,
   requireText,
   sanitizeText,
   validateAmount,
+  validateCsvFile,
   validateSku,
 } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
@@ -86,7 +90,14 @@ import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useOnce } from "@/hooks/use-once";
 import { visibleWorkspacePages } from "@/lib/workspace-navigation";
-import { downloadCsv, downloadLabelSheet, downloadPdf, fileStamp, parseCsv } from "@/lib/pdf";
+import {
+  downloadCsv,
+  downloadLabelSheet,
+  downloadPdf,
+  fileStamp,
+  parseCsv,
+  readCsvText,
+} from "@/lib/pdf";
 import { t as tt, useI18n } from "@/lib/i18n";
 import { useScannerWedge } from "@/components/pos/use-scanner";
 
@@ -349,15 +360,24 @@ function Inventory() {
                 const f = e.target.files?.[0];
                 e.target.value = "";
                 if (!f) return;
-                // Cap the CSV upload before reading it into memory — a
-                // 500 MB spreadsheet would freeze the tab and lock up the
-                // renderer before any DB call ever happened.
-                if (f.size > 5_000_000) {
-                  toast.error(t("inv.errFileTooLarge", { max: "5 MB" }));
+                // `accept` only filters the picker: a dragged, renamed or
+                // "All files" upload still arrives here. Check the file itself
+                // — size included — before reading it into memory.
+                const fileErr = validateCsvFile(f);
+                if (fileErr) {
+                  toast.error(fileErr);
                   return;
                 }
                 try {
-                  setImp(readImport(await f.text(), products.data ?? []));
+                  const text = await readCsvText(f);
+                  // Contents, not just the name: a renamed workbook or a saved
+                  // web page must not be parsed as item rows.
+                  const shapeErr = csvFileIssue(text);
+                  if (shapeErr) {
+                    toast.error(shapeErr);
+                    return;
+                  }
+                  setImp(readImport(text, products.data ?? []));
                 } catch (err) {
                   toast.error((err as Error).message);
                 }
@@ -1312,7 +1332,7 @@ function readImport(text: string, products: Product[]): ImportRow[] {
   // Bound a single import to 5 000 data rows. Anything larger is either a
   // mistake or an abusive upload that would queue 5 000 sequential
   // `save_product` RPCs.
-  if (rows.length - 1 > 5_000)
+  if (rows.length - 1 > LIMITS.csvRows)
     throw new Error(tt("inv.errTooManyRows", { count: rows.length - 1, max: "5,000" }));
   const h = rows[0]!.map((x) => x.trim().toLowerCase());
   const col = (...names: string[]) => h.findIndex((x) => names.includes(x));
@@ -1325,11 +1345,6 @@ function readImport(text: string, products: Product[]): ImportRow[] {
     active: col("active", "available"),
   };
   if (ci.name < 0) throw new Error(tt("inv.errNeedName"));
-  const num = (v: string | undefined) => {
-    // eslint-disable-next-line no-useless-escape
-    const n = Number(String(v ?? "").replace(/[^0-9.\-]/g, ""));
-    return Number.isFinite(n) ? n : NaN;
-  };
   return rows.slice(1).map((r) => {
     const name = (r[ci.name] ?? "").trim();
     // Codes match the catalog the same way the till matches a scan: trimmed and
@@ -1346,15 +1361,20 @@ function readImport(text: string, products: Product[]): ImportRow[] {
     // renamed. This is intentional (e.g. correcting a typo) but we surface it
     // in the preview so the user isn't surprised.
     const renamed = !!sku && !!existing && existing.name.toLowerCase() !== name.toLowerCase();
-    const cost = ci.cost >= 0 && r[ci.cost]?.trim() ? num(r[ci.cost]) : Number(existing?.cost ?? 0);
+    const cost =
+      ci.cost >= 0 && r[ci.cost]?.trim()
+        ? parseAmountCell(r[ci.cost])
+        : Number(existing?.cost ?? 0);
     const price =
-      ci.price >= 0 && r[ci.price]?.trim() ? num(r[ci.price]) : Number(existing?.price ?? 0);
-    const qty = ci.qty >= 0 && r[ci.qty]?.trim() ? num(r[ci.qty]) : null;
+      ci.price >= 0 && r[ci.price]?.trim()
+        ? parseAmountCell(r[ci.price])
+        : Number(existing?.price ?? 0);
+    const qty = ci.qty >= 0 && r[ci.qty]?.trim() ? parseAmountCell(r[ci.qty]) : null;
     const a = ci.active >= 0 ? (r[ci.active] ?? "").trim().toLowerCase() : "";
     const active = a ? !["no", "false", "0", "n"].includes(a) : (existing?.active ?? true);
     // Reject over-limit / malformed cell values here so the preview matches the RPC.
     const error =
-      !name || name.length > LIMITS.productName || UNSAFE_CELL.test(name)
+      !name || name.length > LIMITS.productName || UNSAFE_CELL.test(name) || payloadKind(name)
         ? tt("inv.errName")
         : sku && !/^[A-Za-z0-9._\- ]{1,64}$/.test(sku)
           ? tt("inv.errSku")

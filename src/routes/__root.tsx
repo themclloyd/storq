@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { CookieConsent } from "@/components/CookieConsent";
 import { NotFound } from "@/components/NotFound";
 import { supabase } from "@/integrations/supabase/client";
+import { clearAuthCheck } from "@/lib/auth-session";
 import appCss from "../styles.css?url";
 import { SITE_NAME, DEFAULT_OG_IMAGE, PUBLIC_ROBOTS } from "@/lib/seo";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -117,6 +118,9 @@ function RootComponent() {
   }, []);
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
+      // Any identity change (including another tab signing out) must discard
+      // the memoized route check before the router re-runs `beforeLoad`.
+      clearAuthCheck();
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event === "SIGNED_OUT") {

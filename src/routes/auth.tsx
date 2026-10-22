@@ -7,7 +7,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LIMITS, validateEmail, validatePassword } from "@/lib/validate";
+import { LIMITS, validateEmail, validatePassword, validatePasswordInput } from "@/lib/validate";
+import {
+  PASSWORD_BACKOFF,
+  clearGate,
+  formatWait,
+  gateRemaining,
+  noteFailure,
+  noteWait,
+} from "@/lib/attempt-gate";
 import { landingRouteFor } from "@/lib/ops";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -33,7 +41,26 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<null | "signup" | "reset">(null);
+  const [wait, setWait] = useState(0);
   const turnstile = useRef<TurnstileHandle>(null);
+
+  // One gate per action + address. The server (Supabase Auth) is the real
+  // limiter; this stops one browser from hammering the credential endpoint and
+  // survives a reload so F5 does not reset the countdown.
+  const scope =
+    mode === "recover"
+      ? ""
+      : `${mode === "in" ? "signin" : mode === "up" ? "signup" : "reset"}:${email.trim().toLowerCase()}`;
+
+  useEffect(() => {
+    setWait(scope ? gateRemaining(scope) : 0);
+  }, [scope]);
+
+  useEffect(() => {
+    if (wait <= 0 || !scope) return;
+    const id = setInterval(() => setWait(gateRemaining(scope)), 1_000);
+    return () => clearInterval(id);
+  }, [wait, scope]);
 
   // When a reset-link lands here, supabase-js reads the token from the URL and
   // fires PASSWORD_RECOVERY; flip into the set-new-password step so it isn't lost.
@@ -64,8 +91,21 @@ function AuthPage() {
         toast.error(pwErr);
         return;
       }
-    } else if (mode === "in" && !password) {
-      toast.error(t("validate.passwordRequired"));
+    } else if (mode === "in") {
+      // Sign-in keeps the bar low (any real credential must still work) but the
+      // always-on bounds apply: 72 bytes, no control characters, and no value
+      // that is a whole JSON document or SQL statement.
+      const pwErr = validatePasswordInput(password);
+      if (pwErr) {
+        toast.error(pwErr);
+        return;
+      }
+    }
+    // Refuse locally while cooling off: no request leaves the browser.
+    const remaining = scope ? gateRemaining(scope) : 0;
+    if (remaining > 0) {
+      setWait(remaining);
+      toast.error(t("errors.tooManyAttempts"));
       return;
     }
     setBusy(true);
@@ -87,6 +127,7 @@ function AuthPage() {
         if (error) throw error;
         // A platform operator owns no business, so /app would dead-end on setup;
         // the probe is one cheap RPC and fails open to the workspace.
+        clearGate(scope);
         nav({ to: await landingRouteFor() });
       } else if (mode === "up") {
         const { data, error } = await supabase.auth.signUp({
@@ -106,6 +147,9 @@ function AuthPage() {
           ...(captchaToken ? { captchaToken } : {}),
         });
         if (error) throw error;
+        // Keep a send button from turning into a reset-mail cannon even though
+        // Supabase also limits these; the screen shows the countdown on return.
+        noteWait(scope, 60_000);
         setSent("reset");
       } else {
         const { error } = await supabase.auth.updateUser({ password });
@@ -116,21 +160,29 @@ function AuthPage() {
     } catch (err) {
       // A spent or failed challenge must be redrawn before the next try.
       turnstile.current?.reset();
+      const message = (err as Error).message;
+      // Count the miss against this action + address so a stuck retry backs
+      // off; a 429 gets a longer, explicit wait. Supabase still enforces its
+      // own server-side limits beyond this browser.
+      if (scope && mode !== "recover") {
+        const rateLimited = /rate limit|too many/i.test(message);
+        if (rateLimited || mode === "in") {
+          const gate = noteFailure(
+            scope,
+            PASSWORD_BACKOFF,
+            rateLimited ? { blockedUntil: Date.now() + 60_000 } : {},
+          );
+          setWait(Math.max(0, gate.blockedUntil - Date.now()));
+        }
+      }
       // Never leak account state through error text: a failed sign-in — unknown
       // email, wrong password or unconfirmed account — always reads the same.
       // OWASP asks for consistent responses; Supabase's own wording already is.
-      if (
-        mode === "in" &&
-        /invalid login credentials|email not confirmed/i.test((err as Error).message)
-      ) {
+      if (mode === "in" && /invalid login credentials|email not confirmed/i.test(message)) {
         toast.error(t("auth.invalidCredentials"));
       } else {
         // Surpass raw server wording but stay helpful for genuine failures.
-        toast.error(
-          /rate limit|too many/i.test((err as Error).message)
-            ? t("errors.tooManyAttempts")
-            : (err as Error).message,
-        );
+        toast.error(/rate limit|too many/i.test(message) ? t("errors.tooManyAttempts") : message);
       }
     } finally {
       setBusy(false);
@@ -251,16 +303,18 @@ function AuthPage() {
               {mode !== "recover" && TURNSTILE_SITE_KEY && (
                 <Turnstile ref={turnstile} action={mode} />
               )}
-              <Button className="h-12 w-full" size="lg" disabled={busy}>
+              <Button className="h-12 w-full" size="lg" disabled={busy || wait > 0}>
                 {busy
                   ? t("common.confirming")
-                  : mode === "in"
-                    ? t("auth.signIn")
-                    : mode === "up"
-                      ? t("auth.createAccount")
-                      : mode === "forgot"
-                        ? t("auth.sendResetLink")
-                        : t("auth.updatePassword")}
+                  : wait > 0
+                    ? t("auth.retryIn", { time: formatWait(wait) })
+                    : mode === "in"
+                      ? t("auth.signIn")
+                      : mode === "up"
+                        ? t("auth.createAccount")
+                        : mode === "forgot"
+                          ? t("auth.sendResetLink")
+                          : t("auth.updatePassword")}
               </Button>
               {mode === "in" && (
                 <Button

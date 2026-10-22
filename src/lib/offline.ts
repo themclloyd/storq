@@ -4,7 +4,9 @@ import type { QueryClient } from "@tanstack/react-query";
 
 const CACHE_PREFIX = "storq-cache-";
 const QUEUE_PREFIX = "storq-offline-";
-const CACHE_VERSION = 1;
+// v2 stores each entry's fetch time so a reload can honour staleTime instead of
+// re-reading the database on every refresh (v1 snapshots are discarded).
+const CACHE_VERSION = 2;
 
 // Reference data the register needs to open instantly. Never persist role-gated
 // data (buying costs, reports) — only what every staff role can already read.
@@ -34,11 +36,22 @@ export function hydrateCache(qc: QueryClient, userId: string) {
   try {
     const raw = localStorage.getItem(CACHE_PREFIX + userId);
     if (!raw) return;
-    const snap = JSON.parse(raw) as { v: number; q: { k: unknown[]; d: unknown }[] };
+    const snap = JSON.parse(raw) as {
+      v: number;
+      q: { k: unknown[]; d: unknown; t?: number }[];
+    };
     if (snap.v !== CACHE_VERSION) return;
-    // updatedAt 0 = shown instantly but treated as stale, so it refreshes in the background.
-    for (const { k, d } of snap.q)
-      if (qc.getQueryData(k) === undefined) qc.setQueryData(k, d, { updatedAt: 0 });
+    const now = Date.now();
+    // Rehydrate each row with the time it was actually fetched. A refresh (or
+    // a burst of F5s) then obeys the query's staleTime instead of forcing one
+    // database read per query; an old or clock-skewed snapshot simply looks
+    // stale and refreshes in the background as before.
+    for (const { k, d, t } of snap.q) {
+      if (qc.getQueryData(k) !== undefined) continue;
+      const fetchedAt = Number(t);
+      const updatedAt = Number.isFinite(fetchedAt) && fetchedAt > 0 ? Math.min(fetchedAt, now) : 0;
+      qc.setQueryData(k, d, { updatedAt });
+    }
   } catch {
     localStorage.removeItem(CACHE_PREFIX + userId);
   }
@@ -54,7 +67,7 @@ export function persistCache(qc: QueryClient, userId: string) {
         (x) =>
           x.state.status === "success" && x.state.data !== undefined && persistable(x.queryKey),
       )
-      .map((x) => ({ k: x.queryKey as unknown[], d: x.state.data }));
+      .map((x) => ({ k: x.queryKey as unknown[], d: x.state.data, t: x.state.dataUpdatedAt }));
     try {
       localStorage.setItem(CACHE_PREFIX + userId, JSON.stringify({ v: CACHE_VERSION, q }));
     } catch {

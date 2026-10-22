@@ -36,6 +36,16 @@ export type CheckoutResult = {
 };
 
 export type Role = "admin" | "manager" | "cashier";
+
+/**
+ * Why a PIN entry did not open a session. Wrong PINs are counted server-side
+ * (`pin_throttle`), and a throttled answer carries the seconds still to wait;
+ * both come back as a value, never as a thrown error, so the counter commits.
+ */
+export type UnlockResult =
+  | { ok: true }
+  | { ok: false; code: "wrong_pin"; attemptsLeft: number }
+  | { ok: false; code: "throttled"; retryAfter: number };
 export type StaffSession = {
   token: string;
   id: string;
@@ -70,7 +80,7 @@ type PosCtx = {
   store: Store | null;
   setStoreId: (id: string) => void;
   staff: StaffSession | null;
-  unlock: (pin: string) => Promise<void>;
+  unlock: (pin: string) => Promise<UnlockResult>;
   lock: () => Promise<void>;
   rpc: <T = unknown>(fn: string, args?: Record<string, unknown>) => Promise<T>;
   money: (n: number | string | null | undefined) => string;
@@ -229,7 +239,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     qc.removeQueries({ predicate: (q) => isRoleScoped(q.queryKey) });
   }, [staffKey, qc]);
 
-  const unlock = async (pin: string) => {
+  const unlock = async (pin: string): Promise<UnlockResult> => {
     const pinErr = validatePin(pin);
     if (pinErr) throw new Error(pinErr);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -238,9 +248,27 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       p_device_id: getDeviceId(),
     });
     if (error) throw new Error(maskRpcError(error.message));
-    localStorage.setItem(staffKey, JSON.stringify(data));
-    setStaff(data as StaffSession);
+    const res = (data ?? {}) as Record<string, unknown>;
+    // `ok:false` is a counted miss (or the server's lock) rather than an error:
+    // raising here would roll the attempt counter back, which is why the old
+    // throttle never held. An older server has no `ok` and only returns sessions.
+    if (res["ok"] === false) {
+      if (res["code"] === "throttled")
+        return { ok: false, code: "throttled", retryAfter: Number(res["retry_after"] ?? 900) };
+      return { ok: false, code: "wrong_pin", attemptsLeft: Number(res["attempts_left"] ?? 0) };
+    }
+    const session: StaffSession = {
+      token: String(res["token"]),
+      id: String(res["id"]),
+      name: String(res["name"]),
+      role: res["role"] as Role,
+      store_id: (res["store_id"] as string | null | undefined) ?? null,
+    };
+    if (typeof res["expires_at"] === "string") session.expires_at = res["expires_at"];
+    localStorage.setItem(staffKey, JSON.stringify(session));
+    setStaff(session);
     void qc.invalidateQueries({ predicate: (q) => isRoleScoped(q.queryKey) });
+    return { ok: true };
   };
 
   const lock = async () => {

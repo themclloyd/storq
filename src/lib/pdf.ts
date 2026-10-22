@@ -1,7 +1,7 @@
 // Client-side branded PDF documents (real vector text, not screenshots).
 // Load lazily so jsPDF never enters the SSR bundle path.
 
-import { csvCell } from "@/lib/validate";
+import { csvCell, LIMITS } from "@/lib/validate";
 import { t } from "@/lib/i18n";
 import {
   methodLabel,
@@ -417,17 +417,33 @@ export function downloadCsv(filename: string, rows: (string | number | null | un
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/**
+ * Decode an uploaded CSV. Excel's plain "CSV" export on Windows still writes the
+ * ANSI code page, so a valid file must not be refused — or imported with "Café"
+ * mangled into "Caf\uFFFD" — just because strict UTF-8 did not decode. UTF-8 is
+ * tried first (it also strips a BOM); windows-1252 maps every byte, so it is the
+ * safe fallback for a text file that is not UTF-8.
+ */
+export async function readCsvText(file: { arrayBuffer(): Promise<ArrayBuffer> }): Promise<string> {
+  const buf = await file.arrayBuffer();
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buf);
+  }
+}
+
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [],
     cur = "",
     q = false;
-  const t = text.replace(/^\ufeff/, "");
-  for (let i = 0; i < t.length; i++) {
-    const c = t[i]!;
+  const src = text.replace(/^\ufeff/, "");
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i]!;
     if (q) {
       if (c === '"') {
-        if (t[i + 1] === '"') {
+        if (src[i + 1] === '"') {
           cur += '"';
           i++;
         } else q = false;
@@ -435,15 +451,22 @@ export function parseCsv(text: string): string[][] {
     } else if (c === '"') q = true;
     else if (c === "," || c === ";") {
       row.push(cur);
+      // A 5 MB file of commas must not become millions of cells: a real sheet
+      // has a handful of columns, so anything wider is malformed or hostile.
+      if (row.length > LIMITS.csvColumns)
+        throw new Error(t("inv.errTooManyColumns", { max: LIMITS.csvColumns }));
       cur = "";
     } else if (c === "\n" || c === "\r") {
-      if (c === "\r" && t[i + 1] === "\n") i++;
+      if (c === "\r" && src[i + 1] === "\n") i++;
       row.push(cur);
       cur = "";
       if (row.some((v) => v.trim() !== "")) rows.push(row);
       row = [];
     } else cur += c;
   }
+  // An unclosed quote means every later newline was swallowed as text, so the
+  // rows below would be fiction. Refuse the file rather than guess a layout.
+  if (q) throw new Error(t("inv.errCsvQuote"));
   row.push(cur);
   if (row.some((v) => v.trim() !== "")) rows.push(row);
   return rows;

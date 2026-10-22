@@ -98,8 +98,11 @@ export function usePendingApprovals() {
   return useQuery({
     queryKey: ["pending-approvals", storeId ?? ""],
     enabled: !!storeId,
-    staleTime: 10_000,
-    refetchInterval: 15_000,
+    staleTime: 20_000,
+    // A 30-second beat is enough for a queue that another till fills; a send
+    // or review on this device refreshes the badge immediately (SALE_TOUCHED),
+    // so the poll is only the cross-device catch-up.
+    refetchInterval: 30_000,
     // A background tab must not keep polling the approval queue — leave the
     // tab and the poll pauses; the badge re-syncs on visibility change.
     refetchIntervalInBackground: false,

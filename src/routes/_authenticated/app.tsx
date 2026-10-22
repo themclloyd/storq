@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
 import { useI18n, type Locale } from "@/lib/i18n";
+import { PIN_BACKOFF, clearGate, formatWait, gateRemaining, noteFailure } from "@/lib/attempt-gate";
 import {
   LIMITS,
   firstError,
@@ -282,41 +283,91 @@ function Setup() {
 
 function PinPad() {
   const { t } = useI18n();
-  const { business, unlock } = usePos();
+  const { business, unlock, userId } = usePos();
   const signOut = useSignOut();
+  // The gate is scoped to this account and survives a reload, so closing the
+  // tab cannot hand the next person a fresh set of guesses.
+  const scope = `pin:${userId}`;
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [left, setLeft] = useState<number | null>(null);
+  const [wait, setWait] = useState(0);
+  const busyRef = useRef(false);
+
+  // Adopt a lock left by the previous page load, then tick it down.
+  useEffect(() => {
+    setWait(gateRemaining(scope));
+  }, [scope]);
 
   useEffect(() => {
-    if (pin.length < 4) return;
+    if (wait <= 0) return;
+    const id = setInterval(() => setWait(gateRemaining(scope)), 500);
+    return () => clearInterval(id);
+  }, [wait, scope]);
+
+  async function submit(value: string) {
+    if (busyRef.current || gateRemaining(scope) > 0) return;
+    busyRef.current = true;
     setBusy(true);
-    unlock(pin)
-      .catch((e) => {
-        // Surface the server throttle message (lockout) instead of a plain mismatch.
-        setErr(true);
-        setPin("");
-        if (/wait|locked|try again in/i.test((e as Error).message))
-          toast.error((e as Error).message);
-      })
-      .finally(() => setBusy(false));
-    // unlock is a stable context fn; only re-run when the PIN changes.
+    try {
+      const res = await unlock(value);
+      if (res.ok) {
+        clearGate(scope);
+        return;
+      }
+      setErr(true);
+      setPin("");
+      // A server lock sets the countdown; a plain miss backs off locally so a
+      // stuck key cannot fire a request per digit.
+      const gate =
+        res.code === "throttled"
+          ? noteFailure(scope, PIN_BACKOFF, {
+              blockedUntil: Date.now() + res.retryAfter * 1000,
+            })
+          : noteFailure(scope, PIN_BACKOFF);
+      setLeft(res.code === "throttled" ? 0 : res.attemptsLeft);
+      setWait(Math.max(0, gate.blockedUntil - Date.now()));
+    } catch (e) {
+      // A transport or server failure is not a wrong PIN: report it without
+      // spending one of the five attempts, and clear the entry so the effect
+      // cannot immediately retry the same digits in a loop.
+      setPin("");
+      toast.error((e as Error).message);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  // Submit once a full PIN is entered and any cooldown has elapsed. `submit`
+  // sets its own in-flight guard; pin/wait/busy are the real triggers.
+  useEffect(() => {
+    if (pin.length < LIMITS.pinMin || wait > 0 || busy) return;
+    void submit(pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pin]);
+  }, [pin, wait, busy]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if (/^[0-9]$/.test(e.key)) press(e.key);
+      // Ignore keystrokes while a request is in flight or the pad is locked;
+      // otherwise a fifth digit could fire a second attempt for the same entry.
+      if (busyRef.current || gateRemaining(scope) > 0) return;
+      if (/^[0-9]$/.test(e.key)) {
+        setErr(false);
+        setPin((p) => (p.length < LIMITS.pinMax ? p + e.key : p));
+      }
       if (e.key === "Backspace") setPin((p) => p.slice(0, -1));
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  });
+  }, [scope]);
 
   const press = (d: string) => {
     setErr(false);
     setPin((p) => (p.length < LIMITS.pinMax ? p + d : p));
   };
+  const disabled = busy || wait > 0;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
@@ -336,14 +387,20 @@ function PinPad() {
           />
         ))}
       </div>
-      <p className="mt-3 h-5 text-sm text-destructive">
-        {err ? t("pin.wrongPin") : busy ? "" : ""}
+      <p className="mt-3 h-5 text-sm text-destructive" aria-live="polite">
+        {wait > 0
+          ? t("pin.tooMany", { time: formatWait(wait) })
+          : err
+            ? left && left > 0
+              ? t("pin.attemptsLeft", { count: left })
+              : t("pin.wrongPin")
+            : ""}
       </p>
       <div className="mt-6 grid grid-cols-3 gap-4">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
           <button
             key={d}
-            disabled={busy}
+            disabled={disabled}
             onClick={() => press(d)}
             className="pos-key size-20 border border-border bg-card text-2xl font-semibold hover:bg-secondary"
           >
@@ -352,13 +409,14 @@ function PinPad() {
         ))}
         <span />
         <button
-          disabled={busy}
+          disabled={disabled}
           onClick={() => press("0")}
           className="pos-key size-20 border border-border bg-card text-2xl font-semibold hover:bg-secondary"
         >
           0
         </button>
         <button
+          disabled={disabled}
           onClick={() => setPin((p) => p.slice(0, -1))}
           className="pos-key grid size-20 place-items-center text-muted-foreground hover:bg-secondary"
         >
