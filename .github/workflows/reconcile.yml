@@ -1,0 +1,53 @@
+name: Reconcile payments
+
+# Settle the PayChangu references no browser ever finished: the tab closed on the
+# return redirect, the phone lost signal mid-checkout, or the payment landed
+# after the shop was already locked out. The endpoint loops `verifyAndComplete`,
+# whose own amount and currency check decides, so this only ever nudges — it can
+# grant nothing a forged callback could not.
+#
+# Nothing in the database schedules itself (this project has no pg_cron), so the
+# sweeper needs an outside clock. Every fifteen minutes is enough: a reference is
+# ignored until it is two minutes old, and the sweep is idempotent.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: reconcile-payments
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    env:
+      # `CRON_SECRET` is the one value that must be set (repo secret, matching the
+      # Worker's own env). `APP_BASE_URL` is only needed to point this at a
+      # preview deployment instead of production.
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      BASE_URL: ${{ secrets.APP_BASE_URL || 'https://storq.xyz' }}
+    steps:
+      # Without the secret the endpoint answers 503 and would fail every fifteen
+      # minutes forever. Skip with a warning instead, so a forgotten secret shows
+      # up once per run rather than as a red cross nobody reads.
+      - name: Check the secret is configured
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::CRON_SECRET is not set; skipping the payment sweep."
+            echo "skip=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Sweep pending payments
+        if: env.skip != '1'
+        run: |
+          set -euo pipefail
+          code=$(curl -sS --max-time 60 -o body.json -w '%{http_code}' \
+            -X POST -H "Authorization: Bearer $CRON_SECRET" \
+            "$BASE_URL/api/cron/reconcile")
+          cat body.json; echo
+          if [ "$code" -ge 300 ]; then
+            echo "::error::reconcile returned HTTP $code"
+            exit 1
+          fi
