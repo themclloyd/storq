@@ -675,20 +675,31 @@ export function Billing({ locked }: { locked?: boolean }) {
   };
   const head = planHead[planMode ?? "renew"];
 
+  // Which clock ran out decides both the heading and what to do about it. Before
+  // this a suspension, a spent free trial and an account holding more stores than
+  // it paid for all read "needs attention", which tells an owner standing at a
+  // locked till nothing at all.
+  const trialEnded = !!s && !s.sub?.paid_until && !s.paid && !s.trial && !s.suspended && !s.closed;
+  // The card below already carries the long suspension and closure notices, so only
+  // the trial — which has no notice of its own — gets an explanatory sub-line.
+  const lockedHead = !s
+    ? { title: t("billing.needsAttentionTitle"), sub: t("billing.sub") }
+    : s.closed
+      ? { title: t("billing.closedTitle"), sub: t("billing.sub") }
+      : s.suspended
+        ? { title: t("billing.suspendedTitle"), sub: t("billing.sub") }
+        : trialEnded
+          ? { title: t("billing.trialEndedTitle"), sub: t("billing.trialEndedSub") }
+          : s.overLimit
+            ? { title: t("billing.overLimitTitle"), sub: t("billing.sub") }
+            : { title: t("billing.needsAttentionTitle"), sub: t("billing.sub") };
+
   return (
     <div className={cn("mx-auto w-full max-w-6xl space-y-8", locked && "py-6")}>
       <PageHeader
         breadcrumb={locked ? undefined : `${t("nav.settings")} / ${t("nav.subscription")}`}
-        title={
-          locked
-            ? s?.closed
-              ? t("billing.closedTitle")
-              : s?.overLimit
-                ? t("billing.overLimitTitle")
-                : t("billing.needsAttentionTitle")
-            : t("billing.title")
-        }
-        sub={t("billing.sub")}
+        title={locked ? lockedHead.title : t("billing.title")}
+        sub={locked ? lockedHead.sub : t("billing.sub")}
       />
 
       {/* The shell hides its own copy of this banner on the billing route, so the
