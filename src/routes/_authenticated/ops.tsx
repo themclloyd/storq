@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ChevronRightIcon } from "lucide-react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -45,6 +46,7 @@ import {
   applyLifecycleChange,
   applyPurge,
   entitlementActions,
+  journalPaymentCheck,
   lifecycleActionsFor,
   previewEntitlement,
   previewLifecycle,
@@ -60,15 +62,20 @@ import {
   usePlatformRole,
   useTenantAudit,
   useTenantRoster,
+  usePendingPayments,
+  type AuditAction,
   type AuditEntry,
   type EntitlementAction,
   type LifecycleAction,
   type OperatorRole,
+  type PendingPayment,
   type RosterFilter,
   type TenantRow,
   type TenantState,
 } from "@/lib/ops";
 import { useI18n } from "@/lib/i18n";
+import { fmtMoney } from "@/lib/billing";
+import { verifySubscriptionPayment } from "@/lib/billing.functions";
 
 export const Route = createFileRoute("/_authenticated/ops")({
   head: () => ({
@@ -121,7 +128,7 @@ const roleLabelKey: Record<OperatorRole, string> = {
 // One label and one hint per intent, so the dialog never has to guess which value
 // control belongs to the action that was picked. Entitlement verbs change what a
 // tenant bought; lifecycle verbs change whether they may trade at all.
-const actionLabelKey: Record<EntitlementAction | LifecycleAction, string> = {
+const actionLabelKey: Record<AuditAction, string> = {
   slots: "ops.actionSlots",
   extend: "ops.actionExtend",
   until: "ops.actionUntil",
@@ -131,6 +138,7 @@ const actionLabelKey: Record<EntitlementAction | LifecycleAction, string> = {
   restore: "ops.actionRestore",
   close: "ops.actionClose",
   reopen: "ops.actionReopen",
+  verify_payment: "ops.actionVerifyPayment",
 };
 const actionHintKey: Record<EntitlementAction | LifecycleAction | "purge", string> = {
   slots: "ops.hintSlots",
@@ -145,7 +153,7 @@ const actionHintKey: Record<EntitlementAction | LifecycleAction | "purge", strin
   purge: "ops.hintPurge",
 };
 // Which journalled key each action writes, for reading a history row back.
-const auditField: Record<EntitlementAction | LifecycleAction, string> = {
+const auditField: Record<AuditAction, string> = {
   slots: "slots",
   extend: "until",
   until: "until",
@@ -155,6 +163,7 @@ const auditField: Record<EntitlementAction | LifecycleAction, string> = {
   restore: "suspended",
   close: "closed",
   reopen: "closed",
+  verify_payment: "status",
 };
 /** The verb a purge confirmation carries, alongside the four lifecycle actions. */
 type AccessChoice = LifecycleAction | "purge";
@@ -448,6 +457,9 @@ function ManageTenant({
   const [why, setWhy] = useState("");
   const [confirmName, setConfirmName] = useState("");
   const audit = useTenantAudit(row.id);
+  const pendingPays = usePendingPayments(row.id);
+  const verify = useServerFn(verifySubscriptionPayment);
+  const [checking, setChecking] = useState<string | null>(null);
 
   const preview = previewEntitlement(row, action, value);
   const whyText = reason.trim();
@@ -481,6 +493,30 @@ function ManageTenant({
     why.trim().length >= REASON_MIN_CHARS &&
     accessNameOk &&
     !busy;
+
+  // A stuck charge: ask the provider once more, then record the operator's name
+  // and reason beside the outcome. Activation, when it happens, is the server-side
+  // verifier's decision — pressing this button cannot credit anyone by itself.
+  async function verifyNow(payment: PendingPayment) {
+    if (whyText.length < REASON_MIN_CHARS) {
+      toast.error(t("ops.verifyNeedsReason"));
+      return;
+    }
+    setChecking(payment.tx_ref);
+    try {
+      const res = await verify({ data: { tx_ref: payment.tx_ref } });
+      await journalPaymentCheck(row.id, payment.tx_ref, res.ok, whyText);
+      if (res.ok) toast.success(t("ops.verifyPaid"));
+      else toast.error(res.message);
+      await pendingPays.refetch();
+      qc.invalidateQueries({ queryKey: ["ops", "roster"] });
+      qc.invalidateQueries({ queryKey: ["ops", "audit", row.id] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setChecking(null);
+    }
+  }
 
   async function apply() {
     if (!canSend) return;
@@ -666,6 +702,34 @@ function ManageTenant({
             placeholder={t("ops.reasonPlaceholder")}
           />
         </Label>
+
+        {!!pendingPays.data?.length && (
+          <div className="space-y-2 rounded-2xl border border-warning/40 bg-warning/10 p-3">
+            <p className="text-[11px] font-medium text-muted-foreground">
+              {t("ops.pendingPayments")}
+            </p>
+            {pendingPays.data.map((p) => (
+              <div key={p.tx_ref} className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 text-[12px]">
+                  <div className="tabular truncate font-medium">{p.tx_ref}</div>
+                  <div className="text-muted-foreground">
+                    {fmtMoney(p.currency === "USD" ? "USD" : "MWK", Number(p.amount))} ·{" "}
+                    {t("ops.pendingSlots", { count: p.stores })} · {fmtDate(p.created_at)}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={checking !== null}
+                  onClick={() => void verifyNow(p)}
+                >
+                  {checking === p.tx_ref ? t("common.saving") : t("ops.verifyNow")}
+                </Button>
+              </div>
+            ))}
+            <p className="text-[11px] text-muted-foreground">{t("ops.verifyHint")}</p>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={onClose}>

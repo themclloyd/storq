@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { GRACE_DAYS, subscriptionAccess, type Subscription } from "@/lib/subscription-policy";
+import {
+  GRACE_DAYS,
+  TRIAL_NOTICE_DAYS,
+  subscriptionAccess,
+  type Subscription,
+} from "@/lib/subscription-policy";
 
 // Fixed clock so expiry is deterministic: "now" is mid-2026.
 const NOW = new Date("2026-06-15T12:00:00Z").getTime();
@@ -135,5 +140,56 @@ describe("grace window — mirrors the 3-day expiry stretch in subscription_acti
     const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: PAST }), 1, NOW);
     expect(a.inGrace).toBe(false);
     expect(a.active).toBe(false);
+  });
+});
+
+describe("trial notice — a hard stop gets a countdown instead of a grace window", () => {
+  // A trial that runs out locks the till outright, so the only kindness available
+  // is warning early enough to reach a mobile-money agent.
+  const trialIn = (days: number) => new Date(NOW + days * 86_400_000).toISOString();
+
+  it("stays quiet for the first weeks of the trial", () => {
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: trialIn(30) }), 1, NOW);
+    expect(a.trial).toBe(true);
+    expect(a.trialDaysRemaining).toBe(30);
+    expect(a.trialEndingSoon).toBe(false);
+  });
+
+  it("warns inside the last week, starting exactly on the boundary", () => {
+    const a = subscriptionAccess(
+      sub({ paid_until: null, trial_ends_at: trialIn(TRIAL_NOTICE_DAYS) }),
+      1,
+      NOW,
+    );
+    expect(a.trialDaysRemaining).toBe(TRIAL_NOTICE_DAYS);
+    expect(a.trialEndingSoon).toBe(true);
+  });
+
+  it("rounds a partial final day up so the notice never reads zero while still open", () => {
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: trialIn(3.5) }), 1, NOW);
+    expect(a.trialDaysRemaining).toBe(4);
+    expect(a.trialEndingSoon).toBe(true);
+  });
+
+  it("a paid term outranks the trial notice even if the trial clock is running", () => {
+    const a = subscriptionAccess(sub({ trial_ends_at: trialIn(2) }), 2, NOW);
+    expect(a.paid).toBe(true);
+    expect(a.trial).toBe(false);
+    expect(a.trialDaysRemaining).toBe(0);
+    expect(a.trialEndingSoon).toBe(false);
+  });
+
+  it("stops counting once the trial is over and the till is blocked", () => {
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: PAST }), 1, NOW);
+    expect(a.trial).toBe(false);
+    expect(a.trialDaysRemaining).toBe(0);
+    expect(a.trialEndingSoon).toBe(false);
+    expect(a.active).toBe(false);
+  });
+
+  it("has no row to count down from", () => {
+    const a = subscriptionAccess(null, 0, NOW);
+    expect(a.trialDaysRemaining).toBe(0);
+    expect(a.trialEndingSoon).toBe(false);
   });
 });

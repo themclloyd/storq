@@ -136,9 +136,15 @@ export const TRIAL_MAX_DAYS = 90;
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Every verb the tenant journal can hold: the console's own entitlements and
+ * lifecycle moves, plus the payment check that settles a stuck charge.
+ */
+export type AuditAction = EntitlementAction | LifecycleAction | "verify_payment";
+
 export type AuditEntry = {
   id: string;
-  action: EntitlementAction | LifecycleAction;
+  action: AuditAction;
   before: Record<string, string | number | null>;
   after: Record<string, string | number | null>;
   reason: string;
@@ -531,4 +537,59 @@ export function useTenantAudit(businessId: string | null) {
       return ((data as { rows?: AuditEntry[] } | null)?.rows ?? []) as AuditEntry[];
     },
   });
+}
+
+/** A charge PayChangu has not confirmed, as the console reads it. */
+export type PendingPayment = {
+  tx_ref: string;
+  amount: number;
+  currency: string;
+  stores: number;
+  billed_stores: number;
+  period: string | null;
+  created_at: string;
+};
+
+/**
+ * References still waiting for money, newest first. Support reads this too: the
+ * first responder should be able to answer "did my customer's money land?"
+ * without asking billing to look.
+ */
+export function usePendingPayments(businessId: string | null) {
+  return useQuery({
+    queryKey: ["ops", "pending", businessId],
+    enabled: !!businessId,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "ops_pending_payments" as never,
+        { p_business_id: businessId } as never,
+      );
+      if (error) throw error;
+      return ((data as { rows?: PendingPayment[] } | null)?.rows ?? []) as PendingPayment[];
+    },
+  });
+}
+
+/**
+ * Journal what the operator found. This grants nothing — the time and slots a
+ * paid charge buys are still granted inside the server-side verifier — it only
+ * records who checked and why, next to the outcome.
+ */
+export async function journalPaymentCheck(
+  businessId: string,
+  txRef: string,
+  paid: boolean,
+  reason: string,
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    "ops_journal_payment_verification" as never,
+    {
+      p_business_id: businessId,
+      p_tx_ref: txRef,
+      p_status: paid ? "paid" : "unpaid",
+      p_reason: sanitizeText(reason, REASON_MAX_CHARS),
+    } as never,
+  );
+  if (error) throw error;
 }

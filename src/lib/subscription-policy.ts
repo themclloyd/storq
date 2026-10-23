@@ -21,6 +21,14 @@ export type Subscription = {
 export const GRACE_DAYS = 3;
 const GRACE_MS = GRACE_DAYS * 86_400_000;
 
+/**
+ * How early the shell starts warning that the free trial is about to end. A trial
+ * fails hard (there is nothing to stretch), so the notice has to arrive while
+ * there is still time to pay — a week is long enough to reach a mobile-money
+ * agent and short enough to be read as urgent.
+ */
+export const TRIAL_NOTICE_DAYS = 7;
+
 export function subscriptionAccess(sub: Subscription | null, storeCount: number, now = Date.now()) {
   // Mirrors `subscription_active()` in SQL, which refuses every business write
   // while an operator has suspended or closed the account, and otherwise accepts a
@@ -44,6 +52,8 @@ export function subscriptionAccess(sub: Subscription | null, storeCount: number,
   const graceDaysRemaining = inGrace
     ? Math.max(0, Math.ceil((paidUntil + GRACE_MS - now) / 86_400_000))
     : 0;
+  const trialEndsMs = sub ? new Date(sub.trial_ends_at).getTime() : 0;
+  const trialDaysRemaining = trial ? Math.max(0, Math.ceil((trialEndsMs - now) / 86_400_000)) : 0;
   return {
     sub,
     paid,
@@ -54,6 +64,8 @@ export function subscriptionAccess(sub: Subscription | null, storeCount: number,
     overLimit,
     inGrace,
     graceDaysRemaining,
+    trialDaysRemaining,
+    trialEndingSoon: trial && trialDaysRemaining <= TRIAL_NOTICE_DAYS,
     active: !suspended && !closed && (trial || (paid && !overLimit) || inGrace),
     canAddStore: !suspended && !closed && (trial || (paid && storeCount < capacity)),
   };

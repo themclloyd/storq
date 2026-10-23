@@ -12,6 +12,7 @@ import {
   toPermissions,
 } from "@/lib/permissions";
 import { NativeSelect, PageHeader } from "@/components/pos/bits";
+import { DevicesCard } from "@/components/pos/DevicesCard";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -87,6 +88,7 @@ function Staff() {
           ]}
         />
       </Card>
+      <DevicesCard />
       <Card className="divide-y p-0">
         {roster.data?.map((s) => {
           const access = { owner: s.is_owner, permissions: s.permissions };
