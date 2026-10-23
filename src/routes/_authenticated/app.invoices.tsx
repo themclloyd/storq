@@ -18,6 +18,7 @@ import {
 } from "@/components/pos/bits";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
+import { methodLabel } from "@/lib/payment-methods";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/invoices")({
@@ -214,8 +215,10 @@ function ApproveDialog({
   onClose: () => void;
   onApprove: (p: number, m: string) => void;
 }) {
-  const { money } = usePos();
+  const { money, paymentMethodsFor } = usePos();
   const { t } = useI18n();
+  // The invoice belongs to a store; that store's list is the one that counts.
+  const methods = paymentMethodsFor(s.store_id);
   const [method, setMethod] = useState("cash");
   const [dep, setDep] = useState("");
   return (
@@ -229,12 +232,7 @@ function ApproveDialog({
           <NativeSelect
             value={method}
             onChange={setMethod}
-            options={[
-              { value: "cash", label: t("till.payCash") },
-              { value: "card", label: t("till.payCard") },
-              { value: "mobile", label: t("till.payMobile") },
-              { value: "account", label: t("invoices.onAccount") },
-            ]}
+            options={methods.map((code) => ({ value: code, label: methodLabel(code) }))}
           />
         </Field>
         {s.kind === "layby" && (

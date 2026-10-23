@@ -4,17 +4,18 @@ import { usePos } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { useSaleItemCosts, useSales } from "@/lib/sales";
 import { rangeDays, sinceFor, useExpenses } from "@/lib/expenses";
-import { useProducts, useStock } from "@/lib/products";
+import { round2, useProducts, useStock } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { PageHeader } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
-import { downloadPdf, fileStamp } from "@/lib/pdf";
+import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { useRefunds } from "@/lib/refunds";
 import { methodLabel } from "@/lib/receipts";
-import { buildBusinessReport } from "@/lib/business-report";
+import { buildBusinessReport, reportKind, type ReportKind } from "@/lib/business-report";
+import { ExportMenu } from "@/components/pos/ExportMenu";
 import { useOnce } from "@/hooks/use-once";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
@@ -64,7 +65,7 @@ function ReportsContent() {
   const [all, setAll] = useState(false);
   const since = useMemo(() => sinceFor(range), [range]);
   const storeId = all ? undefined : store?.id;
-  const sales = useSales("report", { storeId, since });
+  const sales = useSales("report", { storeId, since, payments: true });
   const expenses = useExpenses({ storeId, since });
   const refundsQ = useRefunds({ storeId, since });
   const costs = useSaleItemCosts(sales.data);
@@ -98,6 +99,20 @@ function ReportsContent() {
 
   const methods = Object.entries(r.byMethod).sort((a, b) => b[1] - a[1]);
   const cashSales = r.byMethod["cash"] ?? 0;
+  // Cash, bank and mobile are the three balances an owner reconciles; a legacy
+  // sale with no tender rows can still land in `other`, shown only when used.
+  const kindRows: ReportKind[] = (["cash", "bank", "mobile", "other"] as ReportKind[]).filter(
+    (k) => k !== "other" || Math.abs(r.byKind.other) > 0.005,
+  );
+  const kindLabel = (k: ReportKind) =>
+    k === "cash"
+      ? t("bizReport.kindCash")
+      : k === "mobile"
+        ? t("bizReport.kindMobile")
+        : k === "bank"
+          ? t("bizReport.kindBank")
+          : t("bizReport.kindOther");
+  const share = (v: number) => (r.tenderTotal ? (v / r.tenderTotal) * 100 : 0);
   const cats = Object.entries(r.byCategory).sort((a, b) => b[1] - a[1]);
   const top = r.topProfit.filter((i) => i.qty > 0).slice(0, 10);
   const thin = r.lowMargin.filter((i) => i.profit >= 0);
@@ -115,8 +130,37 @@ function ReportsContent() {
 
   // downloadPdf is async — keep the promise (no `void`) so useOnce can await
   // it and lock the button until the browser has actually handed the file off.
-  const exportPdf = () =>
-    downloadPdf({
+  const exportReport = async (kind: "csv" | "pdf") => {
+    if (kind === "csv") {
+      const scoped = all && stores.length > 1 ? stores : store ? [store] : [];
+      const rows: (string | number)[][] = [
+        ["Location", "Payment method", "Method code", "Type", "Amount", "Share of location %"],
+      ];
+      for (const s of scoped) {
+        const by = r.byStoreMethod[s.id] ?? {};
+        const total = Object.values(by).reduce((a, v) => a + v, 0);
+        for (const [code, amount] of Object.entries(by).sort((a, b) => b[1] - a[1])) {
+          rows.push([
+            s.name,
+            methodLabel(code),
+            code,
+            kindLabel(reportKind(code)),
+            round2(amount),
+            total ? Math.round((amount / total) * 1000) / 10 : 0,
+          ]);
+        }
+        rows.push([s.name, "Total", "", "", round2(total), total ? 100 : 0]);
+      }
+      // Second block: the three balances, net of refunds paid by that method.
+      rows.push([]);
+      rows.push(["Type", "Amount", "Share %"]);
+      for (const k of kindRows)
+        rows.push([kindLabel(k), round2(r.byKind[k]), Math.round(share(r.byKind[k]) * 10) / 10]);
+      rows.push(["Total", round2(r.tenderTotal), r.tenderTotal ? 100 : 0]);
+      downloadCsv(`storq-payment-methods-${fileStamp()}.csv`, rows);
+      return;
+    }
+    await downloadPdf({
       filename: `storq-business-statement-${fileStamp()}`,
       title: t("bizReport.pdfTitle"),
       business: business?.name,
@@ -177,11 +221,19 @@ function ReportsContent() {
           : []),
         {
           type: "table",
+          heading: t("bizReport.pdfMoneyKinds"),
+          head: [t("bizReport.thType"), t("reports.thAmount"), t("xport.pdfShare")],
+          align: ["left", "right", "right"],
+          body: kindRows.map((k) => [kindLabel(k), money(r.byKind[k]), pct(share(r.byKind[k]))]),
+          foot: [t("bizReport.collected"), money(r.tenderTotal), r.tenderTotal ? pct(100) : pct(0)],
+        },
+        {
+          type: "table",
           heading: t("bizReport.pdfMoney"),
-          head: [t("reports.thMethod"), t("reports.thAmount")],
-          align: ["left", "right"],
-          body: methods.map(([m, v]) => [methodLabel(m), money(v)]),
-          foot: [t("bizReport.totalSales"), money(r.grossSales)],
+          head: [t("reports.thMethod"), t("reports.thAmount"), t("xport.pdfShare")],
+          align: ["left", "right", "right"],
+          body: methods.map(([m, v]) => [methodLabel(m), money(v), pct(share(v))]),
+          foot: [t("bizReport.collected"), money(r.tenderTotal), r.tenderTotal ? pct(100) : pct(0)],
         },
         {
           type: "pairs",
@@ -249,13 +301,45 @@ function ReportsContent() {
               },
             ]
           : []),
+        ...(all && stores.length > 1
+          ? [
+              {
+                type: "table" as const,
+                heading: t("bizReport.moneyByLocation"),
+                head: [
+                  t("bizReport.thStore"),
+                  t("bizReport.kindCash"),
+                  t("bizReport.kindBank"),
+                  t("bizReport.kindMobile"),
+                  t("common.total"),
+                  t("xport.pdfShare"),
+                ],
+                align: ["left", "right", "right", "right", "right", "right"] as (
+                  "left" | "right"
+                )[],
+                body: stores.map((s) => {
+                  const k = r.byStoreKind[s.id] ?? { cash: 0, bank: 0, mobile: 0, other: 0 };
+                  const total = k.cash + k.bank + k.mobile + k.other;
+                  return [
+                    s.name,
+                    money(k.cash),
+                    money(k.bank),
+                    money(k.mobile),
+                    money(total),
+                    pct(share(total)),
+                  ];
+                }),
+              },
+            ]
+          : []),
         { type: "text", text: t("bizReport.pdfNote") },
         { type: "text", heading: " ", text: t("bizReport.pdfSignoff") },
       ],
     });
+  };
   // Collapse concurrent and rapid-repeat clicks so a session cannot spawn a
   // pile of jsPDF builds (CPU DoS, blob leaks, browser download throttling).
-  const { run: runExport, running: building } = useOnce(exportPdf);
+  const { run: runExport, running: building } = useOnce(exportReport);
 
   const steps: { k: string; hint: string; v: number; sign: "" | "-" | "="; strong?: boolean }[] = [
     {
@@ -319,9 +403,7 @@ function ReportsContent() {
                 {t("reports.allStores")}
               </Button>
             )}
-            <Button size="sm" disabled={loading || building} onClick={() => void runExport()}>
-              {t("reports.downloadPdf")}
-            </Button>
+            <ExportMenu disabled={loading || building} onExport={(kind) => void runExport(kind)} />
           </>
         }
       />
@@ -433,7 +515,32 @@ function ReportsContent() {
                 {methods.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t("reports.noSales")}</p>
                 ) : (
-                  methods.map(([m, v]) => <Row key={m} k={methodLabel(m)} v={money(v)} />)
+                  <>
+                    <div className="space-y-2">
+                      {kindRows.map((k) => (
+                        <div key={k} className="space-y-1">
+                          <div className="flex justify-between gap-3 text-[13px]">
+                            <span className="text-muted-foreground">{kindLabel(k)}</span>
+                            <span className="tabular whitespace-nowrap">
+                              {money(r.byKind[k])}{" "}
+                              <span className="text-muted-foreground">
+                                · {pct(share(r.byKind[k]))}
+                              </span>
+                            </span>
+                          </div>
+                          <Progress
+                            value={Math.max(0, Math.min(100, share(r.byKind[k])))}
+                            className="h-1"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1.5 border-t pt-2">
+                      {methods.map(([m, v]) => (
+                        <Row key={m} k={methodLabel(m)} v={`${money(v)} · ${pct(share(v))}`} />
+                      ))}
+                    </div>
+                  </>
                 )}
                 <Row k={t("bizReport.cashTill")} v={money(cashSales - r.tillExpenses)} bold />
                 <p className="text-xs text-muted-foreground">{t("bizReport.cashTillHint")}</p>
@@ -446,6 +553,35 @@ function ReportsContent() {
               </Panel>
             </div>
           </div>
+
+          {all && stores.length > 1 && (
+            <Panel title={t("bizReport.moneyByLocation")} sub={t("bizReport.moneyByLocationSub")}>
+              <div className="overflow-x-auto">
+                <Table
+                  head={[
+                    t("bizReport.thStore"),
+                    t("bizReport.kindCash"),
+                    t("bizReport.kindBank"),
+                    t("bizReport.kindMobile"),
+                    t("common.total"),
+                    t("xport.pdfShare"),
+                  ]}
+                  rows={stores.map((s) => {
+                    const k = r.byStoreKind[s.id] ?? { cash: 0, bank: 0, mobile: 0, other: 0 };
+                    const total = k.cash + k.bank + k.mobile + k.other;
+                    return [
+                      s.name,
+                      money(k.cash),
+                      money(k.bank),
+                      money(k.mobile),
+                      money(total),
+                      pct(share(total)),
+                    ];
+                  })}
+                />
+              </div>
+            </Panel>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Panel title={t("bizReport.profitMakers")} sub={t("bizReport.profitMakersSub")}>

@@ -36,6 +36,9 @@ export type SaleRow = {
     price: number;
     product_id: string | null;
   }[];
+  // Populated only when `payments: true` is requested (the business report),
+  // so each tender can be credited to the method that actually took it.
+  payments?: { amount: number | string; method: string }[];
 };
 
 export function useSales(
@@ -47,9 +50,13 @@ export function useSales(
     // Fetch the nested sale_items join. Defaults on (detail/invoice/layby/report
     // screens show line items); list-only and cashier aggregate views pass false.
     items?: boolean;
+    // Fetch tender rows so a split sale is attributed to each provider, not a
+    // single "split" bucket. Only the reports flow needs them.
+    payments?: boolean;
   },
 ) {
   const withItems = filter.items !== false;
+  const withPayments = filter.payments === true;
   return useQuery({
     queryKey: ["sales", key, filter],
     // Writes go through checkout/refund which invalidate the ["sales"] prefix
@@ -57,13 +64,12 @@ export function useSales(
     // the whole window while other-device rows stay within one minute stale.
     staleTime: 60_000,
     queryFn: async () => {
+      const columns = withItems
+        ? "*, sale_items(id,refunded_qty,name,qty,price,product_id)"
+        : "id,number,kind,status,total,paid,payment_method,customer_name,customer_phone,note,store_id,created_at,tax,refunded,created_by,approved_by,approved_at";
       let q = supabase
         .from("sales")
-        .select(
-          withItems
-            ? "*, sale_items(id,refunded_qty,name,qty,price,product_id)"
-            : "id,number,kind,status,total,paid,payment_method,customer_name,customer_phone,note,store_id,created_at,tax,refunded,created_by,approved_by,approved_at",
-        )
+        .select(withPayments ? `${columns}, payments(amount,method)` : columns)
         .order("created_at", { ascending: false })
         .limit(1000);
       if (filter.storeId) q = q.eq("store_id", filter.storeId);

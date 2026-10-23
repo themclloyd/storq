@@ -14,6 +14,7 @@ import { usePos } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { useSaleItemCosts, useSales } from "@/lib/sales";
 import { useExpenses } from "@/lib/expenses";
+import { methodLabel } from "@/lib/payment-methods";
 import { useLowStock } from "@/lib/transfers";
 import {
   buildTrend,
@@ -164,7 +165,7 @@ function Dashboard() {
       count: rows.length,
       trend: buildTrend({ start, hourly, sales: rows, expenses: ex }),
       pie: Object.entries(byMethod)
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, value]) => ({ name, value, label: methodLabel(name) }))
         .sort((a, b) => b.value - a.value),
     };
   }, [sales.data, expenses.data, costs.data, start, hourly]);

@@ -18,6 +18,7 @@ import {
   fmtDate,
 } from "@/components/pos/bits";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
+import { methodLabel } from "@/lib/payment-methods";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/laybys")({
@@ -165,8 +166,10 @@ function PayDialog({
   onClose: () => void;
   onPaid: () => void;
 }) {
-  const { money, rpc } = usePos();
+  const { money, rpc, paymentMethodsFor } = usePos();
   const { t } = useI18n();
+  // The layby was opened at a store; its methods are the ones that can settle it.
+  const methods = paymentMethodsFor(s.store_id);
   const owing = Number(s.total) - Number(s.paid);
   const [amt, setAmt] = useState(String(owing));
   const [method, setMethod] = useState("cash");
@@ -201,11 +204,7 @@ function PayDialog({
           <NativeSelect
             value={method}
             onChange={setMethod}
-            options={[
-              { value: "cash", label: t("till.payCash") },
-              { value: "card", label: t("till.payCard") },
-              { value: "mobile", label: t("till.payMobile") },
-            ]}
+            options={methods.map((code) => ({ value: code, label: methodLabel(code) }))}
           />
         </Field>
         <Button variant="success" onClick={pay}>

@@ -21,9 +21,30 @@ function group(abs: string): string {
   return dec ? `${grouped}.${dec}` : grouped;
 }
 
+// The business now stores an ISO code (`MWK`), so amounts keep their local look
+// (`MK6,000`). Codes not listed — and symbols an older tenant typed — print as-is.
+const SYMBOLS: Record<string, string> = {
+  MWK: "MK",
+  USD: "$",
+  ZAR: "R",
+  KES: "KSh",
+  TZS: "TSh",
+  ZMW: "ZK",
+  BWP: "P",
+  MZN: "MT",
+  GBP: "\u00a3",
+  EUR: "\u20ac",
+};
+
+function displayCurrency(currency: string): string {
+  return SYMBOLS[currency.trim().toUpperCase()] ?? currency;
+}
+
 /**
  * Format `n` as `<currency><digits>` with the rules above. `currency` is the
- * configured symbol (e.g. "MK", "R", "$"); an empty symbol yields bare digits.
+ * stored currency code or symbol; ISO codes print as their familiar sign
+ * (`MWK` → `MK`), anything else — including symbols older tenants typed in —
+ * prints unchanged. An empty symbol yields bare digits.
  */
 export function formatMoney(currency: string, n: number | string | null | undefined): string {
   const num = Number(n ?? 0);
@@ -31,7 +52,8 @@ export function formatMoney(currency: string, n: number | string | null | undefi
   const abs = Math.round(Math.abs(num) * 100) / 100;
   const whole = Math.abs(abs - Math.round(abs)) < 1e-9;
   const fixed = whole ? String(Math.round(abs)) : abs.toFixed(2);
-  const body = currency ? `${currency}${group(fixed)}` : group(fixed);
+  const symbol = displayCurrency(currency);
+  const body = symbol ? `${symbol}${group(fixed)}` : group(fixed);
   return (negative ? MINUS : "") + body;
 }
 

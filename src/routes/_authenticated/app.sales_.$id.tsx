@@ -34,6 +34,7 @@ import { useStaffNames } from "@/lib/sales";
 import { usePos, type Store } from "@/lib/pos";
 import { downloadPdf, downloadReceiptPdf } from "@/lib/pdf";
 import { saleToReceipt } from "@/lib/receipts";
+import { methodLabel } from "@/lib/payment-methods";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { useI18n } from "@/lib/i18n";
 
@@ -52,19 +53,8 @@ export const Route = createFileRoute("/_authenticated/app/sales_/$id")({
   component: SaleDetail,
 });
 
-const METHOD_KEYS: Record<string, string> = {
-  cash: "till.payCash",
-  card: "till.payCard",
-  mobile: "till.payMobile",
-  store_credit: "doc.storeCredit",
-  split: "doc.split",
-};
-const METHOD_ORDER = ["cash", "card", "mobile", "store_credit"] as const;
-// Resolve a payment-method code to its localized label; unknown codes fall back to the raw value.
-const mkMethod = (t: (path: string) => string) => (m: string) => {
-  const key = METHOD_KEYS[m];
-  return key ? t(key) : m;
-};
+// Sale, refund and payment rows all label methods through the shared catalogue.
+const mLabel = methodLabel;
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleString("en-ZA", {
@@ -151,7 +141,7 @@ function SaleDetailContent() {
   const { id } = Route.useParams();
   const { money, can, stores } = usePos();
   const { t } = useI18n();
-  const mLabel = mkMethod(t);
+  const mLabel = methodLabel;
   const names = useStaffNames();
   const [refundOpen, setRefundOpen] = useState(false);
   const sale = useQuery({
@@ -372,13 +362,17 @@ function Row({
 }
 
 function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void }) {
-  const { rpc, money } = usePos();
+  const { rpc, money, paymentMethodsFor } = usePos();
   const { t } = useI18n();
-  const mLabel = mkMethod(t);
+  const mLabel = methodLabel;
   const qc = useQueryClient();
+  // Refund in the same location that took the money; methods follow that store.
+  const methods = paymentMethodsFor(sale.store_id);
   const [qty, setQty] = useState<Record<string, string>>({});
   const [restock, setRestock] = useState<Record<string, boolean>>({});
-  const [method, setMethod] = useState(sale.payment_method ?? "cash");
+  const [method, setMethod] = useState(
+    methods.includes(sale.payment_method ?? "") ? (sale.payment_method as string) : "cash",
+  );
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   // Same rule as the server: each item's share of what the customer actually paid (VAT included once).
@@ -481,7 +475,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {METHOD_ORDER.map((m) => (
+                {methods.map((m) => (
                   <SelectItem key={m} value={m}>
                     {mLabel(m)}
                   </SelectItem>
@@ -531,7 +525,7 @@ function ReceiptTile({
 }) {
   const { money, business } = usePos();
   const { t } = useI18n();
-  const mLabel = mkMethod(t);
+  const mLabel = methodLabel;
   const sub = s.sale_items.reduce((a, i) => a + Number(i.qty) * Number(i.price), 0);
   const isInvoice = s.status === "pending_approval" || s.status === "rejected";
   const docType =

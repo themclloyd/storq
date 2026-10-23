@@ -58,6 +58,7 @@ export const ny = {
     staff: "Ogwira ntchito",
     subscription: "Kulipira pulani",
     settings: "Zokonda",
+    business: "Bizinesi",
     sales: "Malonda",
     inventory: "Katundu",
     finance: "Zachuma",
@@ -139,6 +140,9 @@ export const ny = {
     subtitle: "Mutha kuwonjezera masitolo ndi ogwira ntchito ena pambuyo pake.",
     businessName: "Dzina la bizinesi",
     currency: "Mtundu wa ndalama",
+    paymentMethods: "Njira zolipirira",
+    paymentMethodsHint:
+      "Sankhani njira zonse zomwe mumalandira nazo ndalama. Mutha kuzisintha pambuyo pake mu zokonda za bizinesi.",
     firstStore: "Sitolo yoyamba",
     storeName: "Dzina la sitolo",
     storeType: "Mtundu wa sitolo",
@@ -151,6 +155,23 @@ export const ny = {
     businessReady: "Bizinesi yakonzeka. Lowetsani PIN yanu.",
     checkingSubscription: "Tikuyang'ana kulembetsa…",
     subscriptionError: "Sitinathe kuyang'ana kulembetsa.",
+  },
+  biz: {
+    title: "Bizinesi",
+    currency: "Ndalama",
+    currencyHint:
+      "Ndalama iliyonse mu pulogalamu ndi pa risiti imasindikizidwa ndi chizindikiro ichi.",
+    currencyOwnerOnly: "Mwini bizinesi yekha ndi amene angasinthe ndalama.",
+    paymentMethods: "Njira zolipirira",
+    paymentMethodsHint:
+      "Sankhani njira zonse zomwe malo ano alandira ndalama. Zogulitsa, malipiro a layby, ma invoice, kubweza ndi ndalama zomwe zagwiritsidwa ntchito pa malo ano zimasunga njira, kuti mudziwe kumene ndalama zimapita.",
+    methodsPerLocation:
+      "Njira zolipirira zimasankhidwa pa malo aliwonse, chifukwa malo aliwonse amasunga ndalama mwanjira yake. Tsegulani malo kuti musankhe njira zomwe amalandira nazo ndalama.",
+    save: "Sungani zosintha",
+    saved: "Zokhazikika za bizinesi zasungidwa",
+    cashAlways: "Ndalama zamaso (cash) zimalandiridwa nthawi zonse.",
+    legacy: "Zakale",
+    currencyOther: "Zina…",
   },
   pin: {
     enterPin: "Lowetsani PIN yanu",
@@ -1015,6 +1036,10 @@ export const ny = {
       "Mwa {collected} zomwe zalandiridwa, nasunga {profit}. Ichi ndi {per} pa {unit} iliyonse.",
     whereMoney: "Ndalama zili kuti?",
     whereMoneySub: "Fanizira izi ndi ndalama za m'bokosi lanu ndi mobile money yanu.",
+    kindCash: "Ndalama",
+    kindBank: "Banki",
+    kindMobile: "Ndalama pa foni",
+    kindOther: "Zina",
     cashTill: "Ndalama zoyembekezeka m'bokosi",
     cashTillHint: "Cash ya malonda, kuchotsera zotulutsa zomwe zalipidwa m'bokosi",
     quickFacts: "Zidule zofunika",
@@ -1045,6 +1070,7 @@ export const ny = {
     thMargin: "Margin",
     thInStock: "Pa shelufu",
     thStore: "Sitolo",
+    thType: "Mtundu",
     pdfTitle: "Chikalata cha bizinesi",
     pdfPeriod: "Panthawi",
     pdfScope: "Masitolo",
@@ -1052,6 +1078,9 @@ export const ny = {
     pdfIssued: "Zotulutsidwa",
     pdfStatement: "Chikalata cha phindu",
     pdfMoney: "Ndalama zolandiridwa malinga ndi njira yolipirira",
+    pdfMoneyKinds: "Ndalama, banki ndi ndalama pa foni",
+    moneyByLocation: "Ndalama pa malo",
+    moneyByLocationSub: "Ndalama zolandiridwa pa malo aliwonse, kuchotsa zobwezeredwa.",
     pdfSignoff:
       "Anakonzekeretsa: ______________________      Anayang'anira: ______________________      Tsiku: ______________",
     pdfNote:

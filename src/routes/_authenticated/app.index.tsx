@@ -4,14 +4,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  BanknoteIcon,
-  CreditCardIcon,
   Delete02Icon,
   MinusSignIcon,
   PlusSignIcon,
   Search01Icon,
   ShoppingBag01Icon,
-  Simcard01Icon,
 } from "@/lib/icons";
 import {
   useProducts,
@@ -47,7 +44,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -67,6 +63,7 @@ import { DiscountDialog, type DiscountLine } from "@/components/pos/DiscountDial
 import { Receipt, type ReceiptTender } from "@/lib/receipts";
 import { validatePin } from "@/lib/validate";
 import { cn } from "@/lib/utils";
+import { isCashMethod, methodIcon, methodLabel } from "@/lib/payment-methods";
 import { useCollections, salePrice } from "@/lib/collections";
 import { useI18n, type TranslateParams } from "@/lib/i18n";
 
@@ -873,12 +870,6 @@ function SalePanel({
   );
 }
 
-const payMethods = [
-  { v: "cash", k: "till.payCash", i: BanknoteIcon },
-  { v: "card", k: "till.payCard", i: CreditCardIcon },
-  { v: "mobile", k: "till.payMobile", i: Simcard01Icon },
-] as const;
-
 const sectionLabel = "text-[11px] font-medium uppercase tracking-wider text-muted-foreground";
 
 function CheckoutDialog({
@@ -896,9 +887,11 @@ function CheckoutDialog({
   onClose: () => void;
   onDone: (f: SaleForm) => Promise<void>;
 }) {
-  const { money, store } = usePos();
+  const { money, store, paymentMethods } = usePos();
   const { t } = useI18n();
-  const methodOpts = payMethods.map((m) => ({ value: m.v, label: t(m.k) }));
+  const methodOpts = paymentMethods.map((code) => ({ value: code, label: methodLabel(code) }));
+  // Split rows start on a method that is not the primary cash row.
+  const nextMethod = paymentMethods.find((code) => !isCashMethod(code)) ?? "cash";
   const [method, setMethod] = useState("cash");
   const [tendered, setTendered] = useState("");
   const [extra, setExtra] = useState<{ method: string; amount: string }[]>([]);
@@ -931,12 +924,12 @@ function CheckoutDialog({
         ].filter((t) => t.amount > 0)
       : [];
   const sumT = tenders.reduce((a, t) => a + t.amount, 0);
-  const covered = !splitting ? (kind === "layby" || method === "cash" ? pay : total) : sumT;
+  const covered = !splitting ? (kind === "layby" || isCashMethod(method) ? pay : total) : sumT;
   const short = round2(total - covered);
   const change = approval
     ? 0
     : calcChange(splitting ? tenders : [{ method, amount: pay }], total, kind);
-  const showAmount = !approval && (kind === "layby" || method === "cash" || splitting);
+  const showAmount = !approval && (kind === "layby" || isCashMethod(method) || splitting);
 
   const submit = async () => {
     setBusy(true);
@@ -1008,17 +1001,33 @@ function CheckoutDialog({
               <Label className={sectionLabel}>
                 {splitting ? t("till.payment1Method") : t("till.paymentMethod")}
               </Label>
-              <SegmentedControl
+              <div
+                role="group"
                 aria-label={t("till.paymentMethod")}
-                className="w-full"
-                value={method}
-                onChange={setMethod}
-                options={payMethods.map((m) => ({
-                  value: m.v,
-                  label: t(m.k),
-                  icon: <HugeiconsIcon icon={m.i} className="size-4 shrink-0" />,
-                }))}
-              />
+                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+              >
+                {paymentMethods.map((code) => {
+                  const active = method === code;
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setMethod(code)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-[13px] transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+                        active
+                          ? "border-primary/60 bg-primary/10 font-medium text-foreground"
+                          : "border-border text-muted-foreground hover:bg-muted/60",
+                      )}
+                    >
+                      <HugeiconsIcon icon={methodIcon(code)} className="size-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{methodLabel(code)}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -1100,9 +1109,7 @@ function CheckoutDialog({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() =>
-                  setExtra((x) => [...x, { method: x.length ? "mobile" : "card", amount: "" }])
-                }
+                onClick={() => setExtra((x) => [...x, { method: nextMethod, amount: "" }])}
               >
                 <HugeiconsIcon icon={PlusSignIcon} className="size-4" />
                 {t("till.addAnotherPayment")}
@@ -1170,7 +1177,7 @@ function CheckoutDialog({
               (kind === "sale" &&
                 !approval &&
                 ((splitting && short > 0.005) ||
-                  (!splitting && method === "cash" && tendered !== "" && pay < total)))
+                  (!splitting && isCashMethod(method) && tendered !== "" && pay < total)))
             }
             onClick={submit}
           >

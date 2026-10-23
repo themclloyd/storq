@@ -23,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
+import { PaymentMethodPicker } from "@/components/pos/payment-methods";
+import { LEGACY_PAYMENT_METHODS } from "@/lib/payment-methods";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +61,7 @@ const types = [
 
 function StorePage() {
   const { id } = Route.useParams();
-  const { stores, can } = usePos();
+  const { stores, can, paymentMethodsFor } = usePos();
   const { t } = useI18n();
   if (!can("locations", "view_locations")) return <NoAccess />;
   const store = stores.find((s) => s.id === id);
@@ -70,10 +72,25 @@ function StorePage() {
       </Card>
     );
   // Keyed so a refreshed store row resets the draft once the query returns.
-  return <StoreForm key={store.id} store={store} readOnly={!can("locations")} />;
+  return (
+    <StoreForm
+      key={store.id}
+      store={store}
+      initialMethods={paymentMethodsFor(store.id)}
+      readOnly={!can("locations")}
+    />
+  );
 }
 
-function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
+function StoreForm({
+  store,
+  initialMethods,
+  readOnly,
+}: {
+  store: Store;
+  initialMethods: string[];
+  readOnly: boolean;
+}) {
   const { rpc, money, business } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -85,6 +102,11 @@ function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
   const [taxNumber, setTaxNumber] = useState(store.tax_number ?? "");
   const [rate, setRate] = useState(String(store.tax_rate ?? 0));
   const [incl, setIncl] = useState(store.tax_inclusive ?? true);
+  const [methods, setMethods] = useState(initialMethods);
+  // A retired code this location still carried stays offered until it is dropped.
+  const legacy = initialMethods.filter((code) =>
+    LEGACY_PAYMENT_METHODS.some((m) => m.code === code),
+  );
   const [busy, setBusy] = useState(false);
   const [xbusy, setXbusy] = useState<
     Partial<
@@ -362,6 +384,7 @@ function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
           amount: r.amount,
           cost: r.cost,
           tax: r.tax,
+          method: r.method,
           refund_items: r.refund_items.map((i) => ({
             product_id: i.product_id,
             name: i.name,
@@ -378,7 +401,7 @@ function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
         })),
         costs: {},
       });
-      const cur = business?.currency ?? "R";
+      const cur = business?.currency ?? "MWK";
       const fmt = (n: number) => money(n);
       const pct = (n: number) => `${n.toFixed(1)}%`;
       const methods = Object.entries(report.byMethod).sort((a, b) => b[1] - a[1]);
@@ -462,7 +485,7 @@ function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
                     fmt(v),
                     report.moneyCollected ? pct((v / report.moneyCollected) * 100) : "-",
                   ]),
-                  foot: [t("bizReport.totalSales"), fmt(report.grossSales), ""],
+                  foot: [t("bizReport.collected"), fmt(report.moneyCollected), ""],
                 },
               ]
             : []),
@@ -592,10 +615,12 @@ function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
         p_tax_number: taxNumber.trim() || null,
         p_tax_rate: Number(rate || 0),
         p_tax_inclusive: incl,
+        p_payment_methods: methods,
       });
       toast.success(t("common.saved"));
       qc.invalidateQueries({ queryKey: ["stores"] });
       qc.invalidateQueries({ queryKey: ["business"] });
+      qc.invalidateQueries({ queryKey: ["store-payment-methods"] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -784,6 +809,18 @@ function StoreForm({ store, readOnly }: { store: Store; readOnly: boolean }) {
               <span className="tabular font-semibold">{money(net + vat)}</span>
             </div>
           </div>
+        </Card>
+        <Card className="space-y-3 p-5 lg:col-span-2">
+          <div>
+            <h3 className="font-display text-base font-medium">{t("biz.paymentMethods")}</h3>
+            <p className="text-[13px] text-muted-foreground">{t("biz.paymentMethodsHint")}</p>
+          </div>
+          <PaymentMethodPicker
+            value={methods}
+            onChange={setMethods}
+            extra={legacy}
+            disabled={readOnly}
+          />
         </Card>
       </div>
 

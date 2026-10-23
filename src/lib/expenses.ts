@@ -7,7 +7,9 @@ export type Expense = {
   store_id: string;
   amount: number;
   category: string;
-  source: "till" | "bank" | "mobile";
+  // A payment method code (`cash`, `national_bank`, …). Rows written before the
+  // method catalogue may still carry the retired `till`/`bank`/`mobile` labels.
+  source: string;
   note: string | null;
   spent_on: string;
   created_by: string | null;
@@ -26,11 +28,6 @@ export const expenseCategories = [
   "Food & Refreshments",
   "Other",
 ];
-export const sourceLabel: Record<Expense["source"], string> = {
-  till: "Cash from till",
-  bank: "Bank / Card",
-  mobile: "Mobile money",
-};
 
 export function useExpenses(filter: { storeId?: string | undefined; since?: string }) {
   return useQuery({

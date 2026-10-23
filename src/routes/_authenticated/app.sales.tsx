@@ -7,6 +7,7 @@ import { ReceiptIcon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { fetchSalesForExport, useSalesPage, useSalesSummary, useStaffNames } from "@/lib/sales";
+import { methodLabel } from "@/lib/payment-methods";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -209,7 +210,7 @@ function SalesContent() {
                 s.status in statusText ? t(`status.${s.status}`) : s.status,
                 staffName(s.created_by),
                 s.customer_name ?? "",
-                s.payment_method ?? "",
+                s.payment_method ? methodLabel(s.payment_method) : "",
                 money(s.total),
                 Number(s.refunded) ? money(s.refunded) : "",
               ]),

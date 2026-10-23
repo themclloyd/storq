@@ -14,6 +14,7 @@ export type WorkspacePath =
   | "/app/stocktake"
   | "/app/reports"
   | "/app/expenses"
+  | "/app/business"
   | "/app/stores"
   | "/app/staff"
   | "/app/billing";
@@ -126,6 +127,13 @@ export const workspacePages: Page[] = [
     group: "finance",
     // Tills record what they spend; only money access may delete an entry.
     perms: ["sell", ...areaPerms("money")],
+  },
+  {
+    to: "/app/business",
+    label: "Business",
+    labelKey: "nav.business",
+    group: "settings",
+    perms: areaPerms("money"),
   },
   {
     to: "/app/stores",

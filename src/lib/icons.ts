@@ -16,6 +16,7 @@ export { default as Alert02Icon } from "@hugeicons/core-free-icons/Alert02Icon";
 export { default as ArrowLeft01Icon } from "@hugeicons/core-free-icons/ArrowLeft01Icon";
 export { default as ArrowRight01Icon } from "@hugeicons/core-free-icons/ArrowRight01Icon";
 export { default as ArrowUpRight01Icon } from "@hugeicons/core-free-icons/ArrowUpRight01Icon";
+export { default as BankIcon } from "@hugeicons/core-free-icons/BankIcon";
 export { default as BanknoteIcon } from "@hugeicons/core-free-icons/BanknoteIcon";
 export { default as BarChartIcon } from "@hugeicons/core-free-icons/BarChartIcon";
 export { default as BoxesIcon } from "@hugeicons/core-free-icons/BoxesIcon";

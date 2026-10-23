@@ -181,7 +181,7 @@ export function TrendChart({
   );
 }
 
-export type MethodSlice = { name: string; value: number };
+export type MethodSlice = { name: string; value: number; label?: string };
 
 /** Sales-vs-profit area chart for the business report (same look as TrendChart). */
 export function ProfitTrendChart({
@@ -315,7 +315,9 @@ export function PaymentMethods({
   const config: ChartConfig = {};
   data.forEach((p, i) => {
     config[p.name] = {
-      label: p.name,
+      // The key stays the stored code (it names the CSS colour var); the label is
+      // what a shopkeeper reads ("Airtel Money", not "airtel_money").
+      label: p.label ?? p.name,
       color: PIE_COLORS[i % PIE_COLORS.length] ?? "var(--chart-1)",
     };
   });
@@ -354,8 +356,8 @@ export function PaymentMethods({
               className="size-2 shrink-0 rounded-full"
               style={{ background: config[p.name]?.color }}
             />
-            <span className="min-w-0 flex-1 truncate capitalize text-muted-foreground">
-              {p.name}
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">
+              {p.label ?? p.name}
             </span>
             <span className="tabular w-10 shrink-0 text-right text-muted-foreground">
               {Math.round((p.value / total) * 100)}%

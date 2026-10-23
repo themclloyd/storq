@@ -66,6 +66,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Field, NativeSelect, StoreTypeTag } from "@/components/pos/bits";
+import { CurrencyField, PaymentMethodPicker } from "@/components/pos/payment-methods";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { PIN_BACKOFF, clearGate, formatWait, gateRemaining, noteFailure } from "@/lib/attempt-gate";
 import {
@@ -171,11 +172,12 @@ function Setup() {
   const signOut = useSignOut();
   const [f, setF] = useState({
     name: "",
-    currency: "R",
+    currency: "MWK",
     store: "Main store",
     type: "direct",
     owner: "",
     pin: "",
+    methods: ["cash"] as string[],
   });
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) =>
@@ -204,6 +206,7 @@ function Setup() {
       p_store_type: f.type,
       p_owner_name: sanitizeText(f.owner, LIMITS.name),
       p_pin: f.pin,
+      p_payment_methods: f.methods,
     });
     setBusy(false);
     if (error) {
@@ -232,12 +235,7 @@ function Setup() {
             </Field>
           </div>
           <Field label={t("setup.currency")}>
-            <Input
-              required
-              maxLength={LIMITS.currency}
-              value={f.currency}
-              onChange={set("currency")}
-            />
+            <CurrencyField value={f.currency} onChange={(v) => setF({ ...f, currency: v })} />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -269,6 +267,11 @@ function Setup() {
               onChange={set("pin")}
             />
           </Field>
+        </div>
+        <div className="space-y-2 border-t pt-3">
+          <p className="text-[13px] font-medium">{t("setup.paymentMethods")}</p>
+          <PaymentMethodPicker value={f.methods} onChange={(methods) => setF({ ...f, methods })} />
+          <p className="text-xs text-muted-foreground">{t("setup.paymentMethodsHint")}</p>
         </div>
         <Button className="w-full" disabled={busy}>
           {t("setup.createBusiness")}

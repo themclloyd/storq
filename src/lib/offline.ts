@@ -13,6 +13,7 @@ const CACHE_VERSION = 2;
 const PERSIST = new Set([
   "business",
   "stores",
+  "store-payment-methods",
   "products",
   "collections",
   "stock",

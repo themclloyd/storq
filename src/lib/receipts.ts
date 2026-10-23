@@ -1,6 +1,7 @@
 // Client-safe sale/layby receipt builders. No DB access — the caller passes an
 // already-formatted `money` fn (from usePos) so amounts stay in the store currency.
 import { t } from "@/lib/i18n";
+import { methodLabel } from "@/lib/payment-methods";
 
 export type ReceiptLine = { name: string; qty: number; price: number; total: number };
 
@@ -40,17 +41,8 @@ export type Receipt = {
 
 export type MoneyFmt = (n: number) => string;
 
-const METHOD_KEYS: Record<string, string> = {
-  cash: "till.payCash",
-  card: "till.payCard",
-  mobile: "till.payMobile",
-  split: "doc.split",
-};
-
-export const methodLabel = (m: string) => {
-  const key = METHOD_KEYS[m];
-  return key ? t(key) : m;
-};
+// One label source for receipts, screens, PDFs and CSV exports.
+export { methodLabel };
 
 export function receiptTitle(r: Receipt) {
   if (r.kind === "layby")

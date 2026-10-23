@@ -16,6 +16,7 @@ import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedOpsRouteImport } from './routes/_authenticated/ops'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppBillingRouteImport } from './routes/_authenticated/app.billing'
+import { Route as AuthenticatedAppBusinessRouteImport } from './routes/_authenticated/app.business'
 import { Route as AuthenticatedAppCollectionsRouteImport } from './routes/_authenticated/app.collections'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppExpensesRouteImport } from './routes/_authenticated/app.expenses'
@@ -71,6 +72,12 @@ const AuthenticatedAppBillingRoute = AuthenticatedAppBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppBusinessRoute =
+  AuthenticatedAppBusinessRouteImport.update({
+    id: '/business',
+    path: '/business',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppCollectionsRoute =
   AuthenticatedAppCollectionsRouteImport.update({
     id: '/collections',
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/ops': typeof AuthenticatedOpsRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/business': typeof AuthenticatedAppBusinessRoute
   '/app/collections': typeof AuthenticatedAppCollectionsRouteWithChildren
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
@@ -217,6 +225,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/ops': typeof AuthenticatedOpsRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
+  '/app/business': typeof AuthenticatedAppBusinessRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/expenses': typeof AuthenticatedAppExpensesRoute
   '/app/inventory': typeof AuthenticatedAppInventoryRoute
@@ -246,6 +255,7 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/ops': typeof AuthenticatedOpsRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
+  '/_authenticated/app/business': typeof AuthenticatedAppBusinessRoute
   '/_authenticated/app/collections': typeof AuthenticatedAppCollectionsRouteWithChildren
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/expenses': typeof AuthenticatedAppExpensesRoute
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/ops'
     | '/app/billing'
+    | '/app/business'
     | '/app/collections'
     | '/app/dashboard'
     | '/app/expenses'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/ops'
     | '/app/billing'
+    | '/app/business'
     | '/app/dashboard'
     | '/app/expenses'
     | '/app/inventory'
@@ -331,6 +343,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/ops'
     | '/_authenticated/app/billing'
+    | '/_authenticated/app/business'
     | '/_authenticated/app/collections'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/expenses'
@@ -409,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/app/billing'
       preLoaderRoute: typeof AuthenticatedAppBillingRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/business': {
+      id: '/_authenticated/app/business'
+      path: '/business'
+      fullPath: '/app/business'
+      preLoaderRoute: typeof AuthenticatedAppBusinessRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/collections': {
@@ -573,6 +593,7 @@ const AuthenticatedAppCollectionsRouteWithChildren =
 
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppBillingRoute: typeof AuthenticatedAppBillingRoute
+  AuthenticatedAppBusinessRoute: typeof AuthenticatedAppBusinessRoute
   AuthenticatedAppCollectionsRoute: typeof AuthenticatedAppCollectionsRouteWithChildren
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppExpensesRoute: typeof AuthenticatedAppExpensesRoute
@@ -596,6 +617,7 @@ interface AuthenticatedAppRouteChildren {
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppBillingRoute: AuthenticatedAppBillingRoute,
+  AuthenticatedAppBusinessRoute: AuthenticatedAppBusinessRoute,
   AuthenticatedAppCollectionsRoute:
     AuthenticatedAppCollectionsRouteWithChildren,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,

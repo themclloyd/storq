@@ -14,6 +14,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
+import { PaymentMethodPicker } from "@/components/pos/payment-methods";
+import { LEGACY_PAYMENT_METHODS } from "@/lib/payment-methods";
 import { pluralize } from "@/lib/format";
 import { useSubscription } from "@/lib/billing";
 
@@ -124,13 +126,18 @@ function Stores() {
 }
 
 function StoreDialog({ onClose }: { onClose: () => void }) {
-  const { rpc } = usePos();
+  const { rpc, paymentMethods } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [type, setType] = useState<Store["store_type"]>("direct");
   const [phone, setPhone] = useState("");
+  // A new branch starts with the same ways money comes in as the one in use;
+  // retired codes are never added to a location that never carried them.
+  const [methods, setMethods] = useState(() =>
+    paymentMethods.filter((code) => !LEGACY_PAYMENT_METHODS.some((m) => m.code === code)),
+  );
   async function save() {
     const err = firstError(
       requireText(name, t("store.locationName"), LIMITS.storeName),
@@ -146,10 +153,12 @@ function StoreDialog({ onClose }: { onClose: () => void }) {
         p_name: sanitizeText(name, LIMITS.storeName),
         p_type: type,
         p_phone: phone.trim(),
+        p_payment_methods: methods,
       });
       toast.success(t("store.added"));
       // Wait for the list to carry the new location before opening its page.
       await qc.invalidateQueries({ queryKey: ["stores"] });
+      await qc.invalidateQueries({ queryKey: ["store-payment-methods"] });
       onClose();
       if (id) void navigate({ to: "/app/stores/$id", params: { id } });
     } catch (e) {
@@ -191,6 +200,10 @@ function StoreDialog({ onClose }: { onClose: () => void }) {
               desc={t(opt.dKey)}
             />
           ))}
+        </div>
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium text-muted-foreground">{t("biz.paymentMethods")}</p>
+          <PaymentMethodPicker value={methods} onChange={setMethods} />
         </div>
         <Button disabled={!name} onClick={save}>
           {t("store.saveBtn")}

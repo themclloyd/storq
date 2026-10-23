@@ -26,6 +26,7 @@ import { formatCompactMoney, formatMoney } from "@/lib/format";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
 import { t, useI18n } from "@/lib/i18n";
 import { permits, toPermissions, type Access, type Permission } from "@/lib/permissions";
+import { sortPaymentMethods } from "@/lib/payment-methods";
 
 export type CheckoutResult = {
   id: string;
@@ -90,6 +91,10 @@ type PosCtx = {
   compactMoney: (n: number | string | null | undefined) => string;
   /** Configured currency symbol (e.g. "MWK", "R"), or null before the business loads. */
   currency: string | null;
+  /** Payment methods this location accepts, catalogue order; cash is always here. */
+  paymentMethods: string[];
+  /** Methods a location accepts (invoice/refund dialogs act on another store). */
+  paymentMethodsFor: (storeId: string | null | undefined) => string[];
   /** True when the signed-in person holds any of these grants (the owner: always). */
   can: (...perms: Permission[]) => boolean;
   refresh: () => void;
@@ -228,9 +233,34 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   });
   const stores = storesQ.data ?? [];
 
+  // Each location keeps its own methods. One small read covers the tenant so
+  // invoice/refund dialogs can ask for the store they belong to; it is cached
+  // like the rest of the reference data so an offline till still knows its list.
+  const methodsQ = useQuery({
+    queryKey: ["store-payment-methods", userId],
+    staleTime: 300_000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from as any)("store_payment_methods")
+        .select("store_id,code")
+        .order("code");
+      if (error) throw error;
+      return (data ?? []) as { store_id: string; code: string }[];
+    },
+  });
+  const methodsByStore = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const row of methodsQ.data ?? []) (map[row.store_id] ??= []).push(row.code);
+    for (const key of Object.keys(map)) map[key] = sortPaymentMethods(["cash", ...map[key]!]);
+    return map;
+  }, [methodsQ.data]);
+  const paymentMethodsFor = (id: string | null | undefined) =>
+    (id ? methodsByStore[id] : undefined) ?? ["cash"];
+
   // An assigned location binds whoever holds it, not only the old cashier tier.
   const effectiveStoreId = staff?.store_id ?? storeId;
   const store = stores.find((s) => s.id === effectiveStoreId) ?? stores[0] ?? null;
+  const paymentMethods = paymentMethodsFor(store?.id);
 
   const setStoreId = (id: string) => {
     setStoreIdState(id);
@@ -304,7 +334,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     return data as T;
   };
 
-  const currency = businessQ.data?.currency ?? "R";
+  const currency = businessQ.data?.currency ?? "MWK";
   // Single shared money format (spec §1): comma thousands, decimals only when
   // fractional, real minus before the symbol for negatives (e.g. "−MK41,400").
   const money = useMemo(
@@ -460,6 +490,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     money,
     compactMoney,
     currency,
+    paymentMethods,
+    paymentMethodsFor,
     can: (...perms) => !!staff && permits(staff, perms),
     refresh: () => qc.invalidateQueries(),
   };

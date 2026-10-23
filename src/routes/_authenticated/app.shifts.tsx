@@ -8,6 +8,7 @@ import { invalidateKeys } from "@/lib/cache-invalidation";
 import { downloadPdf } from "@/lib/pdf";
 import { useOnce } from "@/hooks/use-once";
 import { useStaffNames } from "@/lib/sales";
+import { methodLabel } from "@/lib/payment-methods";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -304,8 +305,8 @@ function SummaryRows({ s, money }: { s: Summary; money: (n: number) => string })
             {t("shift.allTakings", { count: s.transactions })}
           </div>
           {Object.entries(s.by_method).map(([m, v]) => (
-            <div key={m} className="flex justify-between gap-3 capitalize">
-              <span className="truncate text-muted-foreground">{m}</span>
+            <div key={m} className="flex justify-between gap-3">
+              <span className="truncate text-muted-foreground">{methodLabel(m)}</span>
               <span className="tabular shrink-0">{money(v)}</span>
             </div>
           ))}
@@ -546,7 +547,7 @@ function ZReport({
                 type: "pairs" as const,
                 heading: t("shift.takingsByMethod", { count: sm.transactions }),
                 rows: Object.entries(sm.by_method ?? {}).map(
-                  ([m, x]) => [m, money(x)] as [string, string],
+                  ([m, x]) => [methodLabel(m), money(x)] as [string, string],
                 ),
               },
             ]

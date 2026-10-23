@@ -11,13 +11,12 @@ import {
   MoneyBag02Icon,
   PlusSignIcon,
   ReceiptIcon,
-  SmartPhone01Icon,
   Wallet01Icon,
 } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { useStaffNames } from "@/lib/sales";
-import { expenseCategories, rangeDays, sinceFor, useExpenses, type Expense } from "@/lib/expenses";
+import { expenseCategories, rangeDays, sinceFor, useExpenses } from "@/lib/expenses";
 import { localDateKey } from "@/lib/trend";
 import { pageSlice } from "@/lib/paging";
 import { cn } from "@/lib/utils";
@@ -49,6 +48,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useOnce } from "@/hooks/use-once";
+import { isCashMethod, methodIcon, methodLabel, sortPaymentMethods } from "@/lib/payment-methods";
 import {
   Table,
   TableBody,
@@ -76,26 +76,15 @@ export const Route = createFileRoute("/_authenticated/app/expenses")({
 
 const today = () => localDateKey(new Date());
 
-// Expense source is a stored code; only its display label is localized. Category names are
-// business data (stored per tenant) and stay untranslated.
-const SOURCE_KEYS: Record<Expense["source"], string> = {
-  till: "exp.srcTill",
-  bank: "exp.srcBank",
-  mobile: "exp.srcMobile",
-};
-const SOURCE_CODES = Object.keys(SOURCE_KEYS) as Expense["source"][];
-const SOURCE_ICONS: Record<Expense["source"], DashIcon> = {
-  till: Wallet01Icon,
-  bank: CreditCardIcon,
-  mobile: SmartPhone01Icon,
-};
-// Soft tints only, matching the status badges. Till cash is the one source that moves the
-// drawer, so it gets the brand tint; bank and mobile stay neutral to avoid reading as status.
-const SOURCE_TONE: Record<Expense["source"], string> = {
-  till: "bg-primary-soft text-primary-soft-foreground",
-  bank: "bg-secondary text-secondary-foreground",
-  mobile: "bg-secondary text-secondary-foreground",
-};
+// Expense source is a stored method code; only its display label is localized.
+// Category names are business data (stored per tenant) and stay untranslated.
+const srcLabel = (s: string) => methodLabel(s);
+// Cash moves the drawer and keeps the brand tint; banks and wallets stay neutral
+// so a method never reads as a status.
+const srcTone = (s: string) =>
+  isCashMethod(s) || s === "till"
+    ? "bg-primary-soft text-primary-soft-foreground"
+    : "bg-secondary text-secondary-foreground";
 const RANGE_KEYS: Record<keyof typeof rangeDays, string> = {
   today: "sales.rangeToday",
   "7 days": "sales.range7d",
@@ -119,15 +108,14 @@ function Expenses() {
 }
 
 function ExpensesContent() {
-  const { store, rpc, money, can, business } = usePos();
+  const { store, rpc, money, can, business, paymentMethods } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const srcLabel = (s: Expense["source"]) => t(SOURCE_KEYS[s]);
   const canDelete = can("money");
   // Recording is the tills' job; a view-only money grant reads the ledger only.
   const canRecord = can("sell") || can("money");
   const [range, setRange] = useState<keyof typeof rangeDays>("7 days");
-  const [source, setSource] = useState<"all" | Expense["source"]>("all");
+  const [source, setSource] = useState("all");
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(0);
   const [recording, setRecording] = useState(false);
@@ -136,6 +124,12 @@ function ExpensesContent() {
   const list = useExpenses({ storeId: store?.id, since });
   const names = useStaffNames();
   const rows = useMemo(() => list.data ?? [], [list.data]);
+  // Offer every enabled method plus any older code still present in history, so
+  // a filter never hides a row the table can show.
+  const sources = useMemo(
+    () => sortPaymentMethods([...paymentMethods, ...rows.map((e) => e.source)]),
+    [paymentMethods, rows],
+  );
 
   // Filtering the cached period in memory keeps totals, chart and table on the same rows.
   const filtered = useMemo(
@@ -149,7 +143,7 @@ function ExpensesContent() {
   );
   const total = filtered.reduce((a, e) => a + Number(e.amount), 0);
   const till = filtered
-    .filter((e) => e.source === "till")
+    .filter((e) => isCashMethod(e.source) || e.source === "till")
     .reduce((a, e) => a + Number(e.amount), 0);
   const other = total - till;
   const byCategory = useMemo(() => {
@@ -283,12 +277,12 @@ function ExpensesContent() {
                 <DropdownMenuRadioGroup
                   value={source}
                   onValueChange={(v) => {
-                    setSource(v as "all" | Expense["source"]);
+                    setSource(v);
                     setPage(0);
                   }}
                 >
                   <DropdownMenuRadioItem value="all">{t("exp.allSources")}</DropdownMenuRadioItem>
-                  {SOURCE_CODES.map((s) => (
+                  {sources.map((s) => (
                     <DropdownMenuRadioItem key={s} value={s}>
                       {srcLabel(s)}
                     </DropdownMenuRadioItem>
@@ -429,10 +423,10 @@ function ExpensesContent() {
                       <Badge
                         className={cn(
                           "gap-1 border-transparent px-2.5 py-0.5 font-medium",
-                          SOURCE_TONE[e.source],
+                          srcTone(e.source),
                         )}
                       >
-                        <HugeiconsIcon icon={SOURCE_ICONS[e.source]} className="size-3.5" />
+                        <HugeiconsIcon icon={methodIcon(e.source)} className="size-3.5" />
                         {srcLabel(e.source)}
                       </Badge>
                     </TableCell>
@@ -499,14 +493,13 @@ function SummaryStrip({
 
 /** Amount, category, source, date and note in one sheet instead of a permanent side form. */
 function RecordDialog({ onClose }: { onClose: () => void }) {
-  const { store, rpc } = usePos();
+  const { store, rpc, paymentMethods } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const srcLabel = (s: Expense["source"]) => t(SOURCE_KEYS[s]);
   const [f, setF] = useState({
     amount: "",
     category: expenseCategories[0]!,
-    source: "till" as Expense["source"],
+    source: "cash",
     note: "",
     date: today(),
   });
@@ -581,23 +574,24 @@ function RecordDialog({ onClose }: { onClose: () => void }) {
             <div
               role="group"
               aria-label={t("exp.paidFrom")}
-              className="grid grid-cols-3 gap-0.5 rounded-xl bg-muted p-1"
+              className="grid grid-cols-2 gap-0.5 rounded-xl bg-muted p-1 sm:grid-cols-3"
             >
-              {SOURCE_CODES.map((s) => (
+              {paymentMethods.map((s) => (
                 <button
                   key={s}
                   type="button"
                   aria-pressed={f.source === s}
                   onClick={() => setF({ ...f, source: s })}
                   className={cn(
-                    "flex min-h-9 items-center justify-center rounded-lg px-2 py-1.5 text-xs font-medium leading-tight transition-colors duration-150 ease-out",
+                    "flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium leading-tight transition-colors duration-150 ease-out",
                     "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
                     f.source === s
                       ? "bg-card text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {srcLabel(s)}
+                  <HugeiconsIcon icon={methodIcon(s)} className="size-3.5 shrink-0" />
+                  <span className="truncate">{srcLabel(s)}</span>
                 </button>
               ))}
             </div>
