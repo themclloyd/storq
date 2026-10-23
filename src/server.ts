@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { servePaymentsApi } from "./lib/payments.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -143,6 +144,11 @@ export default {
     try {
       const seoFile = serveSeoFiles(request);
       if (seoFile) return applySecurityHeaders(seoFile);
+      // Provider callbacks and the payment sweeper answer before the app router:
+      // neither has a session, and both must stay reachable while the shop is
+      // locked out of every screen.
+      const apiResponse = await servePaymentsApi(request);
+      if (apiResponse) return applySecurityHeaders(apiResponse);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return applySecurityHeaders(await normalizeCatastrophicSsrResponse(response));

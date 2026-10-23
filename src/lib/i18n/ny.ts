@@ -93,6 +93,8 @@ export const ny = {
     retry: "Yesaninso",
     discard: "Chotsani",
     discardConfirm: "Mukufuna kuchotsa malonda opanda intanetiwa? Sanalembedwe.",
+    storageFull:
+      "Chipangizochi chilibe malo osungira malonda opanda intaneti. Lumikizaninso intaneti musagulitse.",
   },
   errors: {
     noAccess: "Mulibe chilolezo choona zimenezi",
@@ -179,6 +181,18 @@ export const ny = {
     signOutDevice: "Tulukani pa chipangizochi",
     tooMany: "Zoyesa zambiri zolakwika. Yesaninso pakapita {time}.",
     attemptsLeft: "Zotsala: {count}",
+    forgot: "Mwayiwala PIN yanu?",
+    resetTitle: "Sinthani PIN ya mwini",
+    resetBody:
+      "Tsimikizani mawu achinsinsi a {email} kuti musankhe PIN yatsopano ya mwini. Ma till onse mu sitoloyi atuluka ndipo atsegulidwa ndi PIN yatsopanoyi.",
+    resetPassword: "Mawu achinsinsi akaunti",
+    newPin: "PIN yatsopano",
+    confirmPin: "Bwerezani PIN yatsopano",
+    pinMismatch: "Ma PIN awiriwa sakufanana",
+    resetAction: "Iketseni PIN yatsopano",
+    resetDone: "PIN yasinthidwa — ilowetseni kuti mutsegule till.",
+    resetWrongPassword: "Mawu achinsinsi awa sindiolondola",
+    resetFailed: "PIN yasinthidwa koma till iyi sinatseguke. Lowetsani PIN yatsopano.",
   },
   auth: {
     brandTag: "Storq · Malo ogwirira ntchito a bizinesi",
@@ -1254,6 +1268,9 @@ export const ny = {
     planTabsLabel: "Mukufuna kuchita chiyani?",
     verifyRecent: "Mwamalipira kale? Tsimikizani tsopano",
     verifying: "Tikutsimikiza…",
+    nothingPending: "Palibe malipiro akudikira kutsimikizidwa.",
+    pendingNotYet:
+      "Palibe malipiro otsimikizika pakadali pano. Ngati mwalandira ndalama, yesaninso pakapita mphindi — tikupitiriza kuyang'ana.",
     mmStepsTitle: "Kulipira ndi mobile money",
     mmStep1: "Lembani nambala yanu ya Airtel Money kapena TNM Mpamba pomwe mulipira.",
     mmStep2: "Yankhani pempho la pa foni ndipo lembani PIN ya mobile money.",
@@ -1303,9 +1320,9 @@ export const ny = {
     downloadShort: "Tatsani",
     downloadNote: "Zaulere ndi ndondomeko yanu · Windows 10/11 (64-bit) · Zimagulitsa ngakhale popanda intaneti",
     heroEyebrow: "Yopangidwira Masitolo a ku Africa",
-    heroH1: "Dziwani Katundu. Dziwani Phindu. Tongani Bizinesi Yanu.",
+    heroH1: "Kauntala wanu, katundu wanu ndi phindu lanu — pa foni yomwe muli nayo kale.",
     heroLead:
-      "Storq imayendetsa sitolo yanu yonse mokonzedwa pa foni ili m'thumba mwanu — katundu yense alipo, phindu lenileni la malonda, ndi zochita za ogwira ntchito. Yang'anirani bizinesi ndi zoona, osati kukayika.",
+      "Storq imagulitsa, imachepetsa katundu nthawi yomweyo, ndipo imaonetsa phindu lenileni la tsikulo musanatseke sitolo — ngakhale intaneti itazima.",
     heroNote: "Palibe kadi. Palibe zida zatsopano. Yambani kugulitsa m'mphindi 5.",
     heroChip1: "Imagwira ntchito popanda intaneti",
     heroChip2: "Airtel Money & TNM Mpamba",

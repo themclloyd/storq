@@ -107,9 +107,17 @@ export const loadQueue = (userId: string): QueuedSale[] => {
     return [];
   }
 };
-export const saveQueue = (userId: string, q: QueuedSale[]) => {
-  if (q.length) localStorage.setItem(QUEUE_PREFIX + userId, JSON.stringify(q));
-  else localStorage.removeItem(QUEUE_PREFIX + userId);
+export const saveQueue = (userId: string, q: QueuedSale[]): boolean => {
+  try {
+    if (q.length) localStorage.setItem(QUEUE_PREFIX + userId, JSON.stringify(q));
+    else localStorage.removeItem(QUEUE_PREFIX + userId);
+    return true;
+  } catch {
+    // A full disk (or a browser in private mode) must not swallow a sale: the
+    // caller refuses it and tells the cashier to reconnect instead of showing a
+    // receipt for money the device cannot remember.
+    return false;
+  }
 };
 
 export const isNetworkError = (m: string) =>

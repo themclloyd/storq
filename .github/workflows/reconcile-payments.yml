@@ -1,0 +1,41 @@
+name: Reconcile payments
+
+# Settles subscription charges that the browser and the provider's callback both
+# missed — the tab closed on the return redirect, the phone lost signal mid
+# checkout, or the payment landed after the shop was already locked out.
+#
+# Every reference is re-verified against PayChangu before anything is activated,
+# so running this is always safe. It stays dormant until CRON_SECRET is set as a
+# repository secret; the Billing screen's "Already debited? Check now" covers the
+# same ground on demand.
+#
+# Schedule (UTC) is deliberately off-peak for Malawi (UTC+2): 03:17 and every
+# three hours after. GitHub's scheduler is best-effort, which is why this is a
+# backstop rather than the only path.
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: reconcile-payments
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep pending references
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set — skipping."
+            exit 0
+          fi
+          url="${SITE_URL:-https://storq.xyz}/api/cron/reconcile"
+          # -f turns a 4xx/5xx into a failure so a broken secret shows up in the
+          # run history instead of passing silently.
+          curl -sfS -X POST "$url" -H "authorization: Bearer $CRON_SECRET" --max-time 120

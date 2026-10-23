@@ -35,6 +35,7 @@ import { useSubscription } from "@/lib/billing";
 import { useOnce } from "@/hooks/use-once";
 import { Billing } from "@/components/pos/Billing";
 import { GraceBanner } from "@/components/pos/GraceBanner";
+import { ResetPinDialog } from "@/components/pos/ResetPinDialog";
 import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,7 @@ import {
   validatePin,
 } from "@/lib/validate";
 import { cn } from "@/lib/utils";
+import { getDeviceId, staffStorageKey } from "@/lib/staff-session";
 
 export const Route = createFileRoute("/_authenticated/app")({
   head: () => ({
@@ -149,17 +151,17 @@ function useSignOut() {
   const nav = useNavigate();
   return async () => {
     await qc.cancelQueries();
-    // Drop every staff PIN session tied to this device login server-side before
-    // clearing the local session — a later visitor on this device must re-unlock.
+    // End only the session this device holds. The business login is shared, so
+    // signing out here must not knock every other till offline.
     try {
-      // New RPC (added by the security migration) is not in the generated types yet.
+      // New RPC (added by the account lifecycle migration) is not in the generated types yet.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.rpc as any)("lock_all_sessions");
+      await (supabase.rpc as any)("lock_device", { p_device_id: getDeviceId() });
     } catch {
       // Best-effort: we still clear the local session even if the server call fails.
     }
     const { data } = await supabase.auth.getUser();
-    if (data.user) localStorage.removeItem(`pos-staff-${data.user.id}`);
+    if (data.user) localStorage.removeItem(staffStorageKey(data.user.id));
     qc.clear();
     await supabase.auth.signOut();
     nav({ to: "/auth", replace: true });
@@ -296,6 +298,7 @@ function PinPad() {
   const [busy, setBusy] = useState(false);
   const [left, setLeft] = useState<number | null>(null);
   const [wait, setWait] = useState(0);
+  const [resetOpen, setResetOpen] = useState(false);
   const busyRef = useRef(false);
 
   // Adopt a lock left by the previous page load, then tick it down.
@@ -432,6 +435,30 @@ function PinPad() {
       >
         <HugeiconsIcon icon={Logout02Icon} className="size-4" /> {t("pin.signOutDevice")}
       </button>
+      <button
+        type="button"
+        onClick={() => setResetOpen(true)}
+        className="mt-3 text-sm text-muted-foreground underline underline-offset-4"
+      >
+        {t("pin.forgot")}
+      </button>
+      <ResetPinDialog
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        onReset={async (next) => {
+          // The reset ended every PIN session; unlock again with the new PIN so
+          // the till opens instead of dropping back to the pad.
+          const res = await unlock(next);
+          if (res.ok) {
+            clearGate(scope);
+            setErr(false);
+            setPin("");
+            return true;
+          }
+          toast.error(t("pin.resetFailed"));
+          return false;
+        }}
+      />
     </div>
   );
 }

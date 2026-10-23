@@ -397,7 +397,7 @@ export function Billing({ locked }: { locked?: boolean }) {
     ? capacityExpiry(until, months)
     : projectedExpiry(until, months);
 
-  async function check(ref: string): Promise<boolean> {
+  async function check(ref: string, quiet = false): Promise<boolean> {
     try {
       const r = await verify({ data: { tx_ref: ref } });
       if (r.ok) {
@@ -412,10 +412,10 @@ export function Billing({ locked }: { locked?: boolean }) {
         localStorage.removeItem("paychangu_pending_tx_ref");
         setPendingTx(null);
       }
-      toast.error(r.message);
+      if (!quiet) toast.error(r.message);
       return false;
     } catch (e) {
-      toast.error((e as Error).message);
+      if (!quiet) toast.error((e as Error).message);
       return false;
     }
   }
@@ -435,12 +435,36 @@ export function Billing({ locked }: { locked?: boolean }) {
     }
   }
 
-  // Recovery for a mobile-money charge the owner knows went through while the screen
-  // still shows a locked plan: re-run the very same server verification a page load
-  // would, without waiting for the next reload. `check` already toasts the outcome.
+  // References this account left pending, held server-side so a payment made on
+  // another till (or one whose browser storage was wiped) can still be recovered.
+  const pendingQ = useQuery({
+    queryKey: ["pending-payment-refs", business?.id],
+    enabled: !!business && can("money"),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async () => (await rpc<{ tx_ref: string }[] | null>("pending_payment_refs", {})) ?? [],
+  });
+  const pendingCount = pendingQ.data?.length ?? 0;
+
+  // Recovery for a mobile-money charge the owner knows went through while the
+  // screen still shows a locked plan: settle every pending reference this
+  // business has, not only the one this browser remembers. One sweep covers the
+  // tab that closed on the return redirect, the till that paid and crashed, and
+  // the charge that landed after the shop was already locked out.
   const { run: verifyRecent, running: verifying } = useOnce(async () => {
-    const ref = localStorage.getItem("paychangu_pending_tx_ref");
-    if (ref) await check(ref);
+    const refs = (pendingQ.data ?? []).map((row) => row.tx_ref);
+    const localRef = localStorage.getItem("paychangu_pending_tx_ref");
+    if (localRef && !refs.includes(localRef)) refs.push(localRef);
+    if (!refs.length) {
+      toast.info(t("billing.nothingPending"));
+      return;
+    }
+    // Quiet per reference: a reference the provider has not seen yet is normal,
+    // and one toast per pending charge would bury the success.
+    let paid = false;
+    for (const ref of refs) if (await check(ref, true)) paid = true;
+    if (!paid) toast.error(t("billing.pendingNotYet"));
+    void pendingQ.refetch();
   }, 5_000);
 
   // The PayChangu checkout loads inside an iframe (popup.js), so a successful
@@ -1129,7 +1153,7 @@ export function Billing({ locked }: { locked?: boolean }) {
 
               <DialogFooter className="grid gap-2">
                 {payBtn}
-                {pendingTx && (
+                {(pendingTx || pendingCount > 0) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1203,7 +1227,7 @@ export function Billing({ locked }: { locked?: boolean }) {
             <Button variant="outline" onClick={() => setPayOpen(false)}>
               {t("common.close")}
             </Button>
-            {pendingTx && (
+            {(pendingTx || pendingCount > 0) && (
               <Button variant="ghost" disabled={verifying} onClick={() => void verifyRecent()}>
                 {verifying ? t("billing.verifying") : t("billing.verifyRecent")}
               </Button>

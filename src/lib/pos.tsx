@@ -23,6 +23,7 @@ import {
   isRoleScoped,
 } from "@/lib/offline";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
+import { getDeviceId, staffStorageKey } from "@/lib/staff-session";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
 import { t, useI18n } from "@/lib/i18n";
 import { permits, toPermissions, type Access, type Permission } from "@/lib/permissions";
@@ -115,31 +116,6 @@ type PosCtx = {
 const Ctx = createContext<PosCtx | null>(null);
 
 /**
- * Stable per-register identity. Every till in a shop signs in with the one
- * business email, so auth.uid() is shared across counters; the server scopes PIN
- * throttling and staff sessions by this id so one till's bad PINs never lock out
- * — or log out — another register. Persisted for the life of the device.
- */
-const DEVICE_ID_KEY = "storq.device-id";
-function getDeviceId(): string {
-  try {
-    if (typeof localStorage === "undefined") return "";
-    let id = localStorage.getItem(DEVICE_ID_KEY);
-    if (!id) {
-      id =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `d-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-      localStorage.setItem(DEVICE_ID_KEY, id);
-    }
-    return id;
-  } catch {
-    // Unavailable storage just means an unscoped (legacy) unlock.
-    return "";
-  }
-}
-
-/**
  * The server throws controlled business messages ("Only 4 left in stock", etc.).
  * Anything carrying SQL internals — relation names, columns, policy text — is
  * replaced by a generic message so a raw Postgres error never reaches the UI.
@@ -169,7 +145,7 @@ export function usePos() {
 export function PosProvider({ userId, children }: { userId: string; children: ReactNode }) {
   useI18n(); // Subscribe so the offline banner re-localizes when the language changes.
   const qc = useQueryClient();
-  const staffKey = `pos-staff-${userId}`;
+  const staffKey = staffStorageKey(userId);
   const storeKey = `pos-store-${userId}`;
   const autoLockKey = `pos-autolock-${userId}`;
   const [staff, setStaff] = useState<StaffSession | null>(null);
@@ -324,6 +300,21 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   const lockRef = useRef(lock);
   lockRef.current = lock;
 
+  // An expired PIN session is not a readable one: the pad's token is what RLS
+  // resolves the reader from, so once it lapses every read is refused. Drop back
+  // to the PIN pad at that moment instead of leaving a screen that cannot load.
+  useEffect(() => {
+    if (!staff?.expires_at) return;
+    const ms = new Date(staff.expires_at).getTime() - Date.now();
+    if (ms <= 0) {
+      clearStaff();
+      return;
+    }
+    // setTimeout cannot hold a delay longer than a signed 32-bit int.
+    const id = setTimeout(() => void lockRef.current(), Math.min(ms, 2 ** 31 - 1));
+    return () => clearTimeout(id);
+  }, [staff?.expires_at, clearStaff]);
+
   const rpc = async <T,>(fn: string, args: Record<string, unknown> = {}) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.rpc as any)(fn, { p_token: staff?.token, ...args });
@@ -384,17 +375,21 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     opts: { offlineOk: boolean; estTotal: number },
   ): Promise<CheckoutResult> => {
     const ref = newRef();
+    // The queue is the record of money already taken, so it is persisted before
+    // the sale is reported back. Read the stored list rather than React state:
+    // this must not depend on a pending render, and a full disk has to surface
+    // as a refusal instead of a sale that silently vanishes on reload.
     const enqueue = () => {
-      setQueue((q) => [
-        ...q,
-        {
-          ref,
-          at: new Date().toISOString(),
-          total: opts.estTotal,
-          storeId: String(args["p_store"]),
-          args,
-        },
-      ]);
+      const entry: QueuedSale = {
+        ref,
+        at: new Date().toISOString(),
+        total: opts.estTotal,
+        storeId: String(args["p_store"]),
+        args,
+      };
+      const next = [...loadQueue(userId), entry];
+      if (!saveQueue(userId, next)) throw new Error(t("offline.storageFull"));
+      setQueueState(next);
       return {
         id: ref,
         number: 0,
@@ -426,6 +421,9 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
         const { error } = await (supabase.rpc as any)("checkout_ref", {
           p_token: staff.token,
           p_client_ref: item.ref,
+          // The moment the sale was rung up, so it lands in that day's takings
+          // and in the drawer that was open then, not at sync time.
+          p_occurred_at: item.at,
           ...item.args,
         });
         if (error) {
