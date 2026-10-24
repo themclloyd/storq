@@ -1,0 +1,67 @@
+# supabase_migrations.schema_migrations as it stood before the 2026-10-24 squash.
+# Sixty rows, replaced by ten. Each line is version, tab, name. The statement
+# text for each row is the file of the same name in this folder.
+#
+# Restoring the old ledger byte for byte is possible but pointless: the ten
+# squashed files build the same schema in the same order.
+#
+20261007084733	2ed95314-f75e-4843-977b-23f9e6359a48
+20261007084754	5d0a930d-b659-4a08-882c-317f7898dbc7
+20261007092354	1daf7bc8-d22a-46ae-a571-1e6c509ed166
+20261007092411	31369b2b-1f20-4f76-9d27-2079e197c10f
+20261007094440	7f9e1944-d2b6-4ff8-922f-9a15d298e414
+20261007100137	bfc24679-0e49-446b-b715-df35c6e8c994
+20261007100154	8732619d-7649-41d2-8a27-f70876506db1
+20261007101232	afb8cd47-dc5e-4816-83f7-1b530d9194b9
+20261007101247	9e99c53e-cc56-4e02-b439-ace84c09bacf
+20261007101503	838baf20-162a-45c9-97a2-a1928381f341
+20261007102244	c10153f5-18b7-409c-8196-3337d3f296c4
+20261007102303	4260d56f-8e50-4ca0-add6-16990ca353ab
+20261007115041	3e857134-c53a-47c9-a33f-3db16cc13962
+20261007115238	6662954d-34a5-4c8e-b71e-7f98b51895af
+20261007182146	48413f83-16ba-421f-b269-777201b5e8b1
+20261007183338	b2173994-433e-4727-8c60-bf0d6a8a7aca
+20261008204357	security_hardening
+20261009192705	c04f3a80-e05e-498f-ab87-694d79f3fe3f
+20261009193153	97dc4c9b-c64d-4f55-9cfe-e17b97fb71ec
+20261010230825	retail_operations
+20261011001954	sales_summary
+20261011134132	item_codes
+20261011163319	drop_legacy_save_product_overload
+20261011211528	fix_x_alias_collision
+20261011215823	stock_absolute_set
+20261011221117	drop_store_stock_bounds_enforce_in_sql
+20261011221132	move_stock_floor_guard
+20261017165825	auto_drawer_session
+20261017174810	cost_below_price_validation
+20261017200047	per_store_vat_and_contacts
+20261017224539	subscription_flexible_months
+20261018162758	subscription_delta_pricing
+20261018175643	per_store_catalogs
+20261018204540	perf_fk_indexes_and_rls_initplan
+20261018215802	platform_ops_console
+20261018223519	ops_tenant_actions
+20261019184820	ops_tenant_lifecycle
+20261019205208	drop_shared_collection_rpc
+20261019213234	device_isolated_pin_sessions
+20261019213252	ops_security_linter_hardening
+20261019220200	direct_stock_moves
+20261019220255	expiry_grace
+20261020222117	offline_incremental_sync
+20261021100128	desktop_release_policy
+20261022122929	pin_throttle_commit_and_login_backstop
+20261022122940	input_shape_guards
+20261022195822	staff_permissions
+20261022202929	staff_view_access
+20261022211326	staff_pin_hash_column_secret
+20261022214141	payment_methods_and_currency
+20261022220137	store_payment_methods
+20261023221127	device_scoped_reads
+20261023221328	billing_and_account_lifecycle
+20261023221440	offline_sale_time
+20261023223042	device_management_and_rpc_grants
+20261023223055	ops_payment_verification
+20261023225018	rpc_grant_fixes
+20261023225732	trial_one_day_with_grace
+20261024173758	trial_one_day_clip_backfilled
+20261024174223	store_payment_methods_policy_authenticated
