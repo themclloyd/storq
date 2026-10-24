@@ -156,6 +156,20 @@ describe("tenantState", () => {
     expect(tenantState(gone, 2, now)).toBe("expired");
   });
 
+  it("keeps calling a trial a trial through its one day of grace", () => {
+    // The roster SQL counts the grace day as trial time because the tills are still
+    // open on it; a console that said "expired" would send support chasing a
+    // payment the tenant is not yet overdue for.
+    const inGrace = {
+      paid_until: null,
+      paid_store_limit: 3,
+      trial_ends_at: iso(-DAY / 2),
+      suspended_at: null,
+      closed_at: null,
+    };
+    expect(tenantState(inGrace, 1, now)).toBe("trial");
+  });
+
   it("puts an operator decision above the money maths in both directions", () => {
     // Prepaid time does not make trading allowed, and an expired account that was
     // restored is not expired either — the stamp is the fact being reported.

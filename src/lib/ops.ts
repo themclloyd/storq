@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LIST_PAGE_SIZE } from "@/lib/paging";
+import { TRIAL_GRACE_DAYS } from "@/lib/subscription-policy";
 import { sanitizeText } from "@/lib/validate";
 
 /**
@@ -171,7 +172,11 @@ export function tenantState(
   if (sub.suspended_at) return "suspended";
   const paid = !!sub.paid_until && new Date(sub.paid_until) > now;
   if (paid) return sub.paid_store_limit >= storeCount ? "active" : "over_capacity";
-  return new Date(sub.trial_ends_at) > now ? "trial" : "expired";
+  // The roster SQL counts a trial's single grace day as trial time, because the
+  // tills are still open on it. Reading the raw clock here would label a trading
+  // tenant "expired" for a day — the label and the till have to agree.
+  const trialEnds = new Date(sub.trial_ends_at).getTime();
+  return trialEnds + TRIAL_GRACE_DAYS * DAY_MS > now.getTime() ? "trial" : "expired";
 }
 
 export type EntitlementPreview =

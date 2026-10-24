@@ -6,8 +6,9 @@
  * WhatsApp. It grants nothing: the renew button opens the same billing screen whose
  * payment UI stays role-gated, and sharing only passes information along.
  *
- * The free trial gets the same treatment for the opposite reason: it ends without a
- * grace window, so the only warning the shop ever gets is this countdown.
+ * The free trial gets a version of the same thing. It is a single day, followed by a
+ * single day of grace, so both halves are worth a countdown: one says "pay today",
+ * the other says "this is the last day".
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -31,15 +32,15 @@ export function GraceBanner() {
 
   const paidUntil = s?.sub?.paid_until ? new Date(s.sub.paid_until) : null;
   const trialEnds = s?.sub?.trial_ends_at ? new Date(s.sub.trial_ends_at) : null;
-  // Three states worth warning about: already inside the grace window, a term that is
-  // still running but ends within two days, or a trial in its last week. A suspension,
-  // a closure or an over-capacity account is excluded — those stop writes immediately,
-  // so counting down days there would be a false comfort.
+  // Four states worth warning about: inside the paid grace window, a paid term that
+  // ends within two days, a trial in its last week, or a trial in its single day of
+  // grace. A suspension, a closure or an over-capacity account is excluded — those
+  // stop writes immediately, so counting down days there would be a false comfort.
   const blocked = !s || s.suspended || s.closed || s.overLimit;
   const dueSoon = !!s?.paid && !!paidUntil && paidUntil.getTime() - Date.now() < 2 * DAY_MS;
-  // Grace outranks the trial notice: a lapsed prepaid term is the real deadline even
-  // when the trial clock happens to still be running behind it.
-  const mode: "grace" | "due" | "trial" | null = !s
+  // Paid money outranks the trial clock: a lapsed prepaid term is the real deadline
+  // even when the trial happens to still be running behind it.
+  const mode: "grace" | "due" | "trial" | "trialGrace" | null = !s
     ? null
     : s.inGrace
       ? "grace"
@@ -47,16 +48,21 @@ export function GraceBanner() {
         ? "due"
         : s.trialEndingSoon
           ? "trial"
-          : null;
+          : s.inTrialGrace
+            ? "trialGrace"
+            : null;
   if (blocked || !mode) return null;
-  const ends = mode === "trial" ? trialEnds : paidUntil;
+  const trialMode = mode === "trial" || mode === "trialGrace";
+  const ends = trialMode ? trialEnds : paidUntil;
   if (!ends) return null;
 
   const date = ends.toLocaleDateString(undefined, { dateStyle: "medium" });
   const days =
     mode === "grace"
       ? s.graceDaysRemaining
-      : Math.max(1, Math.ceil((ends.getTime() - Date.now()) / DAY_MS));
+      : mode === "trialGrace"
+        ? s.trialGraceDaysRemaining
+        : Math.max(1, Math.ceil((ends.getTime() - Date.now()) / DAY_MS));
   // Every slot for one month is the least that reopens the tills, so the note can
   // quote a real number instead of "some amount".
   const amount = calcTotal("MWK", Math.max(s.capacity, stores.length, 1), 1);
@@ -67,10 +73,17 @@ export function GraceBanner() {
       ? "billing.graceNotice"
       : mode === "due"
         ? "billing.graceDueNotice"
-        : "billing.trialEndingNotice";
+        : mode === "trialGrace"
+          ? "billing.trialGraceNotice"
+          : "billing.trialEndingNotice";
 
   function share() {
-    const text = t(mode === "trial" ? "billing.waTrialShareMsg" : "billing.waShareMsg", {
+    const shareKey = trialMode
+      ? mode === "trialGrace"
+        ? "billing.waTrialGraceShareMsg"
+        : "billing.waTrialShareMsg"
+      : "billing.waShareMsg";
+    const text = t(shareKey, {
       name: business?.name ?? t("billing.yourAccount"),
       amount: fmtMoney("MWK", amount),
       date,
@@ -98,7 +111,7 @@ export function GraceBanner() {
         </Button>
         <Button asChild size="sm" variant="outline">
           <Link to="/app/billing">
-            {t(mode === "trial" ? "billing.trialChooseCta" : "billing.graceRenewCta")}
+            {t(trialMode ? "billing.trialChooseCta" : "billing.graceRenewCta")}
             <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-3.5" />
           </Link>
         </Button>

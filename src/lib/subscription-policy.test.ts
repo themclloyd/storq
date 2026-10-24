@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   GRACE_DAYS,
+  TRIAL_GRACE_DAYS,
   TRIAL_NOTICE_DAYS,
   subscriptionAccess,
   type Subscription,
@@ -51,6 +52,23 @@ describe("subscriptionAccess — entitlement is derived in SQL, mirrored here", 
     expect(a.paid).toBe(false);
     expect(a.trial).toBe(true);
     expect(a.active).toBe(true);
+  });
+
+  it("does not keep a trial open on a second store, because SQL's trial branch caps at one", () => {
+    // A lapsed paid account can still be holding two stores when its trial clock
+    // begins; SQL refuses every write in that shape, so the shell must not sit there
+    // showing a working till.
+    const a = subscriptionAccess(sub({ paid_until: PAST, trial_ends_at: FUTURE }), 2, NOW);
+    expect(a.trial).toBe(true);
+    expect(a.active).toBe(false);
+    expect(a.canAddStore).toBe(false);
+  });
+
+  it("offers the add-location affordance on a trial only while the single store is unused", () => {
+    const unused = subscriptionAccess(sub({ paid_until: PAST, trial_ends_at: FUTURE }), 0, NOW);
+    expect(unused.canAddStore).toBe(true);
+    const used = subscriptionAccess(sub({ paid_until: PAST, trial_ends_at: FUTURE }), 1, NOW);
+    expect(used.canAddStore).toBe(false);
   });
 
   it("an expired trial with no payment is inactive", () => {
@@ -135,20 +153,78 @@ describe("grace window — mirrors the 3-day expiry stretch in subscription_acti
     expect(a.active).toBe(false);
   });
 
-  it("gives the trial no grace — it already ends with a soft landing", () => {
-    // No paid_until at all: nothing to stretch, so the trial branch decides alone.
+  it("does not stretch the paid clock with a trial that has already run out", () => {
+    // No paid_until at all: the paid branch has nothing to stretch, and the trial
+    // ended months ago, so nothing is left to sell on.
     const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: PAST }), 1, NOW);
     expect(a.inGrace).toBe(false);
+    expect(a.inTrialGrace).toBe(false);
     expect(a.active).toBe(false);
   });
 });
 
-describe("trial notice — a hard stop gets a countdown instead of a grace window", () => {
-  // A trial that runs out locks the till outright, so the only kindness available
-  // is warning early enough to reach a mobile-money agent.
+describe("trial grace — one day of selling after the single-day trial", () => {
+  const ago = (hours: number) => new Date(NOW - hours * 3_600_000).toISOString();
+
+  it("keeps selling through the day after the trial ends", () => {
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: ago(12) }), 1, NOW);
+    expect(a.trial).toBe(false);
+    expect(a.inTrialGrace).toBe(true);
+    expect(a.trialGraceDaysRemaining).toBe(TRIAL_GRACE_DAYS);
+    expect(a.active).toBe(true);
+    // The grace is for selling, not for growing: the trial still covers one store.
+    expect(a.canAddStore).toBe(false);
+  });
+
+  it("locks the moment the grace day is spent", () => {
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: ago(25) }), 1, NOW);
+    expect(a.inTrialGrace).toBe(false);
+    expect(a.trialGraceDaysRemaining).toBe(0);
+    expect(a.active).toBe(false);
+  });
+
+  it("does not stretch the one-store cap", () => {
+    // SQL applies the store-count test inside the same branch as the clock.
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: ago(12) }), 2, NOW);
+    expect(a.inTrialGrace).toBe(false);
+    expect(a.active).toBe(false);
+  });
+
+  it("cannot be used to shrug off an operator suspension", () => {
+    const a = subscriptionAccess(
+      sub({ paid_until: null, trial_ends_at: ago(12), suspended_at: PAST }),
+      1,
+      NOW,
+    );
+    expect(a.inTrialGrace).toBe(false);
+    expect(a.active).toBe(false);
+  });
+
+  it("is the window after the end, not the trial itself", () => {
+    const ahead = new Date(NOW + 12 * 3_600_000).toISOString();
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: ahead }), 1, NOW);
+    expect(a.trial).toBe(true);
+    expect(a.inTrialGrace).toBe(false);
+    expect(a.trialGraceDaysRemaining).toBe(0);
+    expect(a.trialDaysRemaining).toBe(1);
+  });
+});
+
+describe("trial notice — the countdown starts the day the trial does", () => {
+  // The trial is a single day, so there is no "quiet period" left to spend: the
+  // warning has to be up from the first moment, and the day of grace after it is
+  // the banner's other job. A longer trial is still possible — an operator can
+  // grant up to TRIAL_MAX_DAYS — which is what the quiet case below covers.
   const trialIn = (days: number) => new Date(NOW + days * 86_400_000).toISOString();
 
-  it("stays quiet for the first weeks of the trial", () => {
+  it("warns from the first moment of the one-day trial", () => {
+    const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: trialIn(1) }), 1, NOW);
+    expect(a.trial).toBe(true);
+    expect(a.trialDaysRemaining).toBe(1);
+    expect(a.trialEndingSoon).toBe(true);
+  });
+
+  it("stays quiet while a granted trial still has more than a week to run", () => {
     const a = subscriptionAccess(sub({ paid_until: null, trial_ends_at: trialIn(30) }), 1, NOW);
     expect(a.trial).toBe(true);
     expect(a.trialDaysRemaining).toBe(30);

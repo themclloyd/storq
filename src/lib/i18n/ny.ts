@@ -1314,9 +1314,13 @@ export const ny = {
     graceNumberChange: "Sandutsani nambala",
     trialEndingNotice:
       "Muyeso waulere umatha pa {date} — tsala masiku {days}. Sankhani dongosolo kuti magulu ogulitsira apitirize.",
+    trialGraceNotice:
+      "Muyeso waulere unatha pa {date} — tsala tsiku la chifundo {days}, kenako magulu ogulitsira adzaima. Sankhani dongosolo kuti mupitirize kugulitsa.",
     trialChooseCta: "Sankhani dongosolo",
     waTrialShareMsg:
       "Malipiro a Storq a {name}: muyeso waulere umatha pa {date} (tsala masiku {days}). Sankhani dongosolo kuti magulu ogulitsira apitirize. Lipirani apa: {link}",
+    waTrialGraceShareMsg:
+      "Malipiro a Storq a {name}: muyeso waulere unatha pa {date} ndipo magulu ogulitsira adzaima pakatha tsiku {days}. Sankhani dongosolo kuti mupitirize kugulitsa. Lipirani apa: {link}",
     waShareMsg: "Malipiro a Storq a {name}: lipiritsani kuti magulu ogulitsira apitirize. Kuyambira {amount}, kutsegulira mpaka {date}. Lipirani apa: {link}",
     invTitle: "Invoyisi ya kulembetsa",
     invSubtitle: "Invoyisi {ref}",
