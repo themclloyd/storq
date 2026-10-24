@@ -47,6 +47,14 @@ jobs:
             -X POST -H "Authorization: Bearer $CRON_SECRET" \
             "$BASE_URL/api/cron/reconcile")
           cat body.json; echo
+          # The Worker answers 503 when neither `CRON_SECRET` nor
+          # `PAYCHANGU_WEBHOOK_SECRET` is set on the deployment itself — the same
+          # forgotten secret one layer further down. Say so and stop: a red cross
+          # every quarter hour only teaches everyone to ignore this workflow.
+          if [ "$code" = "503" ] && grep -q 'not configured' body.json; then
+            echo "::warning::The deployment has no CRON_SECRET set; skipping the sweep."
+            exit 0
+          fi
           if [ "$code" -ge 300 ]; then
             echo "::error::reconcile returned HTTP $code"
             exit 1
