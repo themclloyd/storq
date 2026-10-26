@@ -98,7 +98,7 @@ function Sales() {
 }
 
 function SalesContent() {
-  const { store, stores, money, staff, business } = usePos();
+  const { store, stores, allStores, money, staff, business } = usePos();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [range, setRange] = useState<keyof typeof ranges>("today");
@@ -131,7 +131,9 @@ function SalesContent() {
   const rows = list.data?.rows ?? [];
   const total = list.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const storeName = (id: string) => stores.find((s) => s.id === id)?.name;
+  // Names resolve against every location, archived included: a sale made at a
+  // branch that has since closed still has to say where it was sold.
+  const storeName = (id: string) => allStores.find((s) => s.id === id)?.name;
 
   // Export is on-demand: fetch the full period only when a button is clicked so
   // ordinary browsing stays light while the download still covers every sale.

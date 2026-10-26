@@ -68,6 +68,12 @@ export type Store = {
   tax_number: string | null;
   tax_rate: number;
   tax_inclusive: boolean;
+  /**
+   * Set when the location stopped trading. An archived location keeps every sale,
+   * shift and stock movement it ever made, stops consuming a paid slot and stops
+   * appearing in any picker; `null` on every location that is open.
+   */
+  archived_at: string | null;
 };
 export type Business = {
   id: string;
@@ -80,7 +86,16 @@ export type Business = {
 type PosCtx = {
   userId: string;
   business: Business | null | undefined;
+  /** Open locations only — what the till, the pickers and the paid-slot count use. */
   stores: Store[];
+  /** Locations that stopped trading. Read-only history, restorable from Locations. */
+  archivedStores: Store[];
+  /**
+   * Every location ever created, archived ones included. History screens (reports,
+   * sales, exports) read this so closing a branch cannot rewrite a past statement;
+   * anything that trades or counts a slot uses `stores`.
+   */
+  allStores: Store[];
   store: Store | null;
   setStoreId: (id: string) => void;
   staff: StaffSession | null;
@@ -201,13 +216,27 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        .select("id,name,store_type,phone,email,address,tax_number,tax_rate,tax_inclusive")
+        .select(
+          "id,name,store_type,phone,email,address,tax_number,tax_rate,tax_inclusive,archived_at",
+        )
         .order("created_at");
       if (error) throw error;
       return data as Store[];
     },
   });
-  const stores = storesQ.data ?? [];
+  // One read serves both lists. Everything that trades — the till, the pickers, the
+  // capacity counter, the offline snapshot — sees live locations only, so an
+  // archived branch can never be selected, sold from or counted against a slot.
+  const liveStores = useMemo(
+    () => (storesQ.data ?? []).filter((s) => !s.archived_at),
+    [storesQ.data],
+  );
+  const archivedStores = useMemo(
+    () => (storesQ.data ?? []).filter((s) => s.archived_at),
+    [storesQ.data],
+  );
+  const stores = liveStores;
+  const allStores = storesQ.data ?? [];
 
   // Each location keeps its own methods. One small read covers the tenant so
   // invoice/refund dialogs can ask for the store they belong to; it is cached
@@ -479,6 +508,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     userId,
     business: businessQ.isLoading ? undefined : (businessQ.data ?? null),
     stores,
+    archivedStores,
+    allStores,
     store,
     setStoreId,
     staff,

@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LIST_PAGE_SIZE } from "@/lib/paging";
-import { TRIAL_GRACE_DAYS } from "@/lib/subscription-policy";
+import { GRACE_DAYS, TRIAL_GRACE_DAYS } from "@/lib/subscription-policy";
 import { sanitizeText } from "@/lib/validate";
 
 /**
@@ -24,9 +24,12 @@ export type OperatorRole = "support" | "billing" | "owner";
  * Tenant lifecycle, in the order the roster SQL ranks it. `suspended` and `closed`
  * are operator decisions recorded as clocks on the subscription row, and they
  * outrank the money maths — which is why they are states here and not a faked
- * expiry date.
+ * expiry date. `grace` is the three days after a prepaid term ends during which
+ * the tills still trade: the tenant owes money, but nothing is broken yet, so it
+ * is a state of its own rather than a shade of "expired".
  */
-export type TenantState = "active" | "trial" | "expired" | "over_capacity" | "suspended" | "closed";
+export type TenantState =
+  "active" | "trial" | "expired" | "grace" | "over_capacity" | "suspended" | "closed";
 /** The roster filter set — `all` plus every derivable state. */
 export type RosterFilter = "all" | TenantState;
 
@@ -55,6 +58,7 @@ export const ROSTER_SEARCH_MAX = 120;
 export const rosterFilters: RosterFilter[] = [
   "all",
   "over_capacity",
+  "grace",
   "expired",
   "suspended",
   "trial",
@@ -138,6 +142,24 @@ export const TRIAL_MAX_DAYS = 90;
 const DAY_MS = 86_400_000;
 
 /**
+ * Days left in the courtesy window after a prepaid term ends, 0 once it has run
+ * out. `subscription_active()` keeps the tills open for `GRACE_DAYS` after the
+ * expiry, and the roster labels that window `grace` rather than expired; the
+ * console prints what is left of it instead of a negative day count, because the
+ * shop is still trading and support has something concrete to say.
+ */
+export function graceDaysLeft(paidUntil: string | null, now = new Date()): number {
+  if (!paidUntil) return 0;
+  const until = new Date(paidUntil).getTime();
+  // A term that has not run out yet has no window at all; the grace clock only
+  // starts once the expiry is behind us.
+  if (until > now.getTime()) return 0;
+  const end = until + GRACE_DAYS * DAY_MS;
+  const diff = end - now.getTime();
+  return diff <= 0 ? 0 : Math.ceil(diff / DAY_MS);
+}
+
+/**
  * Every verb the tenant journal can hold: the console's own entitlements and
  * lifecycle moves, plus the payment check that settles a stuck charge.
  */
@@ -172,6 +194,11 @@ export function tenantState(
   if (sub.suspended_at) return "suspended";
   const paid = !!sub.paid_until && new Date(sub.paid_until) > now;
   if (paid) return sub.paid_store_limit >= storeCount ? "active" : "over_capacity";
+  // The term has run out but nothing has broken yet: `subscription_active()` keeps
+  // the tills open for `GRACE_DAYS` while the slots still cover the live locations.
+  // An owner who is late *and* a store over gets no courtesy — SQL reads capacity
+  // inside the grace branch too — so that case falls through to expired.
+  if (graceDaysLeft(sub.paid_until, now) > 0 && sub.paid_store_limit >= storeCount) return "grace";
   // The roster SQL counts a trial's single grace day as trial time, because the
   // tills are still open on it. Reading the raw clock here would label a trading
   // tenant "expired" for a day — the label and the till have to agree.
@@ -234,7 +261,7 @@ export function previewEntitlement(
     if (n < 1 || n > SLOTS_MAX) return refused(`Slots must be between 1 and ${SLOTS_MAX}`);
     if (n < row.store_count)
       return refused(
-        `They already have ${row.store_count} live stores — remove those before lowering capacity`,
+        `They already have ${row.store_count} live stores — archive one before lowering capacity`,
       );
     if (n === row.paid_store_limit) return refused("That is already their capacity");
     return becomes({ ...row, paid_store_limit: n }, row.store_count, now);

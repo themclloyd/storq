@@ -1,9 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, CreditCardIcon, PlusSignIcon } from "@/lib/icons";
+import {
+  ArrowReloadHorizontalIcon,
+  ArrowRight01Icon,
+  CreditCardIcon,
+  PlusSignIcon,
+} from "@/lib/icons";
 import { usePos, type Store } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { LIMITS, firstError, requireText, sanitizeText, validatePhone } from "@/lib/validate";
@@ -20,6 +25,11 @@ import { pluralize } from "@/lib/format";
 import { useSubscription } from "@/lib/billing";
 
 export const Route = createFileRoute("/_authenticated/app/stores")({
+  // Billing returns an owner here with ?add=1 once the extra slot is paid for, so
+  // the dialog they were told to open is already waiting for them.
+  validateSearch: (search: Record<string, unknown>): { add?: number | undefined } => ({
+    add: Number(search["add"]) === 1 ? 1 : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Locations | Storq" },
@@ -49,14 +59,48 @@ const types = [
 ] as const;
 
 function Stores() {
-  const { stores, can, business } = usePos();
+  const { stores, archivedStores, can, business, rpc } = usePos();
   const { t } = useI18n();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { add } = Route.useSearch();
   const subscription = useSubscription(business?.id, stores.length);
   const [adding, setAdding] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [restoring, setRestoring] = useState<string | null>(null);
+
+  // ?add=1 arrives from Billing after the slot was paid for: open the dialog, then
+  // clear the flag so a reload does not reopen it over a finished job.
+  useEffect(() => {
+    if (add !== 1) return;
+    setAdding(true);
+    void navigate({ to: "/app/stores", search: {}, replace: true });
+  }, [add, navigate]);
+
   if (!can("locations", "view_locations")) return <NoAccess />;
-  // A viewer reads the locations and their receipt setup; creating one or
-  // buying capacity stays with the change grant.
+  // A viewer reads the locations and their receipt setup; creating one, buying
+  // capacity, archiving and restoring stay with the change grant.
   const canEdit = can("locations");
+  // Out of slots, has a lapsed term, or is suspended — all three read the same to
+  // an owner holding a locked till, and all three are answered on Billing.
+  const atCapacity = !subscription.data?.canAddStore;
+
+  // Reopening a branch is the mirror of archiving: SQL decides whether a slot is
+  // free, and this only reports what it answered.
+  async function restore(s: Store) {
+    setRestoring(s.id);
+    try {
+      await rpc("restore_store", { p_id: s.id });
+      toast.success(t("store.restored", { name: s.name }));
+      await qc.invalidateQueries({ queryKey: ["stores"] });
+      await qc.invalidateQueries({ queryKey: ["subscription"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRestoring(null);
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -64,17 +108,17 @@ function Stores() {
         title={t("store.title")}
         sub={pluralize(stores.length, t("store.oneLocation"), t("store.manyLocations"))}
         actions={
-          !canEdit ? undefined : subscription.data?.canAddStore ? (
-            <Button onClick={() => setAdding(true)}>
-              <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
-            </Button>
-          ) : (
-            <Link to="/app/billing">
+          !canEdit ? undefined : atCapacity ? (
+            <Link to="/app/billing" search={{ intent: "add-stores" }}>
               <Button variant="outline">
                 <HugeiconsIcon icon={CreditCardIcon} className="size-4" />
                 {t("store.payMore")}
               </Button>
             </Link>
+          ) : (
+            <Button onClick={() => setAdding(true)}>
+              <HugeiconsIcon icon={PlusSignIcon} /> {t("store.addBtn")}
+            </Button>
           )
         }
       />
@@ -87,8 +131,12 @@ function Stores() {
                 capacity: subscription.data?.capacity ?? 0,
               })}
         </p>
-        {canEdit && !subscription.data?.canAddStore && (
-          <Link to="/app/billing" className="font-medium underline">
+        {canEdit && atCapacity && (
+          <Link
+            to="/app/billing"
+            search={{ intent: "add-stores" }}
+            className="font-medium underline"
+          >
             {t("store.payMore")}
           </Link>
         )}
@@ -120,6 +168,58 @@ function Stores() {
           </Link>
         ))}
       </div>
+
+      {/* Closed branches stay here, with every sale they ever made, and can be put
+          back without losing a number. Collapsed by default: they are history, not
+          a second list of places to trade from. */}
+      {archivedStores.length > 0 && (
+        <section className="mt-8">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3 border-b pb-2">
+            <div>
+              <h2 className="font-display text-sm font-medium">{t("store.archivedTitle")}</h2>
+              <p className="text-xs text-muted-foreground">
+                {t("store.archivedSub", { count: archivedStores.length })}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowArchived((v) => !v)}>
+              {showArchived ? t("store.hideArchived") : t("store.showArchived")}
+            </Button>
+          </div>
+          {showArchived && (
+            <div className="grid gap-2 md:grid-cols-2">
+              {archivedStores.map((s) => (
+                <Card
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 border-dashed p-4"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-muted-foreground">{s.name}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {t("store.archivedOn", {
+                        date: new Date(s.archived_at as string).toLocaleDateString(undefined, {
+                          dateStyle: "medium",
+                        }),
+                      })}
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={restoring === s.id}
+                      onClick={() => void restore(s)}
+                    >
+                      <HugeiconsIcon icon={ArrowReloadHorizontalIcon} className="size-3.5" />
+                      {t("store.restoreBtn")}
+                    </Button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {adding && <StoreDialog onClose={() => setAdding(false)} />}
     </>
   );
@@ -157,8 +257,12 @@ function StoreDialog({ onClose }: { onClose: () => void }) {
       });
       toast.success(t("store.added"));
       // Wait for the list to carry the new location before opening its page.
+      // The subscription is refreshed too: the last free slot just went, so the
+      // header must switch from "Add" to "Upgrade" without a manual reload. SQL
+      // re-counts live locations, so this only mirrors what it will answer.
       await qc.invalidateQueries({ queryKey: ["stores"] });
       await qc.invalidateQueries({ queryKey: ["store-payment-methods"] });
+      await qc.invalidateQueries({ queryKey: ["subscription"] });
       onClose();
       if (id) void navigate({ to: "/app/stores/$id", params: { id } });
     } catch (e) {

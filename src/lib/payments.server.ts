@@ -112,13 +112,24 @@ export async function verifyAndComplete(txRef: string): Promise<VerifyResult> {
  * Settle every reference the client may have abandoned: the tab closed on the
  * return redirect, the phone lost signal mid-checkout, the payment went through
  * after the shop was already locked out. Two minutes of age keeps this off the
- * critical path of a checkout that is still in progress.
+ * critical path of a checkout that is still in progress, and thirty minutes is the
+ * other end of the same session: past that the intent is closed rather than chased,
+ * so a click nobody finished stops costing provider lookups and stops reading as
+ * money still on its way.
  */
 export async function reconcilePending(
   limit = 50,
 ): Promise<{ checked: number; paid: number; failed: number }> {
+  // Close what is past its session before reading, so the sweep below cannot
+  // enumerate a checkout the buyer walked away from.
+  const { error: expireErr } = await supabaseAdmin.rpc(
+    "expire_payment_attempts" as never,
+    {} as never,
+  );
+  if (expireErr) console.error(expireErr);
+
   const cutoff = new Date(Date.now() - 2 * 60_000).toISOString();
-  const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const since = new Date(Date.now() - 30 * 60_000).toISOString();
   const { data, error } = await supabaseAdmin
     .from("subscription_payments")
     .select("tx_ref")

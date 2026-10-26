@@ -52,6 +52,7 @@ import {
   previewLifecycle,
   previewPurge,
   purgeWaitDaysLeft,
+  graceDaysLeft,
   purgeWindowEnds,
   REASON_MAX_CHARS,
   REASON_MIN_CHARS,
@@ -104,6 +105,9 @@ const stateStyle: Record<TenantState, string> = {
   active: "bg-success-soft text-success",
   trial: "bg-secondary text-muted-foreground",
   over_capacity: "bg-warning-soft text-warning-foreground",
+  // Late but still trading: the tills are open on the courtesy window, so the
+  // badge warns without reading like an outage.
+  grace: "bg-warning-soft text-warning-foreground",
   expired: "bg-destructive-soft text-destructive",
   suspended: "bg-warning-soft text-warning-foreground",
   closed: "bg-destructive-soft text-destructive",
@@ -112,6 +116,7 @@ const stateLabelKey: Record<TenantState, string> = {
   active: "ops.stateActive",
   trial: "ops.stateTrial",
   over_capacity: "ops.stateOverCapacity",
+  grace: "ops.stateGrace",
   expired: "ops.stateExpired",
   suspended: "ops.stateSuspended",
   closed: "ops.stateClosed",
@@ -384,9 +389,13 @@ function TenantTr({
         ? t("ops.closedSince", { date: fmtDate(row.closed_at ?? row.created_at) })
         : row.state === "over_capacity"
           ? t("ops.slotsOver", { over })
-          : runway.days >= 0
-            ? t("ops.daysLeft", { days: runway.days })
-            : t("ops.daysOver", { days: -runway.days });
+          : row.state === "grace"
+            ? // Still trading on borrowed time, so count the window down rather
+              // than printing a negative expiry a support call would misread.
+              t("ops.graceLeft", { days: graceDaysLeft(row.paid_until) })
+            : runway.days >= 0
+              ? t("ops.daysLeft", { days: runway.days })
+              : t("ops.daysOver", { days: -runway.days });
   return (
     <TableRow
       className={cn(canWrite && "cursor-pointer")}

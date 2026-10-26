@@ -317,9 +317,7 @@ function Landing() {
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
             {[
-              ["#shops", "marketing.navShops"],
               ["#features", "marketing.navFeatures"],
-              ["#layby", "marketing.navLayby"],
               ["#desktop", "marketing.navDesktop"],
               ["#pricing", "marketing.navPricing"],
             ].map(([href, labelKey]) => (
@@ -336,16 +334,6 @@ function Landing() {
             <LanguageSwitcher className="mr-1" />
             <Button asChild variant="ghost" className="hidden rounded-lg sm:inline-flex">
               <Link to="/auth">{t("marketing.logIn")}</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="hidden rounded-lg border-primary/45 px-5 font-semibold text-primary hover:bg-primary/5 hover:text-primary lg:inline-flex"
-            >
-              <a href={DESKTOP_DOWNLOAD_URL} download target="_blank" rel="noopener noreferrer">
-                <HugeiconsIcon icon={Download01Icon} className="mr-1.5 h-4 w-4" />
-                {t("marketing.downloadShort")}
-              </a>
             </Button>
             <Button
               asChild

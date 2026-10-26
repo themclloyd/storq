@@ -22,6 +22,101 @@ export function calcTotal(currency: Currency, stores: number, months: number): n
   return Math.round(monthly * months * discount * 100) / 100;
 }
 
+/**
+ * Mean Gregorian month in seconds — the divisor `start_store_subscription_payment`
+ * uses when it prices a slot bought mid-term. Seconds rather than calendar months
+ * because the remainder of a paid term is rarely a whole month, and the server
+ * rounds it up before charging.
+ */
+export const MONTH_SECONDS = 2_629_800;
+
+/**
+ * Add calendar months the way `make_interval(months => n)` does: the same day in the
+ * target month, clamped to that month's last day. `setMonth` on its own rolls
+ * 31 January + 1 month into 3 March, which would quote an expiry the server never
+ * grants.
+ */
+export function addMonths(from: Date, months: number): Date {
+  const out = new Date(from.getTime());
+  const day = out.getDate();
+  out.setDate(1);
+  out.setMonth(out.getMonth() + months);
+  const lastDay = new Date(out.getFullYear(), out.getMonth() + 1, 0).getDate();
+  out.setDate(Math.min(day, lastDay));
+  return out;
+}
+
+/**
+ * Slots one payment charges for. A running term has already paid for the slots it
+ * holds, so raising the count is priced on the difference alone; a renewal or a
+ * reactivation is priced on the whole capacity. Mirrors the `billed` rule inside
+ * `start_store_subscription_payment`.
+ */
+export function billedSlotCount(totalSlots: number, paidSlots: number): number {
+  return paidSlots > 0 && totalSlots > paidSlots ? totalSlots - paidSlots : totalSlots;
+}
+
+/**
+ * Whole months left on a paid term, rounded up and never below one — the term a slot
+ * bought mid-cycle joins. Mirrors the `2629800` division in SQL, so the months a
+ * prorated purchase is charged for are the months the database derives.
+ */
+export function remainingTermMonths(
+  paidUntil: string | Date | null | undefined,
+  now = Date.now(),
+): number {
+  const end = paidUntil ? new Date(paidUntil).getTime() : 0;
+  if (!Number.isFinite(end) || end <= now) return 1;
+  return Math.max(1, Math.ceil((end - now) / (MONTH_SECONDS * 1000)));
+}
+
+export type PaymentQuote = {
+  /** Slots the provider is asked to charge for. */
+  billedSlots: number;
+  /** Months paid for: the caller's choice, or derived when only capacity grows. */
+  months: number;
+  total: number;
+  /** The expiry this payment buys. A capacity purchase never moves it earlier. */
+  expiry: Date;
+  /** True when the payment adds slots to a term that is already paid for. */
+  isCapacity: boolean;
+};
+
+/**
+ * One description of what a payment charges and what it buys, shared by the price
+ * summary, the pay button and the expiry line, so the money shown and the money
+ * taken cannot disagree. Mirrors `start_store_subscription_payment` and
+ * `complete_subscription_payment` exactly.
+ */
+export function paymentQuote(opts: {
+  currency: Currency;
+  totalSlots: number;
+  paidSlots: number;
+  paidUntil: string | Date | null | undefined;
+  months: number;
+  now?: number;
+}): PaymentQuote {
+  const now = opts.now ?? Date.now();
+  const billedSlots = billedSlotCount(opts.totalSlots, opts.paidSlots);
+  const isCapacity = billedSlots < opts.totalSlots;
+  // A capacity purchase joins the term already bought, so its length is derived; a
+  // term purchase is however many months the owner picked.
+  const months = isCapacity ? remainingTermMonths(opts.paidUntil, now) : Math.max(1, opts.months);
+  const end = opts.paidUntil ? new Date(opts.paidUntil).getTime() : 0;
+  const running = Number.isFinite(end) && end > now;
+  const base = running ? new Date(end) : new Date(now);
+  return {
+    billedSlots,
+    months,
+    total: calcTotal(opts.currency, billedSlots, months),
+    // Only a capacity purchase joins the term already bought: its expiry does not
+    // move. Everything else adds its months to whichever date is later, today or
+    // the paid expiry, so prepaid time is never thrown away.
+    expiry: isCapacity && running ? base : addMonths(base, months),
+    isCapacity,
+  };
+}
+
 /** Money as the shopkeeper reads it: kwacha whole, dollars to two decimals. */
 export function fmtMoney(currency: Currency, n: number): string {
   return currency === "MWK"

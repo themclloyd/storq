@@ -59,7 +59,10 @@ function Reports() {
 }
 
 function ReportsContent() {
-  const { store, stores, money, business } = usePos();
+  // A statement is history, so it reads every location that ever sold — an
+  // archived branch included. Using the live list here would drop a closed shop's
+  // rows and quietly rewrite last month's report.
+  const { store, allStores: stores, money, business } = usePos();
   const { t } = useI18n();
   const [range, setRange] = useState<keyof typeof rangeDays>("30 days");
   const [all, setAll] = useState(false);

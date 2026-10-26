@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Download01Icon } from "@/lib/icons";
+import { Archive01Icon, ArrowReloadHorizontalIcon, Download01Icon } from "@/lib/icons";
 import { usePos, type Store } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import { PaymentMethodPicker } from "@/components/pos/payment-methods";
 import { LEGACY_PAYMENT_METHODS } from "@/lib/payment-methods";
@@ -61,10 +62,12 @@ const types = [
 
 function StorePage() {
   const { id } = Route.useParams();
-  const { stores, can, paymentMethodsFor } = usePos();
+  const { stores, archivedStores, can, paymentMethodsFor } = usePos();
   const { t } = useI18n();
   if (!can("locations", "view_locations")) return <NoAccess />;
-  const store = stores.find((s) => s.id === id);
+  // A closed branch keeps its page: it still holds the receipt details of every
+  // sale it ever made, and it is where the slot is handed back.
+  const store = stores.find((s) => s.id === id) ?? archivedStores.find((s) => s.id === id);
   if (!store)
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">
@@ -77,7 +80,10 @@ function StorePage() {
       key={store.id}
       store={store}
       initialMethods={paymentMethodsFor(store.id)}
-      readOnly={!can("locations")}
+      readOnly={!can("locations") || Boolean(store.archived_at)}
+      archived={Boolean(store.archived_at)}
+      // The last live location cannot close: there would be nowhere to trade.
+      canArchive={can("locations") && stores.length > 1}
     />
   );
 }
@@ -86,14 +92,19 @@ function StoreForm({
   store,
   initialMethods,
   readOnly,
+  archived,
+  canArchive,
 }: {
   store: Store;
   initialMethods: string[];
   readOnly: boolean;
+  archived: boolean;
+  canArchive: boolean;
 }) {
   const { rpc, money, business } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [name, setName] = useState(store.name);
   const [type, setType] = useState<Store["store_type"]>(store.store_type);
   const [phone, setPhone] = useState(store.phone ?? "");
@@ -108,6 +119,8 @@ function StoreForm({
     LEGACY_PAYMENT_METHODS.some((m) => m.code === code),
   );
   const [busy, setBusy] = useState(false);
+  const [askArchive, setAskArchive] = useState(false);
+  const [archBusy, setArchBusy] = useState(false);
   const [xbusy, setXbusy] = useState<
     Partial<
       Record<
@@ -628,6 +641,40 @@ function StoreForm({
     }
   }
 
+  // Closing a branch hands its paid slot back. Nothing is deleted: every sale,
+  // stock movement and shift stays where it is, and restoring the location
+  // later puts it straight back to work. SQL refuses the last live location, a
+  // till with an open shift and staff still bound to it.
+  async function archive() {
+    setArchBusy(true);
+    try {
+      await rpc("archive_store", { p_id: store.id });
+      toast.success(t("store.archiveDone", { name: store.name }));
+      await qc.invalidateQueries({ queryKey: ["stores"] });
+      await qc.invalidateQueries({ queryKey: ["subscription"] });
+      setAskArchive(false);
+      void navigate({ to: "/app/stores" });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setArchBusy(false);
+    }
+  }
+
+  async function restoreHere() {
+    setArchBusy(true);
+    try {
+      await rpc("restore_store", { p_id: store.id });
+      toast.success(t("store.restored", { name: store.name }));
+      await qc.invalidateQueries({ queryKey: ["stores"] });
+      await qc.invalidateQueries({ queryKey: ["subscription"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setArchBusy(false);
+    }
+  }
+
   const sample = 1000;
   const rateNum = Number(rate || 0);
   const net = incl ? sample / (1 + rateNum / 100) : sample;
@@ -638,59 +685,98 @@ function StoreForm({
       <PageHeader
         back={{ to: "/app/stores", label: t("store.title") }}
         title={store.name}
-        sub={<StoreTypeTag type={store.store_type} />}
+        sub={
+          <span className="flex flex-wrap items-center gap-2">
+            <StoreTypeTag type={store.store_type} />
+            {archived && <Badge variant="outline">{t("store.archivedBadge")}</Badge>}
+          </span>
+        }
         actions={
-          readOnly ? undefined : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={anyX}>
-                  <HugeiconsIcon icon={Download01Icon} />
-                  {anyX ? t("xport.downloading") : t("common.export")}
+          readOnly && !archived ? undefined : (
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={anyX}>
+                    <HugeiconsIcon icon={Download01Icon} />
+                    {anyX ? t("xport.downloading") : t("common.export")}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>{t("xport.storeExportLabel")}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={xPdf} className="font-medium">
+                    <HugeiconsIcon icon={Download01Icon} className="text-primary" />
+                    {t("xport.pdfReportTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">PDF</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={xAll}>
+                    {t("xport.downloadAllBtn")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">ZIP</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={xSales}>
+                    {t("xport.salesTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={xSaleItems}>
+                    {t("xport.saleItemsTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={xRefunds}>
+                    {t("xport.refundsTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={xExpenses}>
+                    {t("xport.expensesTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={xProducts}>
+                    {t("xport.productsTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={xMovements}>
+                    {t("xport.movementsTitle")}
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* A closed branch keeps its export: the history it left behind is
+                  the reason the page still exists. */}
+              {archived ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={archBusy}
+                  onClick={() => void restoreHere()}
+                >
+                  <HugeiconsIcon icon={ArrowReloadHorizontalIcon} className="size-4" />
+                  {t("store.restoreBtn")}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>{t("xport.storeExportLabel")}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={xPdf} className="font-medium">
-                  <HugeiconsIcon icon={Download01Icon} className="text-primary" />
-                  {t("xport.pdfReportTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">PDF</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={xAll}>
-                  {t("xport.downloadAllBtn")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">ZIP</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={xSales}>
-                  {t("xport.salesTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={xSaleItems}>
-                  {t("xport.saleItemsTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={xRefunds}>
-                  {t("xport.refundsTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={xExpenses}>
-                  {t("xport.expensesTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={xProducts}>
-                  {t("xport.productsTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={xMovements}>
-                  {t("xport.movementsTitle")}
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              ) : (
+                canArchive && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={anyX}
+                    onClick={() => setAskArchive(true)}
+                  >
+                    <HugeiconsIcon icon={Archive01Icon} className="size-4" />
+                    {t("store.archiveBtn")}
+                  </Button>
+                )
+              )}
+            </div>
           )
         }
       />
+
+      {archived && (
+        <div className="mb-5 max-w-4xl rounded-2xl border border-dashed p-4 text-[13px] text-muted-foreground">
+          <p className="font-medium text-foreground">{t("store.archivedNoticeTitle")}</p>
+          <p className="mt-1">{t("store.archivedNoticeDesc")}</p>
+        </div>
+      )}
 
       <div className="grid max-w-4xl gap-5 lg:grid-cols-2">
         <Card className="space-y-3 p-5">
@@ -851,6 +937,16 @@ function StoreForm({
           {t("common.save")}
         </Button>
       )}
+
+      <ConfirmDialog
+        open={askArchive}
+        title={t("store.archiveTitle")}
+        description={t("store.archiveDesc", { name: store.name })}
+        confirmLabel={t("store.archiveConfirm")}
+        busy={archBusy}
+        onOpenChange={setAskArchive}
+        onConfirm={() => void archive()}
+      />
     </>
   );
 }

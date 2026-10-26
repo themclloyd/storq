@@ -136,7 +136,10 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <CookieConsent />
-      <Toaster position="top-center" richColors />
+      {/* Bottom-right keeps a toast off the sticky mobile header it used to cover, and
+          off the page title at the top of every screen. The tint comes from the token
+          palette in `ui/sonner`, so `richColors` is deliberately not set. */}
+      <Toaster position="bottom-right" visibleToasts={3} />
     </QueryClientProvider>
   );
 }

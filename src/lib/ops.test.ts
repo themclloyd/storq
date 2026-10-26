@@ -3,6 +3,7 @@ import {
   applyLifecycleChange,
   applyPurge,
   EXTEND_MAX_DAYS,
+  graceDaysLeft,
   lifecycleActionsFor,
   previewLifecycle,
   previewPurge,
@@ -10,6 +11,7 @@ import {
   purgeWindowEnds,
   PURGE_WAIT_DAYS,
   ROSTER_SEARCH_MAX,
+  rosterFilters,
   SLOTS_MAX,
   TRIAL_MAX_DAYS,
   accessRunway,
@@ -134,9 +136,9 @@ describe("tenantState", () => {
     expect(tenantState(tenant(), 9, now)).toBe("over_capacity");
   });
 
-  it("falls back to the trial once the paid term is exhausted", () => {
+  it("falls back to the trial once the paid term and its grace window are both over", () => {
     const lapsed = {
-      paid_until: iso(-DAY),
+      paid_until: iso(-4 * DAY),
       paid_store_limit: 3,
       trial_ends_at: iso(5 * DAY),
       suspended_at: null,
@@ -170,16 +172,58 @@ describe("tenantState", () => {
     expect(tenantState(inGrace, 1, now)).toBe("trial");
   });
 
+  it("calls the courtesy window after a paid term grace, not expired", () => {
+    // The tills are still open on day two of three, so the roster must not send
+    // support chasing a tenant as though trading had already stopped.
+    expect(tenantState(tenant({ paid_until: iso(-2 * DAY) }), 2, now)).toBe("grace");
+    expect(tenantState(tenant({ paid_until: iso(-4 * DAY) }), 2, now)).toBe("expired");
+  });
+
+  it("gives no courtesy to a tenant that is also a store over capacity", () => {
+    // SQL reads capacity inside its own grace branch: late and over is expired,
+    // because the extra location was never paid for and grace cannot cover it.
+    expect(tenantState(tenant({ paid_until: iso(-DAY) }), 5, now)).toBe("expired");
+  });
+
+  it("lets an operator decision outrank a grace window", () => {
+    expect(tenantState(tenant({ paid_until: iso(-DAY), suspended_at: iso(-DAY) }), 2, now)).toBe(
+      "suspended",
+    );
+  });
+
   it("puts an operator decision above the money maths in both directions", () => {
     // Prepaid time does not make trading allowed, and an expired account that was
     // restored is not expired either — the stamp is the fact being reported.
     expect(tenantState(tenant({ suspended_at: iso(-DAY) }), 2, now)).toBe("suspended");
-    expect(tenantState(tenant({ paid_until: iso(-DAY), trial_ends_at: iso(-DAY) }), 2, now)).toBe(
-      "expired",
-    );
+    expect(
+      tenantState(tenant({ paid_until: iso(-4 * DAY), trial_ends_at: iso(-4 * DAY) }), 2, now),
+    ).toBe("expired");
     expect(tenantState(tenant({ closed_at: iso(-DAY), suspended_at: iso(-5 * DAY) }), 2, now)).toBe(
       "closed",
     );
+  });
+});
+
+describe("graceDaysLeft", () => {
+  it("counts the window down from the expiry, and stops at zero", () => {
+    expect(graceDaysLeft(iso(-DAY), now)).toBe(2);
+    // Half a day left still counts as a whole one, as the runway does.
+    expect(graceDaysLeft(iso(-(2 * DAY + DAY / 2)), now)).toBe(1);
+    expect(graceDaysLeft(iso(-3 * DAY), now)).toBe(0);
+    expect(graceDaysLeft(iso(-30 * DAY), now)).toBe(0);
+  });
+
+  it("has no window for a term that is still running or was never bought", () => {
+    expect(graceDaysLeft(iso(5 * DAY), now)).toBe(0);
+    expect(graceDaysLeft(null, now)).toBe(0);
+  });
+});
+
+describe("rosterFilters", () => {
+  it("reads in the SQL severity order, with grace between over-capacity and expired", () => {
+    expect(rosterFilters.indexOf("grace")).toBe(2);
+    expect(rosterFilters.indexOf("over_capacity")).toBeLessThan(rosterFilters.indexOf("grace"));
+    expect(rosterFilters.indexOf("grace")).toBeLessThan(rosterFilters.indexOf("expired"));
   });
 });
 
@@ -318,8 +362,9 @@ describe("applyLifecycleChange / applyPurge", () => {
 });
 
 describe("previewEntitlement — slots", () => {
-  it("never goes below the stores they actually run", () => {
+  it("never goes below the stores they actually run, and says how to free a slot", () => {
     expect(refusal(tenant(), "slots", "1")).toMatch(/live stores/);
+    expect(refusal(tenant(), "slots", "1")).toMatch(/archive one/);
   });
 
   it("refuses a value that changes nothing", () => {

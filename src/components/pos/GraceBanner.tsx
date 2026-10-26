@@ -9,6 +9,10 @@
  * The free trial gets a version of the same thing. It is a single day, followed by a
  * single day of grace, so both halves are worth a countdown: one says "pay today",
  * the other says "this is the last day".
+ *
+ * `hideLink` is for the one screen that already is the billing page: the renew button
+ * there would navigate to where the reader stands, so the caller drops it and keeps
+ * only the countdown and the owner hand-off.
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -22,7 +26,7 @@ import { Input } from "@/components/ui/input";
 
 const DAY_MS = 86_400_000;
 
-export function GraceBanner() {
+export function GraceBanner({ hideLink = false }: { hideLink?: boolean }) {
   const { t } = useI18n();
   const { business, stores, store } = usePos();
   // Same cached entitlement row the gate uses — no extra database read per screen.
@@ -109,12 +113,14 @@ export function GraceBanner() {
         <Button size="sm" onClick={share}>
           {t("billing.graceShareCta")}
         </Button>
-        <Button asChild size="sm" variant="outline">
-          <Link to="/app/billing">
-            {t(trialMode ? "billing.trialChooseCta" : "billing.graceRenewCta")}
-            <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-3.5" />
-          </Link>
-        </Button>
+        {!hideLink && (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/app/billing">
+              {t(trialMode ? "billing.trialChooseCta" : "billing.graceRenewCta")}
+              <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-3.5" />
+            </Link>
+          </Button>
+        )}
         <button
           type="button"
           className="text-xs underline-offset-2 hover:underline"
