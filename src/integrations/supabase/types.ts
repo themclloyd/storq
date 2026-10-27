@@ -23,6 +23,7 @@ export type Database = {
           owner_id: string
           tax_inclusive: boolean
           tax_rate: number
+          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -32,6 +33,7 @@ export type Database = {
           owner_id: string
           tax_inclusive?: boolean
           tax_rate?: number
+          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           owner_id?: string
           tax_inclusive?: boolean
           tax_rate?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -178,6 +181,7 @@ export type Database = {
           is_shared: boolean
           name: string
           share_slug: string
+          updated_at: string
         }
         Insert: {
           business_id: string
@@ -187,6 +191,7 @@ export type Database = {
           is_shared?: boolean
           name: string
           share_slug?: string
+          updated_at?: string
         }
         Update: {
           business_id?: string
@@ -196,6 +201,7 @@ export type Database = {
           is_shared?: boolean
           name?: string
           share_slug?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -206,6 +212,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      desktop_releases: {
+        Row: {
+          min_version: string
+          note: string | null
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          min_version: string
+          note?: string | null
+          platform: string
+          updated_at?: string
+        }
+        Update: {
+          min_version?: string
+          note?: string | null
+          platform?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       expenses: {
         Row: {
@@ -310,6 +337,41 @@ export type Database = {
           },
         ]
       }
+      pin_login_throttle: {
+        Row: {
+          auth_uid: string
+          business_id: string
+          fails: number
+          locked_until: string | null
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          auth_uid: string
+          business_id: string
+          fails?: number
+          locked_until?: string | null
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          auth_uid?: string
+          business_id?: string
+          fails?: number
+          locked_until?: string | null
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pin_login_throttle_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pin_throttle: {
         Row: {
           auth_uid: string
@@ -318,6 +380,7 @@ export type Database = {
           fails: number
           locked_until: string | null
           updated_at: string
+          window_start: string
         }
         Insert: {
           auth_uid: string
@@ -326,6 +389,7 @@ export type Database = {
           fails?: number
           locked_until?: string | null
           updated_at?: string
+          window_start?: string
         }
         Update: {
           auth_uid?: string
@@ -334,6 +398,7 @@ export type Database = {
           fails?: number
           locked_until?: string | null
           updated_at?: string
+          window_start?: string
         }
         Relationships: [
           {
@@ -544,6 +609,7 @@ export type Database = {
           reorder_point: number | null
           sku: string | null
           store_id: string
+          updated_at: string
         }
         Insert: {
           active?: boolean
@@ -556,6 +622,7 @@ export type Database = {
           reorder_point?: number | null
           sku?: string | null
           store_id: string
+          updated_at?: string
         }
         Update: {
           active?: boolean
@@ -568,6 +635,7 @@ export type Database = {
           reorder_point?: number | null
           sku?: string | null
           store_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1272,21 +1340,50 @@ export type Database = {
           },
         ]
       }
+      store_payment_methods: {
+        Row: {
+          code: string
+          created_at: string
+          store_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          store_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_payment_methods_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_stock: {
         Row: {
           product_id: string
           qty: number
           store_id: string
+          updated_at: string
         }
         Insert: {
           product_id: string
           qty?: number
           store_id: string
+          updated_at?: string
         }
         Update: {
           product_id?: string
           qty?: number
           store_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1319,6 +1416,7 @@ export type Database = {
           tax_inclusive: boolean
           tax_number: string | null
           tax_rate: number
+          updated_at: string
         }
         Insert: {
           address?: string | null
@@ -1333,6 +1431,7 @@ export type Database = {
           tax_inclusive?: boolean
           tax_number?: string | null
           tax_rate?: number
+          updated_at?: string
         }
         Update: {
           address?: string | null
@@ -1347,6 +1446,7 @@ export type Database = {
           tax_inclusive?: boolean
           tax_number?: string | null
           tax_rate?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1366,11 +1466,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          discount: number | null
           paid_at: string | null
           period: string
           status: string
           stores: number
           tx_ref: string
+          unit_rate: number | null
         }
         Insert: {
           amount: number
@@ -1379,11 +1481,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency: string
+          discount?: number | null
           paid_at?: string | null
           period: string
           status?: string
           stores: number
           tx_ref: string
+          unit_rate?: number | null
         }
         Update: {
           amount?: number
@@ -1392,11 +1496,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          discount?: number | null
           paid_at?: string | null
           period?: string
           status?: string
           stores?: number
           tx_ref?: string
+          unit_rate?: number | null
         }
         Relationships: [
           {
@@ -1456,6 +1562,35 @@ export type Database = {
           },
         ]
       }
+      tombstones: {
+        Row: {
+          business_id: string
+          deleted_at: string
+          row_key: string
+          table_name: string
+        }
+        Insert: {
+          business_id: string
+          deleted_at?: string
+          row_key: string
+          table_name: string
+        }
+        Update: {
+          business_id?: string
+          deleted_at?: string
+          row_key?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tombstones_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1464,6 +1599,17 @@ export type Database = {
       _move_stock: {
         Args: { p_sale: string; p_sign: number }
         Returns: undefined
+      }
+      account_devices: {
+        Args: { p_token: string }
+        Returns: {
+          created_at: string
+          device_id: string
+          expires_at: string
+          is_current: boolean
+          staff_id: string
+          staff_name: string
+        }[]
       }
       adjust_stock_reason: {
         Args: {
@@ -1476,10 +1622,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      archive_store: { Args: { p_id: string; p_token: string }; Returns: Json }
       cancel_layby: {
         Args: { p_sale: string; p_token: string }
         Returns: undefined
       }
+      cancel_pending_payments: { Args: { p_token: string }; Returns: number }
       cash_move: {
         Args: {
           p_amount: number
@@ -1499,6 +1647,7 @@ export type Database = {
           p_kind: string
           p_method: string
           p_note: string
+          p_occurred_at?: string
           p_override_pin?: string
           p_payment: number
           p_store: string
@@ -1517,6 +1666,7 @@ export type Database = {
           p_kind: string
           p_method: string
           p_note: string
+          p_occurred_at?: string
           p_override_pin?: string
           p_payment: number
           p_store: string
@@ -1570,6 +1720,7 @@ export type Database = {
         Returns: undefined
       }
       effective_price: { Args: { p_product: string }; Returns: number }
+      expire_payment_attempts: { Args: never; Returns: number }
       get_shift_summary: {
         Args: { p_shift: string; p_token: string }
         Returns: Json
@@ -1584,6 +1735,7 @@ export type Database = {
         Returns: string
       }
       lock_all_sessions: { Args: never; Returns: undefined }
+      lock_device: { Args: { p_device_id: string }; Returns: undefined }
       lock_session: { Args: { p_token: string }; Returns: undefined }
       low_stock: { Args: { p_store: string; p_token: string }; Returns: Json }
       my_business_id: { Args: never; Returns: string }
@@ -1606,6 +1758,16 @@ export type Database = {
         }
         Returns: Json
       }
+      ops_journal_payment_verification: {
+        Args: {
+          p_business_id: string
+          p_reason: string
+          p_status: string
+          p_tx_ref: string
+        }
+        Returns: Json
+      }
+      ops_pending_payments: { Args: { p_business_id: string }; Returns: Json }
       ops_purge_tenant: {
         Args: {
           p_business_id: string
@@ -1633,6 +1795,18 @@ export type Database = {
           p_until?: string
         }
         Returns: Json
+      }
+      pending_payment_refs: {
+        Args: { p_token: string }
+        Returns: {
+          amount: number
+          billed_stores: number
+          created_at: string
+          currency: string
+          period: string
+          stores: number
+          tx_ref: string
+        }[]
       }
       pin_taken: {
         Args: { p_business: string; p_except: string; p_pin: string }
@@ -1684,7 +1858,9 @@ export type Database = {
           business_id: string
           created_at: string
           id: string
+          is_owner: boolean
           name: string
+          permissions: string[]
           pin_hash: string
           role: string
           store_id: string | null
@@ -1703,7 +1879,9 @@ export type Database = {
           business_id: string
           created_at: string
           id: string
+          is_owner: boolean
           name: string
+          permissions: string[]
           pin_hash: string
           role: string
           store_id: string | null
@@ -1715,6 +1893,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reset_owner_pin: { Args: { p_pin: string }; Returns: Json }
+      restore_store: { Args: { p_id: string; p_token: string }; Returns: Json }
       review_invoice: {
         Args: {
           p_approve: boolean
@@ -1726,9 +1906,17 @@ export type Database = {
         }
         Returns: string
       }
+      revoke_device: {
+        Args: { p_device_id: string; p_token: string }
+        Returns: Json
+      }
       sales_summary: {
         Args: { p_from: string; p_store: string; p_to: string; p_token: string }
         Returns: Json
+      }
+      save_business_settings: {
+        Args: { p_currency: string; p_token: string }
+        Returns: string
       }
       save_collection: {
         Args: {
@@ -1773,6 +1961,7 @@ export type Database = {
           p_email?: string
           p_id: string
           p_name: string
+          p_payment_methods?: string[]
           p_phone?: string
           p_tax_inclusive?: boolean
           p_tax_number?: string
@@ -1814,6 +2003,7 @@ export type Database = {
           p_currency: string
           p_name: string
           p_owner_name: string
+          p_payment_methods?: string[]
           p_pin: string
           p_store_name: string
           p_store_type: string
@@ -1848,7 +2038,11 @@ export type Database = {
         Returns: Json
       }
       subscription_active: { Args: { p_business: string }; Returns: boolean }
-      unlock_with_pin: { Args: { p_device_id?: string; p_pin: string }; Returns: Json }
+      sync_pull: { Args: { p_since?: string; p_token: string }; Returns: Json }
+      unlock_with_pin: {
+        Args: { p_device_id?: string; p_pin: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
