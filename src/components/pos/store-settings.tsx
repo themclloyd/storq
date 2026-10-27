@@ -46,7 +46,7 @@ export function RadioCard({
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
+        "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors",
         checked ? "border-primary bg-secondary/50" : "border-input bg-card hover:bg-muted",
         disabled && "cursor-not-allowed opacity-60 hover:bg-card",
       )}

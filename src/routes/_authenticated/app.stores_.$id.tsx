@@ -707,37 +707,37 @@ function StoreForm({
                   <DropdownMenuItem onSelect={xPdf} className="font-medium">
                     <HugeiconsIcon icon={Download01Icon} className="text-primary" />
                     {t("xport.pdfReportTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">PDF</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">PDF</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={xAll}>
                     {t("xport.downloadAllBtn")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">ZIP</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">ZIP</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={xSales}>
                     {t("xport.salesTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">CSV</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={xSaleItems}>
                     {t("xport.saleItemsTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">CSV</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={xRefunds}>
                     {t("xport.refundsTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">CSV</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={xExpenses}>
                     {t("xport.expensesTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">CSV</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={xProducts}>
                     {t("xport.productsTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">CSV</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={xMovements}>
                     {t("xport.movementsTitle")}
-                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">CSV</span>
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">CSV</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -772,20 +772,20 @@ function StoreForm({
       />
 
       {archived && (
-        <div className="mb-5 max-w-4xl rounded-2xl border border-dashed p-4 text-[13px] text-muted-foreground">
+        <div className="mb-5 max-w-4xl rounded-xl border border-dashed p-4 text-[13px] text-muted-foreground">
           <p className="font-medium text-foreground">{t("store.archivedNoticeTitle")}</p>
           <p className="mt-1">{t("store.archivedNoticeDesc")}</p>
         </div>
       )}
 
-      <div className="grid max-w-4xl gap-5 lg:grid-cols-2">
-        <Card className="space-y-3 p-5">
+      <div className="grid max-w-4xl gap-4 lg:grid-cols-2">
+        <Card className="space-y-3 p-4">
           <div>
-            <h3 className="font-display text-base font-medium">{t("store.detailsTitle")}</h3>
-            <p className="text-[13px] text-muted-foreground">{t("store.detailsDesc")}</p>
+            <h3 className="text-[13px] font-semibold">{t("store.detailsTitle")}</h3>
+            <p className="text-xs text-muted-foreground">{t("store.detailsDesc")}</p>
           </div>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.locationName")}
             </span>
             <Input
@@ -796,7 +796,7 @@ function StoreForm({
             />
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.phone")}
             </span>
             <Input
@@ -808,7 +808,7 @@ function StoreForm({
             />
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.email")}
             </span>
             <Input
@@ -821,7 +821,7 @@ function StoreForm({
             />
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.address")}
             </span>
             <Input
@@ -832,7 +832,7 @@ function StoreForm({
             />
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.taxNumber")}
             </span>
             <Input
@@ -844,13 +844,13 @@ function StoreForm({
           </Label>
         </Card>
 
-        <Card className="space-y-3 p-5">
+        <Card className="space-y-3 p-4">
           <div>
-            <h3 className="font-display text-base font-medium">{t("store.taxTitle")}</h3>
-            <p className="text-[13px] text-muted-foreground">{t("store.taxDesc")}</p>
+            <h3 className="text-[13px] font-semibold">{t("store.taxTitle")}</h3>
+            <p className="text-xs text-muted-foreground">{t("store.taxDesc")}</p>
           </div>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.taxRatePct")}
             </span>
             <Input
@@ -878,8 +878,8 @@ function StoreForm({
               />
             ))}
           </div>
-          <div className="rounded-2xl bg-secondary/50 p-3 text-[13px]">
-            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-xl bg-secondary/50 p-3 text-[13px]">
+            <div className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("store.taxExample", { amount: money(sample) })}
             </div>
             <div className="flex justify-between gap-3">
@@ -896,10 +896,10 @@ function StoreForm({
             </div>
           </div>
         </Card>
-        <Card className="space-y-3 p-5 lg:col-span-2">
+        <Card className="space-y-3 p-4 lg:col-span-2">
           <div>
-            <h3 className="font-display text-base font-medium">{t("biz.paymentMethods")}</h3>
-            <p className="text-[13px] text-muted-foreground">{t("biz.paymentMethodsHint")}</p>
+            <h3 className="text-[13px] font-semibold">{t("biz.paymentMethods")}</h3>
+            <p className="text-xs text-muted-foreground">{t("biz.paymentMethodsHint")}</p>
           </div>
           <PaymentMethodPicker
             value={methods}
@@ -910,8 +910,8 @@ function StoreForm({
         </Card>
       </div>
 
-      <div className="mt-5 max-w-4xl rounded-2xl border p-4">
-        <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="mt-4 max-w-4xl rounded-xl border p-4">
+        <div className="mb-2 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
           {t("store.typeTitle")}
         </div>
         <div
@@ -933,7 +933,7 @@ function StoreForm({
       </div>
 
       {!readOnly && (
-        <Button className="mt-5" disabled={busy || !name || !phone} onClick={save}>
+        <Button className="mt-4" disabled={busy || !name || !phone} onClick={save}>
           {t("common.save")}
         </Button>
       )}

@@ -84,7 +84,7 @@ function LaybysContent() {
           ]}
         />
         <Input
-          className="ml-auto h-8 w-56 bg-card"
+          className="ml-auto h-9 w-60 bg-card"
           placeholder={t("laybys.searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -98,7 +98,7 @@ function LaybysContent() {
             <div key={s.id} className="pos-card min-w-0 p-3">
               <div className="flex min-w-0 justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate font-medium">{s.customer_name}</div>
+                  <div className="truncate text-[13px] font-semibold">{s.customer_name}</div>
                   <div className="truncate text-xs text-muted-foreground">
                     #{s.number} · {s.customer_phone ?? t("laybys.noPhone")} ·{" "}
                     {fmtDate(s.created_at)}
@@ -106,14 +106,14 @@ function LaybysContent() {
                 </div>
                 <Status s={s.status} />
               </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted">
                 <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
               </div>
-              <div className="tabular mt-1.5 flex justify-between gap-2 text-[13px]">
-                <span className="truncate">
+              <div className="tabular mt-2 flex items-end justify-between gap-2 text-[13px]">
+                <span className="truncate text-muted-foreground">
                   {t("doc.paid")} {money(s.paid)}
                 </span>
-                <span className="truncate font-medium">
+                <span className="truncate text-sm font-extrabold">
                   {t("laybys.owing")} {money(Number(s.total) - Number(s.paid))}
                 </span>
               </div>

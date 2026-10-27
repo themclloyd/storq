@@ -56,16 +56,16 @@ export function WorkspaceTabs({
             to={page.to}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex shrink-0 items-center rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+              "inline-flex shrink-0 items-center rounded-lg px-3 py-1.5 text-[13px] font-semibold whitespace-nowrap transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
               active
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-card text-foreground ring-1 ring-border"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {t(pageLabelKey(page, storeType))}
             {page.approvalOnly && pendingCount ? (
               <span
-                className="tabular ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-bold text-warning-foreground"
+                className="tabular ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] font-bold text-warning-foreground"
                 aria-hidden
               >
                 {pendingCount >= 100 ? "99+" : pendingCount}

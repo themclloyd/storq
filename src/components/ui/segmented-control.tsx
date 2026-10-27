@@ -56,9 +56,9 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(o.value)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
-              size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
+              size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-[13px]",
               active
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-card text-foreground ring-1 ring-border"
                 : "text-muted-foreground hover:text-foreground",
               disabled && "pointer-events-none",
             )}

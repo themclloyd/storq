@@ -221,7 +221,7 @@ export function ResetPinDialog({
                     className={cn(
                       "rounded-lg px-2 py-1.5 font-medium transition-colors",
                       proof === m
-                        ? "bg-card text-foreground shadow-sm"
+                        ? "bg-card text-foreground ring-1 ring-border"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >

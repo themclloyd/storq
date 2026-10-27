@@ -68,7 +68,7 @@ export function TicketLineSheet({
 
         <div className="space-y-4 px-5 py-4">
           <div>
-            <div className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+            <div className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("till.lineQty")}
             </div>
             <div className="flex items-center gap-2">

@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ReceiptIcon } from "@/lib/icons";
@@ -9,10 +8,19 @@ import { downloadCsv, downloadPdf, fileStamp } from "@/lib/pdf";
 import { fetchSalesForExport, useSalesPage, useSalesSummary, useStaffNames } from "@/lib/sales";
 import { methodLabel } from "@/lib/payment-methods";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { NoAccess, PageHeader } from "@/components/pos/bits";
+import {
+  Empty,
+  NoAccess,
+  PageHeader,
+  Pager,
+  Stat,
+  StatRow,
+  Status,
+  TableChevron,
+  rowLinkProps,
+} from "@/components/pos/bits";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import {
   Table,
@@ -22,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/app/sales")({
@@ -57,18 +64,6 @@ const fmtDate = (d: string) =>
     minute: "2-digit",
   });
 
-const statusStyle: Record<string, string> = {
-  completed: "bg-success-soft text-success",
-  layby_completed: "bg-success-soft text-success",
-  pending_approval: "bg-warning-soft text-warning-foreground",
-  layby_open: "bg-warning-soft text-warning-foreground",
-  rejected: "bg-destructive-soft text-destructive",
-  layby_cancelled: "bg-destructive-soft text-destructive",
-  open: "bg-warning-soft text-warning-foreground",
-  closed: "bg-secondary text-muted-foreground",
-  refunded: "bg-destructive-soft text-destructive",
-  partially_refunded: "bg-warning-soft text-warning-foreground",
-};
 const statusText: Record<string, string> = {
   completed: "Paid",
   layby_completed: "Layby paid",
@@ -81,15 +76,6 @@ const statusText: Record<string, string> = {
   refunded: "Refunded",
   partially_refunded: "Part refunded",
 };
-
-function StatusBadge({ s }: { s: string }) {
-  const { t } = useI18n();
-  return (
-    <Badge className={cn("rounded-full border-transparent px-2.5 py-0.5", statusStyle[s])}>
-      {s in statusText ? t(`status.${s}`) : s}
-    </Badge>
-  );
-}
 
 function Sales() {
   const { can } = usePos();
@@ -239,13 +225,9 @@ function SalesContent() {
   ];
   if (showPending) cards.push([t("status.pending_approval"), String(kpi.pending)]);
 
-  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const to = Math.min(page * PAGE_SIZE, total);
-
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.sales")} / ${t(approval ? "nav.invoices" : "nav.salesHistory")}`}
         title={t(approval ? "sales.titleApproval" : "sales.title")}
         actions={
           <>
@@ -279,97 +261,68 @@ function SalesContent() {
           </>
         }
       />
-      <div className="mb-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+      <StatRow>
         {cards.map(([k, v]) => (
-          <Card key={k} className="p-4">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {k}
-            </div>
-            <div className="font-display tabular mt-1 truncate text-2xl font-medium">{v}</div>
-          </Card>
+          <Stat key={k} label={k} value={v} />
         ))}
-      </div>
+      </StatRow>
       {list.isPending ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</Card>
       ) : rows.length === 0 ? (
-        <Card>
-          <div className="flex flex-col items-center gap-3 py-14 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
-              <HugeiconsIcon icon={ReceiptIcon} />
-            </span>
-            <p className="font-display text-lg">
-              {t(approval ? "sales.emptyTitleApproval" : "sales.emptyTitle")}
-            </p>
-            <p className="max-w-xs text-sm text-muted-foreground">
-              {t(approval ? "sales.emptyBodyApproval" : "sales.emptyBody")}
-            </p>
+        <Empty
+          icon={<HugeiconsIcon icon={ReceiptIcon} className="size-5" />}
+          title={t(approval ? "sales.emptyTitleApproval" : "sales.emptyTitle")}
+          action={
             <Button variant="outline" onClick={() => navigate({ to: "/app" })}>
               {t("sales.openPos")}
             </Button>
-          </div>
-        </Card>
+          }
+        >
+          {t(approval ? "sales.emptyBodyApproval" : "sales.emptyBody")}
+        </Empty>
       ) : (
         <Card>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">#</TableHead>
-                <TableHead className="w-32">{t("doc.date")}</TableHead>
-                <TableHead>{t("sales.colStatus")}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t("sales.colDetails")}</TableHead>
+                <TableHead className="w-20">#</TableHead>
+                <TableHead className="w-36">{t("doc.date")}</TableHead>
+                <TableHead className="w-40">{t("sales.colStatus")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("sales.colServed")}</TableHead>
                 <TableHead>{t("common.total")}</TableHead>
+                <TableChevron head />
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((s) => (
                 <TableRow
                   key={s.id}
-                  className="cursor-pointer text-[13px]"
-                  onClick={() => navigate({ to: "/app/sales/$id", params: { id: s.id } })}
+                  className="cursor-pointer text-[13px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                  {...rowLinkProps(() => navigate({ to: "/app/sales/$id", params: { id: s.id } }))}
                 >
                   <TableCell className="font-medium">#{s.number}</TableCell>
                   <TableCell className="text-muted-foreground">{fmtDate(s.created_at)}</TableCell>
                   <TableCell>
-                    <StatusBadge s={s.status} />
+                    <Status s={s.status} />
                   </TableCell>
                   <TableCell className="hidden truncate text-muted-foreground sm:table-cell">
                     {all && `${storeName(s.store_id)} · `}
                     {names.data?.[s.created_by ?? ""]}
                     {s.customer_name && ` · ${s.customer_name}`}
                   </TableCell>
-                  <TableCell className="tabular font-semibold">{money(s.total)}</TableCell>
+                  <TableCell className="tabular font-bold">{money(s.total)}</TableCell>
+                  <TableChevron />
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <div className="flex items-center justify-between gap-2 border-t p-3">
-            <span className="text-xs text-muted-foreground">
-              {t("sales.showing", { from, to, total })}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1 || list.isFetching}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                aria-label={t("sales.prev")}
-              >
-                <ChevronLeftIcon className="size-4" />
-              </Button>
-              <span className="tabular text-xs text-muted-foreground">
-                {page} / {totalPages}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page >= totalPages || list.isFetching}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                aria-label={t("sales.next")}
-              >
-                <ChevronRightIcon className="size-4" />
-              </Button>
-            </div>
-          </div>
+          <Pager
+            page={page - 1}
+            pageCount={totalPages}
+            total={total}
+            pageSize={PAGE_SIZE}
+            onPage={(p) => setPage(p + 1)}
+          />
         </Card>
       )}
     </>

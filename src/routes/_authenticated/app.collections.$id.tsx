@@ -161,7 +161,7 @@ function CollectionPage() {
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <div className="pos-card flex flex-col gap-3 self-start p-4">
-          <div className="font-display text-sm font-medium">{t("col.details")}</div>
+          <div className="text-[13px] font-semibold">{t("col.details")}</div>
           <Field label={t("common.name")}>
             <Input
               value={f.name}
@@ -190,12 +190,12 @@ function CollectionPage() {
 
         <div className="flex flex-col gap-4">
           <div className="pos-card">
-            <div className="font-display border-b px-4 py-2.5 text-sm font-medium">
+            <div className="border-b px-4 py-2.5 text-[13px] font-semibold">
               {t("col.itemsHeading", { count: inCol.length })}
             </div>
             <div className="divide-y">
               {inCol.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
+                <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">
                   <span className="flex-1 truncate font-medium">{p.name}</span>
                   {pct > 0 && (
                     <span className="tabular text-muted-foreground line-through">
@@ -227,9 +227,9 @@ function CollectionPage() {
             <>
               <div className="pos-card">
                 <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
-                  <div className="font-display text-sm font-medium">{t("col.addItems")}</div>
+                  <div className="text-[13px] font-semibold">{t("col.addItems")}</div>
                   <Input
-                    className="h-8 max-w-56"
+                    className="h-9 w-56"
                     placeholder={t("col.searchItems")}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
@@ -237,7 +237,7 @@ function CollectionPage() {
                 </div>
                 <div className="max-h-80 divide-y overflow-y-auto">
                   {available.map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 px-4 py-1.5 text-[13px]">
+                    <div key={p.id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
                       <span className="flex-1 truncate">{p.name}</span>
                       <span className="tabular text-muted-foreground">{money(p.price)}</span>
                       <Button size="sm" variant="outline" onClick={() => toggle(p.id)}>

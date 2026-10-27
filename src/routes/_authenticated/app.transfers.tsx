@@ -67,7 +67,6 @@ function Transfers() {
   return (
     <>
       <PageHeader
-        back={{ to: "/app/inventory", label: t("nav.items") }}
         title={t("trf.title")}
         sub={t("trf.sub", { store: store?.name ?? t("trf.yourStore") })}
         actions={
@@ -120,10 +119,12 @@ function TransferRow({
   return (
     <div className="pos-card p-4 text-[13px]">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{t("trf.transferNumber", { number: transfer.number })}</span>
+        <span className="font-semibold">
+          {t("trf.transferNumber", { number: transfer.number })}
+        </span>
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+            "rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
             statusTone[transfer.status],
           )}
         >
@@ -276,7 +277,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
 
         {draft.length > 0 && (
           <div className="space-y-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("trf.transferring")}
             </span>
             {draft.map((d) => (

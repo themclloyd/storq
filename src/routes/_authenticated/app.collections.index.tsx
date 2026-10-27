@@ -100,7 +100,6 @@ function Collections() {
   return (
     <>
       <PageHeader
-        back={{ to: "/app/inventory", label: t("nav.items") }}
         title={t("col.title")}
         sub={t("col.listSub")}
         actions={
@@ -183,7 +182,7 @@ function Collections() {
                     </TableCell>
                     <TableCell>
                       {c.discount_pct > 0 ? (
-                        <Badge className="rounded-full border-transparent bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
+                        <Badge className="border-transparent bg-success-soft text-success">
                           −{c.discount_pct}%
                         </Badge>
                       ) : (

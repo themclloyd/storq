@@ -43,7 +43,7 @@ const DialogContent = React.forwardRef<
         // Centred card on tablet/desktop. Below `sm` the `.dialog-native` rules
         // in styles.css re-anchor this same element to the bottom edge and
         // slide it up as a sheet, so callers keep one component either way.
-        "dialog-native fixed left-[50%] top-[50%] z-50 grid max-h-[90dvh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-3 overflow-y-auto border bg-card p-4 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-3xl sm:p-5",
+        "dialog-native fixed left-[50%] top-[50%] z-50 grid max-h-[90dvh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-3 overflow-y-auto border bg-card p-4 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-[16px] sm:p-5",
         className,
       )}
       {...props}

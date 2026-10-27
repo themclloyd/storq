@@ -1,7 +1,7 @@
 import { usePos } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { tileInitials, tileTone } from "@/components/pos/till/tiles";
+import { tileTone } from "@/components/pos/till/tiles";
 
 /**
  * One catalogue tile: a flat colour block with the item's name and price in
@@ -47,16 +47,15 @@ export function ItemTile({
         soldOut && "pointer-events-none opacity-40 grayscale",
       )}
     >
-      {/* Monogram watermark: readable identifier without an image asset. */}
+      {/* A quiet scrim keeps the name and price legible on the lightest tones
+          without tinting the block itself. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-1 -top-3 text-[3.5rem] leading-none font-black tracking-tighter opacity-20"
-      >
-        {tileInitials(name)}
-      </span>
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/20 to-transparent"
+      />
 
       {low && (
-        <span className="absolute left-2 top-2 rounded-md bg-warning px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-warning-foreground uppercase">
+        <span className="absolute left-2 top-2 rounded-md bg-warning px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-warning-foreground uppercase">
           {t("till.low")}
         </span>
       )}
@@ -79,7 +78,7 @@ export function ItemTile({
           {money(price)}
         </span>
         {!soldOut && (
-          <span className="tabular rounded-md bg-foreground/25 px-1.5 py-0.5 text-[10px] font-semibold">
+          <span className="tabular rounded-md bg-foreground/30 px-1.5 py-0.5 text-[11px] font-semibold">
             {stock}
           </span>
         )}

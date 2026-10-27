@@ -44,7 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { PageHeader, Pager } from "@/components/pos/bits";
+import { PageHeader, Pager, Stat, StatRow } from "@/components/pos/bits";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -344,7 +344,6 @@ function Inventory() {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.inventory")} / ${t("nav.items")}`}
         title={t("inv.title")}
         sub={
           <>
@@ -391,10 +390,10 @@ function Inventory() {
             <div className="relative w-full sm:w-56">
               <HugeiconsIcon
                 icon={Search01Icon}
-                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
-                className="w-full bg-card pl-9"
+                className="w-full bg-card pl-9 sm:pl-9"
                 placeholder={t("inv.searchPlaceholder")}
                 value={q}
                 onChange={(e) => {
@@ -408,7 +407,7 @@ function Inventory() {
                 <Button variant="outline" className="h-9 bg-card">
                   <HugeiconsIcon icon={FilterIcon} /> {t("inv.filter")}
                   {activeFilters > 0 && (
-                    <Badge variant="secondary" className="ml-0.5 rounded-full px-1.5">
+                    <Badge variant="secondary" className="ml-0.5 px-1.5">
                       {activeFilters}
                     </Badge>
                   )}
@@ -531,35 +530,31 @@ function Inventory() {
           </Button>
         </div>
       )}
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">{t("inv.totalItems")}</p>
-          <p className="font-display tabular mt-1 text-2xl">{rows.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground">{t("inv.unitsInStock")}</p>
-          <p className="font-display tabular mt-1 text-2xl">{units}</p>
-        </Card>
-        <Card
-          className={cn("p-4", lowOnly && "ring-2 ring-primary/30")}
-          role="button"
-          tabIndex={0}
+      <StatRow className="mb-4 sm:grid-cols-3">
+        <Stat label={t("inv.totalItems")} value={rows.length} />
+        <Stat label={t("inv.unitsInStock")} value={units} />
+        {/* The low-stock figure is also the filter: a real button, so a tap and
+            a keyboard press do the same thing. */}
+        <button
+          type="button"
+          aria-pressed={lowOnly}
           onClick={() => {
             setLowOnly((v) => !v);
             setPage(0);
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setLowOnly((v) => !v);
-              setPage(0);
-            }
-          }}
+          className={cn(
+            "rounded-xl border border-border bg-card p-3.5 text-left transition-colors hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-primary/30 focus-visible:outline-none",
+            lowOnly && "ring-2 ring-primary/30",
+          )}
         >
-          <p className="text-xs text-muted-foreground">{t("inv.lowStock")}</p>
-          <p className="font-display tabular mt-1 text-2xl text-destructive">{lowCount}</p>
-        </Card>
-      </div>
+          <div className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("inv.lowStock")}
+          </div>
+          <div className="tabular mt-1 text-2xl leading-tight font-extrabold text-destructive">
+            {lowCount}
+          </div>
+        </button>
+      </StatRow>
       {rows.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -608,7 +603,10 @@ function Inventory() {
                 {pageRows.map((p) => {
                   const s = stock.data?.[p.id] ?? 0;
                   const threshold = p.reorder_point ?? 5;
-                  const isLow = s > 0 && s <= threshold;
+                  // The KPI above counts an empty shelf as low stock, so the row
+                  // has to say so too: "Out" for zero, "Low" up to the point.
+                  const out = s <= 0;
+                  const isLow = !out && s <= threshold;
                   const costAbove = Number(p.cost) > Number(p.price);
                   return (
                     <TableRow key={p.id} className={cn(!p.active && "opacity-[0.45]")}>
@@ -649,11 +647,20 @@ function Inventory() {
                       <TableCell className="tabular text-muted-foreground">
                         {normalizeCode(p.sku) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell className="tabular font-medium">{money(p.price)}</TableCell>
+                      <TableCell className="tabular font-medium">
+                        <div>{money(p.price)}</div>
+                        <div className="text-[11px] font-normal text-muted-foreground">
+                          {t("inv.cost")} {money(p.cost)}
+                        </div>
+                      </TableCell>
                       <TableCell className="tabular py-3">
                         <span className="inline-flex items-center gap-1.5">
-                          <span className={cn(s <= 0 && "text-destructive")}>{s}</span>
-                          {isLow && <Badge variant="destructive">{t("inv.lowBadge")}</Badge>}
+                          <span className={cn(out && "text-destructive")}>{s}</span>
+                          {out ? (
+                            <Badge variant="destructive">{t("inv.outBadge")}</Badge>
+                          ) : isLow ? (
+                            <Badge variant="warning">{t("inv.lowBadge")}</Badge>
+                          ) : null}
                         </span>
                       </TableCell>
                       <TableCell className="py-3 pr-4">
@@ -857,7 +864,9 @@ function ProductDialog({
           <DialogTitle>{p.id ? t("inv.editItem") : t("inv.newItem")}</DialogTitle>
         </DialogHeader>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">{t("common.name")}</span>
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("common.name")}
+          </span>
           <Input
             maxLength={LIMITS.productName}
             value={f.name}
@@ -866,7 +875,7 @@ function ProductDialog({
         </Label>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("inv.itemCode")}
             </span>
             <div className="flex gap-1.5">
@@ -890,7 +899,7 @@ function ProductDialog({
             </div>
           </div>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("inv.costPrice")}
             </span>
             <Input
@@ -901,7 +910,7 @@ function ProductDialog({
             />
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("inv.sellingPrice")}
             </span>
             <Input
@@ -914,7 +923,7 @@ function ProductDialog({
         </div>
         <Card className="space-y-2 bg-muted/40 p-2.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("inv.codePanel")}
             </span>
             {code && isAutoCode(code) && <Badge variant="secondary">{t("inv.autoTag")}</Badge>}
@@ -933,7 +942,7 @@ function ProductDialog({
           )}
         </Card>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("inv.collectionsLabel")}
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -946,7 +955,6 @@ function ProductDialog({
                   size="sm"
                   variant={on ? "default" : "outline"}
                   onClick={() => setSel(on ? chosen.filter((x) => x !== c.id) : [...chosen, c.id])}
-                  className="rounded-full"
                 >
                   {c.name}
                   {c.discount_pct > 0 ? ` −${c.discount_pct}%` : ""}
@@ -959,7 +967,7 @@ function ProductDialog({
           </div>
         </Label>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("inv.reorderPoint")}
           </span>
           <Input
@@ -972,7 +980,7 @@ function ProductDialog({
         </Label>
         {stockEditable && (
           <Card className="bg-muted/40 p-2.5">
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="mb-1 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("inv.quantity")} — {store?.name}
             </div>
             <div className="flex items-center gap-2">
@@ -1043,7 +1051,7 @@ function LabelSheetDialog({
         )}
         <div className="flex items-end gap-2">
           <Label className="space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("code.copiesLabel")}
             </span>
             <Input
@@ -1231,7 +1239,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
               </Button>
             </div>
             <Label className="block space-y-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                 {t("inv.reasonLabel")}
               </span>
               <Select value={reason} onValueChange={setReason}>
@@ -1251,7 +1259,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
               </Select>
             </Label>
             <Label className="block space-y-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                 {mode === "set" ? t("inv.setCount") : t("inv.quantity")}
               </span>
               <Input
@@ -1270,7 +1278,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
               </span>
             </p>
             <Label className="block space-y-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                 {t("inv.noteOptional")}
               </span>
               <Input

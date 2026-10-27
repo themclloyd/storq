@@ -243,7 +243,6 @@ function ExpensesContent() {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.finance")} / ${t("nav.expenses")}`}
         title={t("exp.title")}
         sub={store?.name ?? ""}
         actions={
@@ -266,7 +265,7 @@ function ExpensesContent() {
                 <Button variant="outline" className="h-9 bg-card">
                   <HugeiconsIcon icon={FilterIcon} /> {t("common.filter")}
                   {activeFilters > 0 && (
-                    <Badge variant="secondary" className="ml-0.5 rounded-full px-1.5">
+                    <Badge variant="secondary" className="ml-0.5 px-1.5">
                       {activeFilters}
                     </Badge>
                   )}
@@ -366,7 +365,7 @@ function ExpensesContent() {
               <HugeiconsIcon icon={ReceiptIcon} />
             </span>
             <div>
-              <p className="font-display text-lg">
+              <p className="text-base font-semibold">
                 {activeFilters > 0 ? t("exp.emptyFilteredTitle") : t("exp.emptyTitle")}
               </p>
               <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
@@ -390,7 +389,7 @@ function ExpensesContent() {
         <>
           <Card className="overflow-hidden">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b px-4 py-2.5">
-              <h2 className="font-display text-sm font-medium">{t("exp.allExpenses")}</h2>
+              <h2 className="text-[13px] font-semibold">{t("exp.allExpenses")}</h2>
               <p className="text-xs text-muted-foreground">
                 {entryLabel} ·{" "}
                 <span className="tabular font-semibold text-foreground">{money(total)}</span>
@@ -480,10 +479,12 @@ function SummaryStrip({
       {cells.map((c) => (
         <div key={c.label} className="min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-xs text-muted-foreground">{c.label}</p>
-            <HugeiconsIcon icon={c.icon} className="size-4 shrink-0 text-primary" />
+            <p className="truncate text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              {c.label}
+            </p>
+            <HugeiconsIcon icon={c.icon} className="size-4 shrink-0 text-muted-foreground" />
           </div>
-          <p className="font-display tabular mt-1 truncate text-xl sm:text-2xl">{c.value}</p>
+          <p className="tabular mt-1 truncate text-2xl leading-tight font-extrabold">{c.value}</p>
           <p className="truncate text-[11px] text-muted-foreground">{c.sub}</p>
         </div>
       ))}
@@ -532,7 +533,7 @@ function RecordDialog({ onClose }: { onClose: () => void }) {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display text-lg">{t("exp.recordExpense")}</DialogTitle>
+          <DialogTitle>{t("exp.recordExpense")}</DialogTitle>
           <DialogDescription>{store?.name ?? ""}</DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="space-y-3">
@@ -568,7 +569,7 @@ function RecordDialog({ onClose }: { onClose: () => void }) {
             </Field>
           </div>
           <div className="space-y-2">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("exp.paidFrom")}
             </span>
             <div
@@ -586,7 +587,7 @@ function RecordDialog({ onClose }: { onClose: () => void }) {
                     "flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium leading-tight transition-colors duration-150 ease-out",
                     "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
                     f.source === s
-                      ? "bg-card text-foreground shadow-sm"
+                      ? "bg-card text-foreground ring-1 ring-border"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >

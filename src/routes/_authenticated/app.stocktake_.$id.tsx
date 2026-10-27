@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, NoAccess, PageHeader, Pager, Status } from "@/components/pos/bits";
+import { Empty, NoAccess, PageHeader, Pager, Stat, StatRow, Status } from "@/components/pos/bits";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import { cn } from "@/lib/utils";
@@ -299,14 +299,11 @@ function StockTakeDetailContent() {
           ) : undefined
         }
       />
-      <div className="mb-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+      <StatRow className="mb-4">
         {cards.map(([k, v]) => (
-          <Card key={k} className="p-4">
-            <p className="text-xs text-muted-foreground">{k}</p>
-            <p className="font-display tabular mt-1 text-2xl">{v}</p>
-          </Card>
+          <Stat key={k} label={k} value={v} />
         ))}
-      </div>
+      </StatRow>
       {!open && total > counted && (
         <p className="mb-3 text-xs text-muted-foreground">
           {t("stk.notCountedNote", { n: total - counted })}

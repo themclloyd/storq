@@ -456,24 +456,30 @@ function Landing() {
               },
             ].map((s, i) => (
               <Reveal key={s.label} delay={i * 90}>
-                <div className="group relative overflow-hidden rounded-3xl">
-                  <img
-                    src={s.img}
-                    alt={t(s.label)}
-                    loading="lazy"
-                    width={800}
-                    height={1008}
-                    className="aspect-[4/5] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 to-transparent p-6 pt-16">
-                    <p className="flex items-center gap-2 text-lg font-light text-background">
+                {/* Caption sits under the photo, not over it: a gradient scrim
+                    could not keep both the label and the note legible on a
+                    light counter shot, and the rounded corner clipped the
+                    second line. */}
+                <div className="group overflow-hidden rounded-3xl border border-border bg-card">
+                  <div className="overflow-hidden">
+                    <img
+                      src={s.img}
+                      alt={t(s.label)}
+                      loading="lazy"
+                      width={800}
+                      height={1008}
+                      className="aspect-[4/5] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-5">
+                    <p className="flex items-center gap-2 text-lg font-light text-foreground">
                       {t(s.label)}
                       <HugeiconsIcon
                         icon={ArrowRight01Icon}
-                        className="h-4 w-4 -translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
+                        className="h-4 w-4 -translate-x-2 text-muted-foreground opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
                       />
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-background/75">{t(s.note)}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{t(s.note)}</p>
                   </div>
                 </div>
               </Reveal>
@@ -520,7 +526,7 @@ function Landing() {
       </section>
 
       {/* Control — the peace of mind that lets an owner leave the counter */}
-      <section className="bg-primary text-primary-foreground">
+      <section className="bg-primary-deep text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
             <h2 className="font-display max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
@@ -528,7 +534,9 @@ function Landing() {
             </h2>
           </Reveal>
           <Reveal delay={80}>
-            <p className="mt-5 max-w-2xl text-lg opacity-70">{t("marketing.controlLead")}</p>
+            <p className="mt-5 max-w-2xl text-lg text-primary-foreground/85">
+              {t("marketing.controlLead")}
+            </p>
           </Reveal>
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             <Reveal>
@@ -541,7 +549,7 @@ function Landing() {
                   <CardTitle className="font-display mt-6 text-3xl">
                     {t("marketing.controlPin")}
                   </CardTitle>
-                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
+                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/85">
                     {t("marketing.controlPinDesc")}
                   </CardDescription>
                 </CardHeader>
@@ -557,7 +565,7 @@ function Landing() {
                   <CardTitle className="font-display mt-6 text-3xl">
                     {t("marketing.controlOk")}
                   </CardTitle>
-                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
+                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/85">
                     {t("marketing.controlOkDesc")}
                   </CardDescription>
                 </CardHeader>
@@ -573,7 +581,7 @@ function Landing() {
                   <CardTitle className="font-display mt-6 text-3xl">
                     {t("marketing.controlStock")}
                   </CardTitle>
-                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/70">
+                  <CardDescription className="mt-3 text-base leading-7 text-primary-foreground/85">
                     {t("marketing.controlStockDesc")}
                   </CardDescription>
                 </CardHeader>
@@ -657,7 +665,7 @@ function Landing() {
               </Card>
             </Reveal>
             <Reveal delay={120}>
-              <Card className="h-full gap-0 rounded-3xl border-0 bg-primary p-8 text-primary-foreground transition-transform duration-300 hover:-translate-y-1">
+              <Card className="h-full gap-0 rounded-3xl border-0 bg-primary-deep p-8 text-primary-foreground transition-transform duration-300 hover:-translate-y-1">
                 <CardHeader className="gap-0 p-0">
                   <CardTitle className="font-display text-2xl">
                     {t("marketing.vsNewTitle")}
@@ -834,7 +842,7 @@ function Landing() {
             ["3", "marketing.start3", "marketing.start3Desc"],
           ].map(([n, tKey, dKey], i) => (
             <Reveal key={n} delay={i * 120} className="group">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-xl font-light text-primary-foreground transition-transform duration-300 group-hover:scale-110">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-primary-deep text-xl font-light text-primary-foreground transition-transform duration-300 group-hover:scale-110">
                 {n}
               </span>
               <h3 className="font-display mt-6 text-2xl">{t(tKey as string)}</h3>
@@ -902,7 +910,7 @@ function Landing() {
             </p>
           </Reveal>
           <Reveal delay={160}>
-            <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary p-10 text-primary-foreground transition-all duration-300 hover:-translate-y-1.5">
+            <Card className="mx-auto mt-14 max-w-3xl gap-0 rounded-3xl border-0 bg-primary-deep p-10 text-primary-foreground transition-all duration-300 hover:-translate-y-1.5">
               <CardHeader className="p-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <CardTitle className="font-display text-lg">
@@ -916,11 +924,13 @@ function Landing() {
               <CardContent className="p-0">
                 <p className="font-display tabular mt-4 text-6xl tracking-tight">
                   MK{PRICES.MWK.toLocaleString("en-US")}
-                  <span className="text-lg font-medium opacity-60">
+                  <span className="text-lg font-medium text-primary-foreground/75">
                     {t("marketing.pricingPerStore")}
                   </span>
                 </p>
-                <p className="mt-3 text-base opacity-70">{t("marketing.pricingNote")}</p>
+                <p className="mt-3 text-base text-primary-foreground/85">
+                  {t("marketing.pricingNote")}
+                </p>
                 <p className="mt-3 text-sm font-semibold">
                   {t("marketing.pricingYearly", {
                     yearly: (PRICES.MWK * YEARLY_FACTOR).toLocaleString("en-US"),
@@ -937,7 +947,7 @@ function Landing() {
               </CardContent>
               <CardFooter className="mt-10 flex-col items-start gap-3 p-0">
                 <Cta invert />
-                <p className="text-sm opacity-70">{t("marketing.pricingFoot")}</p>
+                <p className="text-sm text-primary-foreground/85">{t("marketing.pricingFoot")}</p>
               </CardFooter>
             </Card>
           </Reveal>
@@ -947,7 +957,7 @@ function Landing() {
       <Faq />
 
       {/* Close — the feeling the whole page sold */}
-      <section className="bg-primary text-primary-foreground">
+      <section className="bg-primary-deep text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center">
           <Reveal>
             <h2 className="font-display mx-auto max-w-4xl text-5xl leading-[0.95] tracking-tight md:text-7xl">
@@ -958,14 +968,39 @@ function Landing() {
             <Cta invert />
           </Reveal>
           <Reveal delay={200}>
-            <p className="mt-6 text-sm opacity-70">{t("marketing.closeFoot")}</p>
+            <p className="mt-6 text-sm text-primary-foreground/85">{t("marketing.closeFoot")}</p>
           </Reveal>
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-6 py-10 text-sm text-muted-foreground md:flex-row">
-        <span>© {new Date().getFullYear()} Storq</span>
-        <span>{t("marketing.footerTag")}</span>
+      <footer className="border-t border-border bg-card">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10 text-sm text-muted-foreground md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="font-display text-base text-foreground">Storq</p>
+            <p className="mt-1 max-w-xs">{t("marketing.footerTag")}</p>
+          </div>
+          <nav
+            aria-label={t("marketing.footerNav")}
+            className="flex flex-wrap gap-x-6 gap-y-2 font-medium"
+          >
+            <a href="#features" className="transition-colors hover:text-foreground">
+              {t("marketing.navFeatures")}
+            </a>
+            <a href="#layby" className="transition-colors hover:text-foreground">
+              {t("marketing.navLayby")}
+            </a>
+            <a href="#pricing" className="transition-colors hover:text-foreground">
+              {t("marketing.navPricing")}
+            </a>
+            <a href="#faq" className="transition-colors hover:text-foreground">
+              {t("marketing.navFaq")}
+            </a>
+            <Link to="/auth" className="transition-colors hover:text-foreground">
+              {t("marketing.logIn")}
+            </Link>
+          </nav>
+          <p className="md:text-right">© {new Date().getFullYear()} Storq</p>
+        </div>
       </footer>
 
       {/* Sticky trial bar — keeps the next step one tap away on phones */}
@@ -999,7 +1034,7 @@ function Faq() {
   const { t } = useI18n();
   const price = PRICES.MWK.toLocaleString("en-US");
   return (
-    <section className="mx-auto max-w-3xl px-6 py-24">
+    <section id="faq" className="mx-auto max-w-3xl px-6 py-24">
       <Reveal>
         <h2 className="font-display text-3xl tracking-tight md:text-4xl">{t("marketing.faqH2")}</h2>
       </Reveal>

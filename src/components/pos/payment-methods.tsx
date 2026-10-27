@@ -61,7 +61,7 @@ export function PaymentMethodPicker({
               <HugeiconsIcon icon={methodIcon(m.code)} className="size-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate">{methodLabel(m.code)}</span>
               {m.legacy && (
-                <span className="rounded bg-muted px-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="rounded bg-muted px-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                   {t("biz.legacy")}
                 </span>
               )}

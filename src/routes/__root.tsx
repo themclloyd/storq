@@ -67,7 +67,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // field out of view when a dialog opens on Android.
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
       },
       { title: "Storq POS | Point of sale, inventory and layby" },
       {

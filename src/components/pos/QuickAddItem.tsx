@@ -138,7 +138,9 @@ export function QuickAddItem({
           </DialogDescription>
         </DialogHeader>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">{t("common.name")}</span>
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("common.name")}
+          </span>
           <Input
             autoFocus
             maxLength={LIMITS.productName}
@@ -149,7 +151,7 @@ export function QuickAddItem({
           />
         </Label>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("inv.sellingPrice")}
           </span>
           <Input

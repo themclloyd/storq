@@ -53,7 +53,6 @@ function Staff() {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.settings")} / ${t("nav.staff")}`}
         title={t("staff.title")}
         sub={t("staff.sub")}
         actions={
@@ -66,13 +65,13 @@ function Staff() {
           ) : undefined
         }
       />
-      <Card className="mb-4 p-4 text-[13px]">
-        <div className="font-medium">{t("staff.howTitle")}</div>
+      <div className="mb-3 rounded-xl bg-muted/50 px-3.5 py-3 text-[13px]">
+        <div className="font-semibold">{t("staff.howTitle")}</div>
         <p className="mt-0.5 text-muted-foreground">{t("staff.howDesc")}</p>
-      </Card>
+      </div>
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="text-[13px]">
-          <div className="font-medium">{t("staff.autoLockTitle")}</div>
+          <div className="font-semibold">{t("staff.autoLockTitle")}</div>
           <p className="mt-0.5 text-muted-foreground">{t("staff.autoLockDesc")}</p>
         </div>
         <NativeSelect
@@ -97,14 +96,14 @@ function Staff() {
           );
           const row = (
             <>
-              <span className="font-display grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-medium text-secondary-foreground">
+              <span className="font-display grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
                 {s.name.slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5 font-medium">
+                <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold">
                   <span className="truncate">{s.name}</span>
                   {s.is_owner && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
                       <HugeiconsIcon icon={ShieldCheckIcon} className="size-3" />
                       {t("staff.owner")}
                     </span>
@@ -122,8 +121,8 @@ function Staff() {
                         key={area}
                         className={
                           change
-                            ? "rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
-                            : "rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                            ? "rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-secondary-foreground"
+                            : "rounded-md border px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground"
                         }
                       >
                         {t(AREA_LABEL_KEYS[area])}

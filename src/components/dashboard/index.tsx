@@ -43,14 +43,14 @@ export function StatCard({
   icon: DashIcon;
 }) {
   return (
-    <Card className="min-w-0 border border-border/50 p-3">
+    <Card className="min-w-0 p-3.5">
       <div className="flex items-center justify-between gap-2">
-        <CardDescription className="truncate text-xs">{label}</CardDescription>
-        <HugeiconsIcon icon={icon} className="size-[15px] shrink-0 text-primary" />
+        <div className="truncate text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+          {label}
+        </div>
+        <HugeiconsIcon icon={icon} className="size-4 shrink-0 text-muted-foreground" />
       </div>
-      <CardTitle className="font-display tabular mt-1.5 truncate text-base font-medium">
-        {value}
-      </CardTitle>
+      <div className="tabular mt-1 truncate text-2xl leading-tight font-extrabold">{value}</div>
       <p className="truncate text-[11px] text-muted-foreground">{sub}</p>
     </Card>
   );
@@ -73,15 +73,15 @@ export function DashboardSection({
   contentClassName?: string | undefined;
 }) {
   return (
-    <Card className={cn("border border-border/50 p-0", className)}>
-      <CardHeader className="flex-row items-baseline justify-between gap-2 space-y-0 p-3">
-        <CardTitle className="flex items-center gap-1.5 font-display text-sm font-medium">
-          {icon && <HugeiconsIcon icon={icon} className="size-4 text-primary" />}
+    <Card className={cn("p-0", className)}>
+      <CardHeader className="flex-row items-baseline justify-between gap-2 space-y-0 border-b px-4 py-2.5">
+        <CardTitle className="flex items-center gap-1.5 text-[13px] font-semibold">
+          {icon && <HugeiconsIcon icon={icon} className="size-4 text-muted-foreground" />}
           {title}
         </CardTitle>
         {note && <CardDescription className="text-[11px]">{note}</CardDescription>}
       </CardHeader>
-      <CardContent className={cn("p-3", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn("p-4", contentClassName)}>{children}</CardContent>
     </Card>
   );
 }
@@ -117,10 +117,13 @@ function isFlat(data: { sales: number; expenses?: number; profit?: number }[]) {
 export function TrendChart({
   data,
   money,
+  compact,
   loading,
 }: {
   data: TrendPoint[];
   money: MoneyFmt;
+  /** Axis label formatter, so the scale reads `40k` instead of `40000`. */
+  compact?: MoneyFmt;
   loading?: boolean;
 }) {
   const { t } = useI18n();
@@ -132,6 +135,7 @@ export function TrendChart({
   if (data.length === 0 || isFlat(data)) {
     return <EmptyState>{t("dashboard.noActivity")}</EmptyState>;
   }
+  const axis = (v: number) => (compact ? compact(v) : String(v));
   return (
     <ChartContainer config={config} className="aspect-auto h-52 w-full">
       <AreaChart data={data} margin={{ left: 0, right: 4, top: 4 }}>
@@ -145,7 +149,7 @@ export function TrendChart({
             <stop offset="100%" stopColor="var(--color-expenses)" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="2 4" />
         <XAxis
           dataKey="day"
           tick={{ fontSize: 10 }}
@@ -153,7 +157,14 @@ export function TrendChart({
           axisLine={false}
           minTickGap={16}
         />
-        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={44} tickCount={5} />
+        <YAxis
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          width={44}
+          tickCount={5}
+          tickFormatter={axis}
+        />
         <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v))} />} />
         <ChartLegend content={<ChartLegendContent />} />
         <Area
@@ -162,7 +173,7 @@ export function TrendChart({
           name="sales"
           stroke="var(--color-sales)"
           strokeWidth={2}
-          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }}
+          dot={data.length <= 14 ? { r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" } : false}
           activeDot={{ r: 4 }}
           fill="url(#fillSales)"
         />
@@ -172,7 +183,9 @@ export function TrendChart({
           name="expenses"
           stroke="var(--color-expenses)"
           strokeWidth={2}
-          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-expenses)" }}
+          dot={
+            data.length <= 14 ? { r: 2.5, strokeWidth: 0, fill: "var(--color-expenses)" } : false
+          }
           activeDot={{ r: 4 }}
           fill="url(#fillExpenses)"
         />
@@ -187,10 +200,13 @@ export type MethodSlice = { name: string; value: number; label?: string };
 export function ProfitTrendChart({
   data,
   money,
+  compact,
   loading,
 }: {
   data: ProfitTrendPoint[];
   money: MoneyFmt;
+  /** Axis label formatter, so the scale reads `40k` instead of `40000`. */
+  compact?: MoneyFmt;
   loading?: boolean;
 }) {
   const { t } = useI18n();
@@ -202,6 +218,7 @@ export function ProfitTrendChart({
   if (data.length === 0 || isFlat(data)) {
     return <EmptyState>{t("dashboard.noSalesPeriod")}</EmptyState>;
   }
+  const axis = (v: number) => (compact ? compact(v) : String(v));
   return (
     <ChartContainer config={config} className="aspect-auto h-52 w-full">
       <AreaChart data={data} margin={{ left: 0, right: 4, top: 4 }}>
@@ -215,7 +232,7 @@ export function ProfitTrendChart({
             <stop offset="100%" stopColor="var(--color-profit)" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="2 4" />
         <XAxis
           dataKey="day"
           tick={{ fontSize: 10 }}
@@ -223,7 +240,14 @@ export function ProfitTrendChart({
           axisLine={false}
           minTickGap={16}
         />
-        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={44} tickCount={5} />
+        <YAxis
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          width={44}
+          tickCount={5}
+          tickFormatter={axis}
+        />
         <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v))} />} />
         <ChartLegend content={<ChartLegendContent />} />
         <Area
@@ -232,7 +256,7 @@ export function ProfitTrendChart({
           name="sales"
           stroke="var(--color-sales)"
           strokeWidth={2}
-          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" }}
+          dot={data.length <= 14 ? { r: 2.5, strokeWidth: 0, fill: "var(--color-sales)" } : false}
           activeDot={{ r: 4 }}
           fill="url(#fillSalesProfit)"
         />
@@ -242,7 +266,7 @@ export function ProfitTrendChart({
           name="profit"
           stroke="var(--color-profit)"
           strokeWidth={2}
-          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-profit)" }}
+          dot={data.length <= 14 ? { r: 2.5, strokeWidth: 0, fill: "var(--color-profit)" } : false}
           activeDot={{ r: 4 }}
           fill="url(#fillProfit)"
         />
@@ -309,7 +333,7 @@ export function PaymentMethods({
   const { t } = useI18n();
   if (loading) return <Skeleton className="min-h-[9rem] w-full" />;
   if (data.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("dashboard.noSalesInPeriod")}</p>;
+    return <EmptyState>{t("dashboard.noSalesInPeriod")}</EmptyState>;
   }
   const total = data.reduce((a, p) => a + p.value, 0) || 1;
   const config: ChartConfig = {};
@@ -426,7 +450,7 @@ export function ValueSplitBar({
   return (
     <div>
       <div
-        className="flex h-3 w-full gap-0.5 overflow-hidden rounded-full bg-secondary"
+        className="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-[3px] bg-secondary"
         aria-hidden
       >
         {slices.map((s, i) => (
@@ -478,7 +502,7 @@ export function AlertRow({ item }: { item: AlertItem }) {
   return (
     <Link
       to={item.to}
-      className="flex items-center gap-2.5 rounded-md bg-card p-2 text-[13px] transition-colors hover:bg-secondary"
+      className="flex items-center gap-2.5 rounded-md p-2 text-[13px] transition-colors hover:bg-secondary"
     >
       <span
         className={cn(

@@ -1,7 +1,8 @@
 import { useI18n, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const SHORT: Record<Locale, string> = { en: "EN", ny: "CH" };
+// ISO 639-1 codes for the two catalogues: `en` English, `ny` Chichewa/Nyanja.
+const SHORT: Record<Locale, string> = { en: "EN", ny: "NY" };
 
 /**
  * Segmented language toggle (English / Chichewa). Drives the shared i18n store,
@@ -26,7 +27,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           type="button"
           onClick={() => setLocale(code)}
           aria-pressed={locale === code}
-          title={code === "en" ? "English" : "Chichewa"}
+          title={code === "en" ? "English" : "Chichewa (Nyanja)"}
           className={cn(
             "rounded-full px-2.5 py-1 transition-colors",
             locale === code

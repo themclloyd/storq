@@ -379,7 +379,6 @@ function ReportsContent() {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.reports")} / ${t("nav.overview")}`}
         title={t("reports.title")}
         sub={scope}
         actions={
@@ -418,12 +417,12 @@ function ReportsContent() {
         <div className="space-y-4">
           {/* Verdict */}
           <Card className={cn("p-5", profitable ? "bg-secondary/50" : "bg-destructive-soft")}>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {profitable ? t("bizReport.profitTitle") : t("bizReport.lossTitle")}
             </div>
             <div
               className={cn(
-                "font-display tabular mt-1 text-4xl font-medium",
+                "tabular mt-1 text-4xl leading-none font-extrabold tracking-tight",
                 !profitable && "text-destructive",
               )}
             >
@@ -441,7 +440,7 @@ function ReportsContent() {
 
           {r.belowCost.length > 0 && (
             <Card className="border-destructive/40 bg-destructive-soft p-5">
-              <div className="text-xs font-medium uppercase tracking-wide text-destructive">
+              <div className="text-[11px] font-bold tracking-[0.08em] text-destructive uppercase">
                 {t("bizReport.belowCost")}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t("bizReport.belowCostSub")}</p>
@@ -518,9 +517,13 @@ function ReportsContent() {
                 {methods.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t("reports.noSales")}</p>
                 ) : (
-                  <>
-                    <div className="space-y-2">
-                      {kindRows.map((k) => (
+                  <div className="space-y-2">
+                    {/* One row per balance (cash / bank / mobile). A kind that took
+                        more than one provider lists those underneath, so the same
+                        money is never totalled twice. */}
+                    {kindRows.map((k) => {
+                      const inside = methods.filter(([m]) => reportKind(m) === k);
+                      return (
                         <div key={k} className="space-y-1">
                           <div className="flex justify-between gap-3 text-[13px]">
                             <span className="text-muted-foreground">{kindLabel(k)}</span>
@@ -535,15 +538,23 @@ function ReportsContent() {
                             value={Math.max(0, Math.min(100, share(r.byKind[k])))}
                             className="h-1"
                           />
+                          {inside.length > 1 && (
+                            <ul className="space-y-0.5 pl-3">
+                              {inside.map(([m, v]) => (
+                                <li
+                                  key={m}
+                                  className="flex justify-between gap-3 text-xs text-muted-foreground"
+                                >
+                                  <span className="truncate">{methodLabel(m)}</span>
+                                  <span className="tabular whitespace-nowrap">{money(v)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                    <div className="space-y-1.5 border-t pt-2">
-                      {methods.map(([m, v]) => (
-                        <Row key={m} k={methodLabel(m)} v={`${money(v)} · ${pct(share(v))}`} />
-                      ))}
-                    </div>
-                  </>
+                      );
+                    })}
+                  </div>
                 )}
                 <Row k={t("bizReport.cashTill")} v={money(cashSales - r.tillExpenses)} bold />
                 <p className="text-xs text-muted-foreground">{t("bizReport.cashTillHint")}</p>
@@ -614,7 +625,7 @@ function ReportsContent() {
                 <p className="text-sm text-muted-foreground">{t("bizReport.noDead")}</p>
               ) : (
                 <Table
-                  head={[t("bizReport.thItem"), t("bizReport.thInStock"), t("bizReport.thSales")]}
+                  head={[t("bizReport.thItem"), t("bizReport.thInStock"), t("bizReport.thRetail")]}
                   rows={dead.slice(0, 10).map((d) => [d.name, String(d.qty), money(d.value)])}
                 />
               )}
@@ -677,11 +688,11 @@ function Panel({
 }) {
   return (
     <Card className="min-w-0">
-      <CardHeader className="pb-2">
-        <CardTitle className="font-display text-sm font-medium">{title}</CardTitle>
+      <CardHeader className="border-b px-4 py-2.5">
+        <CardTitle className="text-[13px] font-semibold">{title}</CardTitle>
         {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       </CardHeader>
-      <CardContent className="space-y-1.5 pt-0 text-[13px]">{children}</CardContent>
+      <CardContent className="space-y-1.5 px-4 py-3 text-[13px]">{children}</CardContent>
     </Card>
   );
 }

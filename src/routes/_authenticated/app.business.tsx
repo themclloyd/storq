@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { CurrencyField } from "@/components/pos/payment-methods";
+import { methodLabel } from "@/lib/payment-methods";
 
 export const Route = createFileRoute("/_authenticated/app/business")({
   head: () => ({
@@ -43,10 +44,12 @@ function BusinessPage() {
 }
 
 function BusinessForm({ business }: { business: Business }) {
-  const { rpc, can, staff } = usePos();
+  const { rpc, can, staff, stores, paymentMethodsFor } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
   const canEdit = can("money");
+  // Payment methods are set per location, on the location's own screen.
+  const canLocations = can("locations", "view_locations");
   // Prepaid time and history are never converted, so the unit of money is the
   // owner's call alone (the RPC enforces the same rule).
   const owner = !!staff?.owner;
@@ -71,9 +74,8 @@ function BusinessForm({ business }: { business: Business }) {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.settings")} / ${t("nav.business")}`}
         title={t("biz.title")}
-        sub={business.name}
+        sub={t("biz.sub")}
         actions={
           <Button onClick={save} disabled={!canEdit || !owner || !dirty || busy}>
             {t("biz.save")}
@@ -81,24 +83,63 @@ function BusinessForm({ business }: { business: Business }) {
         }
       />
       <div className="grid gap-4">
-        <Card className="space-y-3 p-4">
+        <Card className="space-y-4 p-4">
           <div className="space-y-0.5">
-            <h2 className="font-display text-sm font-medium">{t("biz.currency")}</h2>
-            <p className="text-xs text-muted-foreground">{t("biz.currencyHint")}</p>
+            <h2 className="text-[13px] font-semibold">{t("biz.details")}</h2>
+            <p className="text-xs text-muted-foreground">{t("biz.detailsHint")}</p>
           </div>
-          <div className="max-w-xs">
-            <CurrencyField value={currency} onChange={setCurrency} disabled={!canEdit || !owner} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* The name is fixed at creation; showing it keeps the page about
+                the business rather than a lone currency picker. */}
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">{t("biz.name")}</div>
+              <div className="truncate text-[13px] font-medium">{business.name}</div>
+              <p className="text-xs text-muted-foreground">{t("biz.nameFixed")}</p>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">{t("biz.currency")}</div>
+              <CurrencyField
+                value={currency}
+                onChange={setCurrency}
+                disabled={!canEdit || !owner}
+              />
+              <p className="text-xs text-muted-foreground">{t("biz.currencyHint")}</p>
+            </div>
           </div>
           {!owner && <p className="text-xs text-muted-foreground">{t("biz.currencyOwnerOnly")}</p>}
         </Card>
         <Card className="space-y-2 p-4">
           <div className="space-y-0.5">
-            <h2 className="font-display text-sm font-medium">{t("biz.paymentMethods")}</h2>
+            <h2 className="text-[13px] font-semibold">{t("biz.paymentMethods")}</h2>
             <p className="text-xs text-muted-foreground">{t("biz.methodsPerLocation")}</p>
           </div>
-          <Link to="/app/stores" className="inline-flex text-xs font-medium underline">
-            {t("nav.locations")}
-          </Link>
+          <ul className="divide-y">
+            {stores.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-2 text-[13px]"
+              >
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{s.name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {paymentMethodsFor(s.id).map(methodLabel).join(" · ")}
+                  </div>
+                </div>
+                {canLocations && (
+                  <Link
+                    to="/app/stores/$id"
+                    params={{ id: s.id }}
+                    className="inline-flex shrink-0 text-xs font-medium underline"
+                  >
+                    {t("biz.openLocation")}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+          {!canLocations && (
+            <p className="text-xs text-muted-foreground">{t("biz.methodsNoAccess")}</p>
+          )}
         </Card>
       </div>
     </>

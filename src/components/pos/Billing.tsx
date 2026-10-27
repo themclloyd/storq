@@ -169,12 +169,12 @@ function MonthPicker({
             className={cn(
               "relative rounded-xl border px-1 py-2 transition-colors",
               value === m
-                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                ? "border-primary bg-primary text-primary-foreground"
                 : "bg-card hover:border-primary/40 hover:bg-muted",
             )}
           >
-            <span className="font-display tabular block text-lg font-medium leading-none">{m}</span>
-            <span className="mt-1 block text-[10px] leading-none opacity-70">
+            <span className="tabular block text-lg leading-none font-extrabold">{m}</span>
+            <span className="mt-1 block text-[11px] leading-none opacity-70">
               {m === 1 ? unitSingular : unitPlural}
             </span>
             {m >= 12 && (
@@ -249,7 +249,7 @@ function CountStepper({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="shrink-0 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
           {label}
         </p>
         {hint ? <p className="min-w-0 truncate text-xs text-muted-foreground">{hint}</p> : null}
@@ -259,7 +259,7 @@ function CountStepper({
           type="button"
           variant="outline"
           size="icon"
-          className="size-9 shrink-0 rounded-full text-lg font-light"
+          className="size-9 shrink-0 rounded-lg text-lg font-light"
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, value - 1))}
           aria-label={t("billing.decrease")}
@@ -268,7 +268,7 @@ function CountStepper({
         </Button>
         <div className="flex flex-1 items-baseline justify-center gap-1.5">
           <span
-            className="font-display tabular text-3xl font-medium leading-none"
+            className="tabular text-3xl leading-none font-extrabold"
             aria-live="polite"
             aria-atomic="true"
           >
@@ -282,7 +282,7 @@ function CountStepper({
           type="button"
           variant="outline"
           size="icon"
-          className="size-9 shrink-0 rounded-full text-lg font-light"
+          className="size-9 shrink-0 rounded-lg text-lg font-light"
           disabled={value >= max}
           onClick={() => onChange(Math.min(max, value + 1))}
           aria-label={t("billing.increase")}
@@ -336,10 +336,10 @@ function PriceSummary({
         </div>
       )}
       <div className="mt-2 flex items-baseline justify-between gap-3 border-t pt-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
           {totalLabel}
         </span>
-        <span className="font-display tabular shrink-0 text-xl font-semibold leading-none">
+        <span className="tabular shrink-0 text-xl leading-none font-extrabold">
           {fmt(currency, total)}
         </span>
       </div>
@@ -353,12 +353,12 @@ function PriceSummary({
 // scrolls when a phone is short, and a footer bar holding the single action.
 
 /** Content preset for a sheet — head and footer pinned, body scrolls. */
-const SHEET = "flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-3xl p-0";
+const SHEET = "flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-[16px] p-0";
 
 function SheetHead({ title, desc }: { title: string; desc: React.ReactNode }) {
   return (
     <DialogHeader className="space-y-1 border-b px-5 pb-4 pr-14 pt-5 text-left">
-      <DialogTitle className="font-display text-base font-medium">{title}</DialogTitle>
+      <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
       <DialogDescription className="text-[13px] leading-snug">{desc}</DialogDescription>
     </DialogHeader>
   );
@@ -887,6 +887,7 @@ export function Billing({ locked }: { locked?: boolean }) {
           desc: t("billing.settleDesc", {
             amount: fmt(currency, calcTotal(currency, resolvedNewSlots, newMonths)),
             months: newMonths,
+            count: newMonths,
           }),
         }
       : s?.trial
@@ -944,25 +945,25 @@ export function Billing({ locked }: { locked?: boolean }) {
           there is nothing left to pay. */}
       <div
         className={cn(
-          "grid gap-5",
+          "grid gap-4",
           !s?.closed && "lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start",
         )}
       >
         {/* ── Current plan card ──────────────────────────────────────────── */}
-        <Card className="flex flex-col justify-between p-5">
+        <Card className="flex flex-col justify-between p-4">
           <div className="space-y-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
-                      "rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
+                      "rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
                       status.cls,
                     )}
                   >
                     {status.label}
                   </span>
-                  <span className="text-sm font-medium">
+                  <span className="text-[13px] font-semibold">
                     {sub.isPending
                       ? t("common.loading")
                       : s?.paid
@@ -981,12 +982,12 @@ export function Billing({ locked }: { locked?: boolean }) {
                         date: paidUntil.toLocaleDateString(undefined, { dateStyle: "long" }),
                       })
                     : s?.inGrace || s?.inTrialGrace
-                      ? t("billing.graceCardLine", { days: graceDays })
+                      ? t("billing.graceCardLine", { days: graceDays, count: graceDays })
                       : s?.trial && trialEnd
                         ? t("billing.trialEnds", { date: trialEnd.toLocaleDateString() })
                         : t("billing.subscribeToKeep")}
                   {s?.capacity
-                    ? ` · ${t("billing.storesUsed", { used: stores.length, capacity: s.capacity })}`
+                    ? ` · ${t("billing.storesUsed", { used: stores.length, capacity: s.capacity, count: s.capacity })}`
                     : ""}
                 </p>
                 {s?.capacity ? (
@@ -1005,7 +1006,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                   caption instead of competing with it. */}
               {!s?.closed && (
                 <div className="w-full shrink-0 text-left sm:w-auto sm:text-right">
-                  <div className="font-display tabular text-3xl font-medium leading-none">
+                  <div className="tabular text-3xl leading-none font-extrabold">
                     {fmt(currency, nextAmount)}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -1166,8 +1167,8 @@ export function Billing({ locked }: { locked?: boolean }) {
             the questions a payer actually has — who takes the money, whether anything
             is charged on its own, and how one date covers every location. */}
         {!s?.closed && (
-          <Card className="p-5">
-            <h2 className="flex items-center gap-2 font-display text-sm font-medium">
+          <Card className="p-4">
+            <h2 className="flex items-center gap-2 text-[13px] font-semibold">
               <HugeiconsIcon icon={Wallet01Icon} className="size-4 text-muted-foreground" />
               {t("billing.howPayingWorks")}
             </h2>
@@ -1195,7 +1196,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       <section>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-base font-medium">{t("billing.sectionTitle")}</h2>
+            <h2 className="text-[13px] font-semibold">{t("billing.sectionTitle")}</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">{t("billing.sectionSub")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1329,15 +1330,26 @@ export function Billing({ locked }: { locked?: boolean }) {
                       const monthCount =
                         r.period === "monthly" ? 1 : r.period === "yearly" ? 12 : Number(r.period);
                       const periodDisplay = !isNaN(monthCount)
-                        ? `${monthCount} month${monthCount !== 1 ? "s" : ""}`
+                        ? `${monthCount} ${t(
+                            monthCount === 1 ? "billing.monthUnit" : "billing.monthUnits",
+                          )}`
                         : r.period;
                       const pill = cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
+                        "rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize",
                         paid
                           ? "bg-success-soft text-success"
                           : "bg-secondary text-muted-foreground",
                       );
-                      const status = paid ? t("status.completed") : r.status;
+                      // Provider statuses are codes; an owner reads words. Anything
+                      // the ledger still calls "pending" is money the provider has
+                      // not settled yet, which is what the badge says.
+                      const status = paid
+                        ? t("status.completed")
+                        : r.status === "pending"
+                          ? t("billing.stPending")
+                          : r.status === "failed"
+                            ? t("billing.stFailed")
+                            : t("billing.stCancelled");
                       return (
                         <TableRow key={r.tx_ref} className="text-[13px]">
                           <TableCell className="whitespace-nowrap pl-4 text-muted-foreground">
@@ -1357,9 +1369,6 @@ export function Billing({ locked }: { locked?: boolean }) {
                               {/* The status column folds away on phones, so the badge
                                 travels with the description there. */}
                               <span className={cn(pill, "shrink-0 sm:hidden")}>{status}</span>
-                            </div>
-                            <div className="mt-0.5 hidden truncate font-mono text-[11px] text-muted-foreground sm:block">
-                              {r.tx_ref}
                             </div>
                           </TableCell>
                           <TableCell className="tabular whitespace-nowrap font-medium">
@@ -1462,6 +1471,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                     hint={t("billing.storesUsed", {
                       used: stores.length,
                       capacity: resolvedNewSlots,
+                      count: resolvedNewSlots,
                     })}
                     unitSingular={t("billing.storeUnit")}
                     unitPlural={t("billing.storeUnits")}
@@ -1480,7 +1490,11 @@ export function Billing({ locked }: { locked?: boolean }) {
                     max={renewCeiling}
                     onChange={setRenewSlotsDraft}
                     label={t("billing.slotsLabel")}
-                    hint={t("billing.storesUsed", { used: liveStores, capacity: renewSlots })}
+                    hint={t("billing.storesUsed", {
+                      used: liveStores,
+                      capacity: renewSlots,
+                      count: renewSlots,
+                    })}
                     unitSingular={t("billing.storeUnit")}
                     unitPlural={t("billing.storeUnits")}
                     note={
@@ -1515,16 +1529,18 @@ export function Billing({ locked }: { locked?: boolean }) {
                   currency={currency}
                   stores={quote.billedSlots}
                   months={quote.months}
-                  breakdownLabel={t(
-                    planMode === "add-stores"
-                      ? "billing.priceBreakdownNew"
-                      : "billing.priceBreakdown",
-                    {
-                      price: fmt(currency, PRICES[currency]),
-                      count: quote.billedSlots,
-                      months: quote.months,
-                    },
-                  )}
+                  breakdownLabel={[
+                    t(
+                      planMode === "add-stores"
+                        ? "billing.priceBreakdownNew"
+                        : "billing.priceBreakdown",
+                      {
+                        price: fmt(currency, PRICES[currency]),
+                        count: quote.billedSlots,
+                      },
+                    ),
+                    t("billing.monthsTerm", { count: quote.months }),
+                  ].join(" × ")}
                   discountLabel={t("billing.yearDiscountLine")}
                   totalLabel={t("common.total")}
                   // Add-stores explained its expiry in the note above; the other two
@@ -1629,7 +1645,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 {[t("billing.mmStep1"), t("billing.mmStep2"), t("billing.mmStep3")].map(
                   (step, i) => (
                     <li key={i} className="flex gap-2">
-                      <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-background text-[10px] font-semibold text-foreground">
+                      <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-background text-[11px] font-semibold text-foreground">
                         {i + 1}
                       </span>
                       <span className="leading-snug">{step}</span>

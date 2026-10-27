@@ -132,7 +132,7 @@ function ShiftsContent() {
       {!open ? (
         <div className="pos-card mb-4 max-w-md space-y-3 p-4">
           <div>
-            <h3 className="font-display text-sm font-medium">{t("shift.openTitle")}</h3>
+            <h3 className="text-[13px] font-semibold">{t("shift.openTitle")}</h3>
             <p className="text-[13px] text-muted-foreground">{t("shift.openHint")}</p>
           </div>
           <Field label={t("shift.startingFloat")}>
@@ -152,7 +152,7 @@ function ShiftsContent() {
           <div className="pos-card min-w-0 p-4 lg:col-span-2">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                   {t("shift.openLabel")}
                 </div>
                 <div className="truncate text-[13px] text-muted-foreground">
@@ -167,10 +167,10 @@ function ShiftsContent() {
                 {t("shift.staleNote", { date: fmtDate(open.opened_at) })}
               </p>
             )}
-            <div className="mt-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="mt-3 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("shift.cashExpected")}
             </div>
-            <div className="font-display tabular truncate text-xl font-medium">
+            <div className="tabular truncate text-3xl leading-none font-extrabold">
               {money(live.data?.expected_cash ?? open.opening_float)}
             </div>
             {live.data && (
@@ -180,7 +180,7 @@ function ShiftsContent() {
             )}
           </div>
           <div className="pos-card space-y-1.5 p-4">
-            <h3 className="font-display text-sm font-medium">{t("shift.drawerActions")}</h3>
+            <h3 className="text-[13px] font-semibold">{t("shift.drawerActions")}</h3>
             <Button variant="outline" className="w-full" onClick={() => setMove("in")}>
               {t("shift.cashInAdd")}
             </Button>
@@ -204,7 +204,7 @@ function ShiftsContent() {
         </div>
       )}
 
-      <h3 className="font-display mb-2.5 text-sm font-medium">{t("shift.past")}</h3>
+      <h3 className="mb-2.5 text-[13px] font-semibold">{t("shift.past")}</h3>
       {(shifts.data ?? []).filter((s) => s.status === "closed").length === 0 ? (
         <Empty>{t("shift.noneClosed")}</Empty>
       ) : (
@@ -215,7 +215,7 @@ function ShiftsContent() {
               <button
                 key={s.id}
                 onClick={() => setReport(s)}
-                className="flex w-full items-center gap-3 px-4 py-2 text-left text-[13px] hover:bg-muted"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] hover:bg-muted"
               >
                 <span className="w-36 shrink-0 text-muted-foreground">{fmtDate(s.opened_at)}</span>
                 <span className="min-w-0 flex-1 truncate">{names.data?.[s.closed_by ?? ""]}</span>
@@ -301,7 +301,7 @@ function SummaryRows({ s, money }: { s: Summary; money: (n: number) => string })
       ))}
       {Object.keys(s.by_method ?? {}).length > 0 && (
         <div className="pt-2.5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("shift.allTakings", { count: s.transactions })}
           </div>
           {Object.entries(s.by_method).map(([m, v]) => (
@@ -559,7 +559,7 @@ function ZReport({
   });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md rounded-3xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t("shift.reportTitle")}</DialogTitle>
         </DialogHeader>

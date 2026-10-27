@@ -46,7 +46,7 @@ export function NumberPad({
           key={d}
           type="button"
           onClick={() => append(d)}
-          className="till-key tabular h-14 border border-border bg-card text-xl font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+          className="till-key tabular h-16 border border-border bg-card text-2xl font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
         >
           {d}
         </button>
@@ -55,7 +55,7 @@ export function NumberPad({
         <button
           type="button"
           onClick={() => append(".")}
-          className="till-key h-14 border border-border bg-card text-xl font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+          className="till-key h-16 border border-border bg-card text-2xl font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
         >
           .
         </button>
@@ -64,7 +64,7 @@ export function NumberPad({
           type="button"
           onClick={() => onChange("")}
           aria-label={t("till.keyClear")}
-          className="till-key h-14 border border-border bg-card text-sm font-semibold text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+          className="till-key h-16 border border-border bg-card text-sm font-semibold text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
         >
           {t("till.keyClear")}
         </button>
@@ -80,7 +80,7 @@ export function NumberPad({
         type="button"
         onClick={() => onChange(value.slice(0, -1))}
         aria-label={t("till.keyDelete")}
-        className="till-key grid h-14 place-items-center border border-border bg-card text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+        className="till-key grid h-16 place-items-center border border-border bg-card text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
       >
         <HugeiconsIcon icon={Delete02Icon} className="size-5" />
       </button>

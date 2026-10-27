@@ -52,6 +52,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -614,7 +615,6 @@ function Shell() {
   const navItems = items.filter((n) => n.group !== "settings");
   const current = workspacePageAt(path);
   const lockedToStore = !!staff?.store_id;
-  const unavailableApproval = current?.approvalOnly && store?.store_type !== "approval";
   // Mode chips only mean something when stores actually differ; a single-mode
   // business never sees "Approval"/"Direct sale" vocabulary in the switcher.
   const mixedModes =
@@ -629,11 +629,9 @@ function Shell() {
     void navigate({ to: "/app/invoices" });
   }
 
-  useEffect(() => {
-    if (store && unavailableApproval) void navigate({ to: "/app/sales", replace: true });
-    // Re-run on store change by id, not object identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store?.id, unavailableApproval, navigate]);
+  // The approvals screen guards its own store type and says so in place
+  // (`invoices.directSaleNotice`). A shell-level redirect away from it only
+  // moved the person somewhere they did not ask for, with no explanation.
 
   // Quick-lock hotkey: Ctrl/Cmd+Shift+L locks the till back to the PIN pad.
   useEffect(() => {
@@ -651,16 +649,23 @@ function Shell() {
     <SidebarProvider className="storq-workspace bg-background">
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-2.5 px-1 py-1.5">
+          {/* The rail used to be the only way in: an invisible 4px strip you had
+              to find with the mouse. The toggle is now a visible button, and it
+              stacks under the logo when the rail is collapsed. */}
+          <div className="flex items-center gap-2.5 px-1 py-1.5 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1">
             <img src="/logo.svg" alt="Storq logo" className="size-[34px] shrink-0 rounded-[10px]" />
             <span className="font-display text-lg group-data-[collapsible=icon]:hidden">Storq</span>
+            <SidebarTrigger
+              aria-label={t("nav.toggleSidebar")}
+              className="ml-auto hidden text-muted-foreground hover:text-foreground sm:inline-flex group-data-[collapsible=icon]:ml-0"
+            />
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild disabled={lockedToStore}>
                   <SidebarMenuButton>
-                    <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[10px] font-medium text-primary">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[11px] font-medium text-primary">
                       {store?.name.slice(0, 2).toUpperCase() ?? "S"}
                     </span>
                     <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
@@ -706,7 +711,7 @@ function Shell() {
                           <span>{t(n.labelKey)}</span>
                           {n.group === "sales" && pendingCount > 0 && (
                             <span
-                              className="tabular ml-auto rounded-full bg-warning-soft px-1.5 text-[10px] font-bold text-warning-foreground"
+                              className="tabular ml-auto rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning-foreground"
                               aria-hidden
                             >
                               {pendingBadge}
@@ -810,7 +815,7 @@ function Shell() {
                     {t(n.labelKey)}
                     {n.group === "sales" && pendingCount > 0 && (
                       <span
-                        className="tabular rounded-full bg-warning-soft px-1 text-[9px] font-bold leading-4 text-warning-foreground"
+                        className="tabular rounded-full bg-warning-soft px-1 text-[10px] font-bold leading-4 text-warning-foreground"
                         aria-hidden
                       >
                         {pendingBadge}

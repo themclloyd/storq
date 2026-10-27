@@ -129,13 +129,13 @@ export function StaffForm({ person }: { person?: Partial<StaffDraft> }) {
         sub={owner ? t("staff.ownerDesc") : t("staff.sub")}
       />
       <div className="grid max-w-4xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-        <Card className="space-y-3 p-5">
+        <Card className="space-y-3 p-4">
           <div>
-            <h3 className="font-display text-base font-medium">{t("staff.detailsTitle")}</h3>
-            <p className="text-[13px] text-muted-foreground">{t("staff.detailsDesc")}</p>
+            <h3 className="text-[13px] font-semibold">{t("staff.detailsTitle")}</h3>
+            <p className="text-xs text-muted-foreground">{t("staff.detailsDesc")}</p>
           </div>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("common.name")}
             </span>
             <Input
@@ -145,7 +145,7 @@ export function StaffForm({ person }: { person?: Partial<StaffDraft> }) {
             />
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("staff.storeLabel")}
             </span>
             <Select value={f.store} onValueChange={(v) => setF({ ...f, store: v })}>
@@ -163,7 +163,7 @@ export function StaffForm({ person }: { person?: Partial<StaffDraft> }) {
             </Select>
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {person?.id ? t("staff.newPin") : t("staff.pinLabel")}
             </span>
             <PasswordInput
@@ -190,9 +190,9 @@ export function StaffForm({ person }: { person?: Partial<StaffDraft> }) {
           </Button>
         </Card>
 
-        <Card className="p-5">
-          <h3 className="font-display text-base font-medium">{t("staff.accessTitle")}</h3>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{t("staff.accessHint")}</p>
+        <Card className="p-4">
+          <h3 className="text-[13px] font-semibold">{t("staff.accessTitle")}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t("staff.accessHint")}</p>
           {owner ? (
             <div className="mt-4 flex items-start gap-2 rounded-xl border bg-muted/40 p-3 text-[13px]">
               <HugeiconsIcon
@@ -203,7 +203,7 @@ export function StaffForm({ person }: { person?: Partial<StaffDraft> }) {
             </div>
           ) : (
             <>
-              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_3.75rem_3.75rem] items-center gap-2 border-b pb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_3.75rem_3.75rem] items-center gap-2 border-b pb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 <span />
                 <span className="text-center">{t("staff.viewColumn")}</span>
                 <span className="text-center">{t("staff.changeColumn")}</span>

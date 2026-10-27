@@ -98,11 +98,23 @@ function interpolate(template: string, params?: TranslateParams): string {
   );
 }
 
-/** Translate a dot path (e.g. "nav.dashboard") with optional {param} interpolation. */
-export function t(path: string, params?: TranslateParams): string {
-  const template =
+function pickLocalized(path: string): string | null {
+  return (
     pickPath(catalogs[current] as Record<string, unknown>, path) ??
-    pickPath(en as unknown as Record<string, unknown>, path);
+    pickPath(en as unknown as Record<string, unknown>, path)
+  );
+}
+
+/**
+ * Translate a dot path (e.g. "nav.dashboard") with optional {param} interpolation.
+ *
+ * Counts carry their own singular: pass `count` and the catalog's `<key>_one`
+ * wins at exactly 1, falling back to `<key>`. That keeps "1 item" out of every
+ * screen without threading `count === 1 ? a : b` through the components.
+ */
+export function t(path: string, params?: TranslateParams): string {
+  const singular = params !== undefined && Number(params["count"]) === 1;
+  const template = (singular ? pickLocalized(`${path}_one`) : null) ?? pickLocalized(path);
   // Return the raw path when no translation exists so a missing key is visible,
   // never a crash.
   return interpolate(template ?? path, params);

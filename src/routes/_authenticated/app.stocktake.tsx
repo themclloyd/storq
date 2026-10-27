@@ -37,7 +37,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, NoAccess, PageHeader, Pager, Status, fmtDate } from "@/components/pos/bits";
+import {
+  Empty,
+  NoAccess,
+  PageHeader,
+  Pager,
+  Status,
+  fmtDate,
+  rowLinkProps,
+} from "@/components/pos/bits";
 import { pageSlice } from "@/lib/paging";
 import { useOnce } from "@/hooks/use-once";
 import { useI18n } from "@/lib/i18n";
@@ -168,7 +176,6 @@ function StockTakeListContent() {
   return (
     <>
       <PageHeader
-        back={{ to: "/app/inventory", label: t("nav.items") }}
         title={t("stk.title")}
         sub={
           open
@@ -182,7 +189,7 @@ function StockTakeListContent() {
                 <Button variant="outline" className="h-9 bg-card">
                   <HugeiconsIcon icon={FilterIcon} /> {t("common.filter")}
                   {filter !== "all" && (
-                    <Badge variant="secondary" className="ml-0.5 rounded-full px-1.5">
+                    <Badge variant="secondary" className="ml-0.5 px-1.5">
                       1
                     </Badge>
                   )}
@@ -237,8 +244,8 @@ function StockTakeListContent() {
                   return (
                     <TableRow
                       key={tk.id}
-                      className="cursor-pointer text-[13px]"
-                      onClick={() => go(tk.id)}
+                      className="cursor-pointer text-[13px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                      {...rowLinkProps(() => go(tk.id))}
                     >
                       <TableCell className="pl-4">
                         <Status s={tk.status} />

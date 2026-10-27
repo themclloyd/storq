@@ -21,7 +21,6 @@ import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import { PaymentMethodPicker } from "@/components/pos/payment-methods";
 import { LEGACY_PAYMENT_METHODS } from "@/lib/payment-methods";
-import { pluralize } from "@/lib/format";
 import { useSubscription } from "@/lib/billing";
 
 export const Route = createFileRoute("/_authenticated/app/stores")({
@@ -104,9 +103,18 @@ function Stores() {
   return (
     <>
       <PageHeader
-        breadcrumb={`${t("nav.settings")} / ${t("nav.locations")}`}
         title={t("store.title")}
-        sub={pluralize(stores.length, t("store.oneLocation"), t("store.manyLocations"))}
+        // One count, not two: the capacity sentence already says how many
+        // locations exist, so the old "2 locations" subtitle and the bar under
+        // it were the same fact printed twice.
+        sub={
+          subscription.data?.trial
+            ? t("store.freeTrial")
+            : t("store.capacityLine", {
+                used: stores.length,
+                capacity: subscription.data?.capacity ?? 0,
+              })
+        }
         actions={
           !canEdit ? undefined : atCapacity ? (
             <Link to="/app/billing" search={{ intent: "add-stores" }}>
@@ -122,31 +130,12 @@ function Stores() {
           )
         }
       />
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3 text-[13px]">
-        <p className="text-muted-foreground">
-          {subscription.data?.trial
-            ? t("store.freeTrial")
-            : t("store.capacityLine", {
-                used: stores.length,
-                capacity: subscription.data?.capacity ?? 0,
-              })}
-        </p>
-        {canEdit && atCapacity && (
-          <Link
-            to="/app/billing"
-            search={{ intent: "add-stores" }}
-            className="font-medium underline"
-          >
-            {t("store.payMore")}
-          </Link>
-        )}
-      </div>
       <div className="grid gap-2 md:grid-cols-2">
         {stores.map((s) => (
           <Link key={s.id} to="/app/stores/$id" params={{ id: s.id }} className="min-w-0">
             <Card className="flex min-w-0 items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40">
               <div className="min-w-0">
-                <div className="truncate font-medium">{s.name}</div>
+                <div className="truncate text-[13px] font-semibold">{s.name}</div>
                 {(s.phone || s.address) && (
                   <div className="mt-0.5 truncate text-xs text-muted-foreground">
                     {[s.phone, s.address].filter(Boolean).join(" · ")}
@@ -176,7 +165,7 @@ function Stores() {
         <section className="mt-8">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3 border-b pb-2">
             <div>
-              <h2 className="font-display text-sm font-medium">{t("store.archivedTitle")}</h2>
+              <h2 className="text-[13px] font-semibold">{t("store.archivedTitle")}</h2>
               <p className="text-xs text-muted-foreground">
                 {t("store.archivedSub", { count: archivedStores.length })}
               </p>
@@ -193,7 +182,9 @@ function Stores() {
                   className="flex items-center justify-between gap-3 border-dashed p-4"
                 >
                   <div className="min-w-0">
-                    <div className="truncate font-medium text-muted-foreground">{s.name}</div>
+                    <div className="truncate text-[13px] font-semibold text-muted-foreground">
+                      {s.name}
+                    </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
                       {t("store.archivedOn", {
                         date: new Date(s.archived_at as string).toLocaleDateString(undefined, {
@@ -271,12 +262,12 @@ function StoreDialog({ onClose }: { onClose: () => void }) {
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md rounded-3xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t("store.addBtn")}</DialogTitle>
         </DialogHeader>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("store.locationName")}
           </span>
           <Input
@@ -286,7 +277,9 @@ function StoreDialog({ onClose }: { onClose: () => void }) {
           />
         </Label>
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">{t("store.phone")}</span>
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("store.phone")}
+          </span>
           <Input
             inputMode="tel"
             maxLength={LIMITS.phone}
@@ -306,7 +299,9 @@ function StoreDialog({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="space-y-2">
-          <p className="text-[11px] font-medium text-muted-foreground">{t("biz.paymentMethods")}</p>
+          <p className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("biz.paymentMethods")}
+          </p>
           <PaymentMethodPicker value={methods} onChange={setMethods} />
         </div>
         <Button disabled={!name} onClick={save}>

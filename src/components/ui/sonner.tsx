@@ -20,7 +20,7 @@ type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 // Shape only — no colours, so a variant can own them without a conflict.
 const SHAPE =
-  "group toast group-[.toaster]:items-start group-[.toaster]:gap-3 group-[.toaster]:rounded-2xl " +
+  "group toast group-[.toaster]:items-start group-[.toaster]:gap-3 group-[.toaster]:rounded-xl " +
   "group-[.toaster]:border group-[.toaster]:px-3.5 group-[.toaster]:py-3 group-[.toaster]:shadow-lg";
 
 const NEUTRAL =

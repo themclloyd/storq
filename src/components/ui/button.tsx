@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
   // 44px-friendly heights, a 10px corner and Apple's decelerating press curve:
   // a control should feel like a physical key under a thumb, not a link.
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-sm font-semibold cursor-pointer transition-[background-color,color,transform,opacity] duration-200 ease-native focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30 disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  // Disabled swaps the fill for the muted surface instead of fading the whole
+  // control: at 40% opacity a white label on teal drops under 2:1 and reads as
+  // "loading", not "not yet".
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-sm font-semibold cursor-pointer transition-[background-color,color,transform,opacity] duration-200 ease-native focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -22,10 +25,10 @@ const buttonVariants = cva(
         destructive: "bg-destructive-soft text-destructive hover:brightness-[0.97]",
         outline: "border border-input bg-card text-foreground hover:bg-muted",
         secondary: "bg-secondary text-secondary-foreground hover:brightness-[0.97]",
-        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground disabled:bg-transparent",
         accent: "bg-accent text-accent-foreground hover:brightness-[0.94]",
         success: "bg-success text-success-foreground hover:brightness-[0.94]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary underline-offset-4 hover:underline disabled:bg-transparent",
       },
       size: {
         default: "h-10 px-4 py-2",

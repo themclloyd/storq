@@ -20,6 +20,18 @@ type AccountDevice = {
 };
 
 /**
+ * A short handle for a till. `device_id` is a UUID, which reads as noise, but two
+ * sessions opened by the same person are otherwise identical rows — the owner
+ * cannot tell which one is the phone upstairs and which is the counter.
+ */
+function tillHandle(deviceId: string) {
+  return deviceId
+    .replace(/[^0-9a-zA-Z]/g, "")
+    .slice(-4)
+    .toUpperCase();
+}
+
+/**
  * The shop's other tills.
  *
  * The business login is shared by every register, so the only thing that says
@@ -67,11 +79,11 @@ export function DevicesCard() {
 
   return (
     <Card className="mb-4 p-4">
-      <div className="flex items-center gap-2 text-[13px] font-medium">
+      <div className="flex items-center gap-2 text-[13px] font-semibold">
         <HugeiconsIcon icon={SmartPhone01Icon} className="size-4 text-muted-foreground" />
         {t("staff.devicesTitle")}
       </div>
-      <p className="mt-0.5 text-[13px] text-muted-foreground">{t("staff.devicesDesc")}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{t("staff.devicesDesc")}</p>
       <div className="mt-2 divide-y">
         {devices.isPending ? (
           <p className="py-2 text-[12px] text-muted-foreground">{t("common.loading")}</p>
@@ -86,8 +98,11 @@ export function DevicesCard() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5 font-medium">
                   <span className="truncate">{d.staff_name}</span>
+                  <span className="tabular rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    {t("staff.deviceHandle", { id: tillHandle(d.device_id) })}
+                  </span>
                   {d.is_current && (
-                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
                       {t("staff.devicesCurrent")}
                     </span>
                   )}

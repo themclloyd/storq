@@ -44,6 +44,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-deep: var(--primary-deep);
   --color-button: var(--button);
   --color-button-foreground: var(--button-foreground);
   --color-secondary: var(--secondary);
@@ -117,6 +118,10 @@
 
   --primary: oklch(0.6514 0.111 196.31); /* #00a4a6 Everyday Blue */
   --primary-foreground: oklch(0.999 0 0); /* white on Everyday Blue (brand fill) */
+  /* Brand teal for large surfaces that carry white type: Everyday Blue is only
+     ~2.9:1 against white, so a full-bleed section or card uses this deeper step
+     (AA at body size) while buttons and marks keep `--primary`. */
+  --primary-deep: oklch(0.44 0.075 196.31);
   /* GoDaddy filled CTA is neutral ink, not blue-tinted charcoal. */
   --button: oklch(0.1776 0 0); /* #111 ink */
   --button-foreground: oklch(0.999 0 0);
@@ -192,6 +197,8 @@
 
   --primary: oklch(0.72 0.11 196.31);
   --primary-foreground: oklch(0.18 0.02 200);
+  /* On a dark page the deep step would vanish, so brand surfaces lift instead. */
+  --primary-deep: oklch(0.52 0.09 196.31);
   --button: oklch(0.72 0.11 196.31);
   --button-foreground: oklch(0.18 0.02 200);
 
@@ -461,12 +468,10 @@ html:has(.storq-landing) {
 @layer components {
   .pos-card {
     background: var(--card);
-    border-radius: calc(var(--radius) + 6px);
-    /* Two-stop elevation: a hairline contact shadow plus a wide, faint lift, so
-       cards read as raised surfaces instead of outlined boxes. */
-    box-shadow:
-      0 1px 2px oklch(0.25 0.02 220 / 0.05),
-      0 10px 26px -18px oklch(0.25 0.02 220 / 0.3);
+    /* Counter surface: a hairline edge, no lift. Elevation is reserved for
+       overlays; a card that sits in the flow reads flat. */
+    border: 1px solid var(--border);
+    border-radius: 12px;
   }
   .pos-tile {
     border-radius: calc(var(--radius) + 6px);
@@ -572,11 +577,9 @@ body:has(.storq-workspace) {
 .storq-workspace table tbody tr:hover {
   background: color-mix(in oklch, var(--muted) 60%, transparent);
 }
-.storq-workspace .pos-card {
-  border: 0;
-}
+/* A card inside a card dissolves into the surface it sits on; only the outer
+   edge carries the hairline. */
 .storq-workspace .pos-card .pos-card {
-  border: 0;
   background: transparent;
 }
 .storq-workspace .pos-tile:hover {
@@ -717,7 +720,7 @@ body:has(.storq-workspace) {
     width: 100%;
     max-width: 100vw;
     max-height: 92dvh;
-    border-radius: 26px 26px 0 0;
+    border-radius: 18px 18px 0 0;
     border-bottom: 0;
     padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -18px 48px -24px oklch(0.2 0.02 220 / 0.45);

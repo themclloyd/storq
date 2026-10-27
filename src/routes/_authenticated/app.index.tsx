@@ -472,6 +472,7 @@ function RegisterContent() {
       onDiscount={() => setShowDisc(true)}
       onNote={() => setNoteOpen(true)}
       onOpenLine={(id) => setLineId(id)}
+      onQty={(id, qty) => setQty(id, qty)}
       onCharge={() => {
         // Charge owns the screen: the phone sheet closes first so two overlays
         // never fight over focus.
@@ -503,7 +504,7 @@ function RegisterContent() {
               <Input
                 ref={searchRef}
                 id="pos-search"
-                className="h-11 bg-card pl-9 text-[15px]"
+                className="h-11 bg-card pl-9 text-[15px] sm:pl-9"
                 placeholder={t("till.searchPlaceholder")}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -513,7 +514,7 @@ function RegisterContent() {
             <div
               role="group"
               aria-label={t("till.catalogMode")}
-              className="flex shrink-0 items-center gap-0.5 rounded-[10px] border border-border bg-card p-0.5"
+              className="flex shrink-0 items-center gap-0.5 rounded-xl bg-muted p-1"
             >
               <ModeButton
                 icon={GridViewIcon}
@@ -718,6 +719,7 @@ function RegisterContent() {
             needsPin={overCap}
             customer={customer}
             note={orderNote}
+            rows={rows}
             onClose={() => setTender(null)}
             onDone={(f) => finish(tender, f)}
           />
@@ -814,10 +816,10 @@ function ModeButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+        "inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
         active
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "bg-card text-foreground ring-1 ring-border"
+          : "text-muted-foreground hover:text-foreground",
       )}
     >
       <HugeiconsIcon icon={icon} className="size-4" />

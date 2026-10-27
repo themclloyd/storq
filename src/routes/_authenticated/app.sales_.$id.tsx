@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { NoAccess } from "@/components/pos/bits";
+import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { ReceiptIcon, Refresh01Icon } from "@/lib/icons";
 import { REFUNDABLE, useRefunds } from "@/lib/refunds";
 import type { SaleRow } from "@/lib/sales";
@@ -65,10 +65,12 @@ const fmtDate = (d: string) =>
   });
 
 // Action tiles share one filled style: the order-sheet pattern's Receipt /
-// Return tiles — big touch targets, icon top-left, label bottom-left.
+// Return tiles — big touch targets, icon top-left, label bottom-left. The tint
+// pair (`primary-soft` + its dark-teal ink) is the AA one; a 15% accent wash
+// under accent text sank to ~2.9:1 on the card.
 const TILE_CLASS =
-  "flex h-20 w-36 flex-col items-start justify-between rounded-xl bg-accent/15 p-3.5 " +
-  "text-accent transition-colors hover:bg-accent/25 focus-visible:outline-none " +
+  "flex h-20 w-36 flex-col items-start justify-between rounded-xl bg-primary-soft p-3.5 " +
+  "text-primary-soft-foreground transition-colors hover:brightness-[0.97] focus-visible:outline-none " +
   "focus-visible:ring-2 focus-visible:ring-ring";
 
 // Lifecycle states the payment/refund axes don't describe, mapped to dot color.
@@ -186,32 +188,22 @@ function SaleDetailContent() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link to="/app/sales" className="text-sm text-muted-foreground hover:text-foreground">
-        ← {t(approvalStore ? "sales.titleApproval" : "sales.title")}
-      </Link>
-      <div className="mt-2 mb-4">
-        <h1 className="text-xl font-semibold">
-          {t(approvalStore ? "sdetail.invoiceTitle" : "sdetail.saleTitle", { number: s.number })}
-        </h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {fmtDate(s.created_at)} · {store?.name}
-          {s.created_by &&
-            ` · ${t("sdetail.by", { name: names.data?.[s.created_by] ?? t("sdetail.staffWord") })}`}
-          {customerLabel && ` · ${t("sdetail.forCustomer", { name: customerLabel })}`}
-          {s.approved_by && ` · ${t("sdetail.approvedBy")} ${names.data?.[s.approved_by] ?? "—"}`}
-        </p>
-        <div className="mt-2">
-          <StateDots s={s} />
-        </div>
-        {/* Amount + payment method on the left, action tiles on the right —
-            one row instead of two stacked bands; tiles wrap under on phones. */}
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="tabular text-3xl font-bold tracking-tight">{money(s.total)}</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {s.payment_method ? mLabel(s.payment_method) : "—"}
-            </div>
-          </div>
+      <PageHeader
+        back={{ to: "/app/sales", label: t(approvalStore ? "sales.titleApproval" : "sales.title") }}
+        breadcrumb={<span className="tabular">#{s.number}</span>}
+        title={t(approvalStore ? "sdetail.invoiceTitle" : "sdetail.saleTitle", {
+          number: s.number,
+        })}
+        sub={
+          <>
+            {fmtDate(s.created_at)} · {store?.name}
+            {s.created_by &&
+              ` · ${t("sdetail.by", { name: names.data?.[s.created_by] ?? t("sdetail.staffWord") })}`}
+            {customerLabel && ` · ${t("sdetail.forCustomer", { name: customerLabel })}`}
+            {s.approved_by && ` · ${t("sdetail.approvedBy")} ${names.data?.[s.approved_by] ?? "—"}`}
+          </>
+        }
+        actions={
           <div className="flex gap-2">
             <ReceiptTile
               s={s}
@@ -226,6 +218,17 @@ function SaleDetailContent() {
               </button>
             )}
           </div>
+        }
+      />
+
+      {/* Money band: what was taken, how, and where it stands — one line. */}
+      <div className="mb-4 flex flex-wrap items-end gap-x-4 gap-y-2">
+        <div className="tabular text-3xl leading-none font-extrabold tracking-tight">
+          {money(s.total)}
+        </div>
+        <StateDots s={s} />
+        <div className="text-xs text-muted-foreground">
+          {s.payment_method ? mLabel(s.payment_method) : "—"}
         </div>
       </div>
 
@@ -233,15 +236,15 @@ function SaleDetailContent() {
           so nothing floats and the card edges line up with the header above. */}
       <div className="space-y-3">
         <Card>
-          <CardHeader className="border-b py-3">
+          <CardHeader className="border-b px-4 py-3">
             <CardTitle className="text-sm font-semibold">{t("sdetail.itemsCard")}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] uppercase">{t("doc.item")}</TableHead>
-                  <TableHead className="text-[11px] uppercase">{t("doc.amount")}</TableHead>
+                  <TableHead>{t("doc.item")}</TableHead>
+                  <TableHead>{t("doc.amount")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -290,7 +293,7 @@ function SaleDetailContent() {
         </Card>
 
         <Card>
-          <CardHeader className="border-b py-3">
+          <CardHeader className="border-b px-4 py-3">
             <CardTitle className="text-sm font-semibold">{t("sdetail.refundsCard")}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -331,7 +334,7 @@ function SaleDetailContent() {
         </Card>
 
         {s.note && (
-          <Card className="p-3 text-[13px]">
+          <Card className="p-4 text-[13px]">
             <CardTitle className="mb-2 text-sm font-semibold">{t("sdetail.noteCard")}</CardTitle>
             <p className="text-muted-foreground">{s.note}</p>
           </Card>
@@ -467,7 +470,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
         <p className="text-xs text-muted-foreground">{t("sdetail.refundHint")}</p>
         <div className="grid grid-cols-2 gap-2">
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("sdetail.refundBy")}
             </span>
             <Select value={method} onValueChange={setMethod}>
@@ -484,7 +487,7 @@ function RefundDialog({ sale, onClose }: { sale: SaleRow; onClose: () => void })
             </Select>
           </Label>
           <Label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("inv.reasonLabel")}
             </span>
             <Input

@@ -108,7 +108,7 @@ export function GraceBanner({ hideLink = false }: { hideLink?: boolean }) {
       className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-warning/40 bg-warning/15 px-3.5 py-2.5 text-[13px] text-warning-foreground"
     >
       <HugeiconsIcon icon={Alert02Icon} className="size-4 shrink-0" />
-      <span className="min-w-0 flex-1">{t(noticeKey, { date, days })}</span>
+      <span className="min-w-0 flex-1">{t(noticeKey, { date, days, count: days })}</span>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={share}>
           {t("billing.graceShareCta")}

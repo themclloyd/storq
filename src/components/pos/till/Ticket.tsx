@@ -1,6 +1,16 @@
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { Note01Icon, PauseIcon, PercentIcon, ShoppingCart01Icon, UserPlusIcon } from "@/lib/icons";
+import {
+  Delete02Icon,
+  MinusSignIcon,
+  Note01Icon,
+  PauseIcon,
+  PercentIcon,
+  PlusSignIcon,
+  ShoppingCart01Icon,
+  UserPlusIcon,
+} from "@/lib/icons";
 import { Button } from "@/components/ui/button";
+import { Money } from "@/components/pos/bits";
 import { usePos } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -50,6 +60,7 @@ export function Ticket({
   onDiscount,
   onNote,
   onOpenLine,
+  onQty,
   onCharge,
   onLayby,
 }: {
@@ -67,6 +78,8 @@ export function Ticket({
   onDiscount: () => void;
   onNote: () => void;
   onOpenLine: (id: string) => void;
+  /** Step a line up or down without opening the line sheet. */
+  onQty: (id: string, qty: number) => void;
   onCharge: () => void;
   onLayby: () => void;
 }) {
@@ -88,9 +101,10 @@ export function Ticket({
           <button
             type="button"
             onClick={onClear}
-            className="shrink-0 rounded-md px-1.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+            aria-label={t("till.clear")}
+            className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
           >
-            {t("till.clear")}
+            <HugeiconsIcon icon={Delete02Icon} className="size-4" />
           </button>
         )}
       </header>
@@ -166,16 +180,15 @@ export function Ticket({
         ) : (
           <div className="divide-y divide-border">
             {rows.map((r) => (
-              <button
+              <div
                 key={r.id}
-                type="button"
-                onClick={() => onOpenLine(r.id)}
-                className="pos-row flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                className="pos-row flex w-full items-start gap-2.5 px-4 py-2.5 transition-colors hover:bg-muted/50"
               >
-                <span className="tabular mt-0.5 min-w-7 shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-center text-[11px] font-bold text-secondary-foreground">
-                  {r.qty}×
-                </span>
-                <span className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenLine(r.id)}
+                  className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                >
                   <span className="block truncate text-[13px] font-semibold">{r.name}</span>
                   <span className="tabular block truncate text-[11px] text-muted-foreground">
                     {money(r.unit)} {t("till.eachWord")}
@@ -186,8 +199,8 @@ export function Ticket({
                       {r.note}
                     </span>
                   )}
-                </span>
-                <span className="tabular shrink-0 text-right text-[13px] font-bold">
+                </button>
+                <span className="tabular shrink-0 pt-0.5 text-right text-[13px] font-bold">
                   {r.disc > 0 && (
                     <span className="block text-[11px] font-normal text-muted-foreground line-through">
                       {money(r.gross)}
@@ -195,7 +208,27 @@ export function Ticket({
                   )}
                   {money(r.net)}
                 </span>
-              </button>
+                <span className="flex shrink-0 items-center gap-0.5 pt-0.5">
+                  <button
+                    type="button"
+                    aria-label={t("till.decrease")}
+                    onClick={() => onQty(r.id, Math.max(1, r.qty - 1))}
+                    disabled={r.qty <= 1}
+                    className="grid size-7 place-items-center rounded-md border border-border bg-card text-foreground transition-colors hover:bg-muted disabled:bg-muted disabled:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                  >
+                    <HugeiconsIcon icon={MinusSignIcon} className="size-3.5" />
+                  </button>
+                  <span className="tabular w-6 text-center text-[12px] font-bold">{r.qty}</span>
+                  <button
+                    type="button"
+                    aria-label={t("till.increase")}
+                    onClick={() => onQty(r.id, r.qty + 1)}
+                    className="grid size-7 place-items-center rounded-md border border-border bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
+                  >
+                    <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" />
+                  </button>
+                </span>
+              </div>
             ))}
           </div>
         )}
@@ -227,9 +260,10 @@ export function Ticket({
           <span className="text-[13px] font-semibold text-muted-foreground">
             {t("common.total")}
           </span>
-          <span className="tabular text-[30px] leading-none font-extrabold tracking-tight">
-            {money(totals.total)}
-          </span>
+          <Money
+            value={money(totals.total)}
+            className="tabular text-[30px] leading-none font-extrabold tracking-tight"
+          />
         </div>
 
         <Button
@@ -238,7 +272,11 @@ export function Ticket({
           disabled={!has}
           onClick={onCharge}
         >
-          {approval ? t("till.sendForApproval") : t("till.charge", { amount: money(totals.total) })}
+          {approval
+            ? t("till.sendForApproval")
+            : has
+              ? t("till.charge", { amount: money(totals.total) })
+              : t("till.chargeShort")}
         </Button>
         <Button size="lg" variant="outline" className="w-full" disabled={!has} onClick={onLayby}>
           {approval ? t("till.laybyInvoice") : t("till.startLayby")}

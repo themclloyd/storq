@@ -64,8 +64,8 @@ export const workspacePages: Page[] = [
   },
   {
     to: "/app/sales",
-    label: "Sales history",
-    labelKey: "nav.salesHistory",
+    label: "Sales",
+    labelKey: "nav.sales",
     approvalLabelKey: "nav.invoices",
     group: "sales",
     perms: areaPerms("sales"),
@@ -87,8 +87,8 @@ export const workspacePages: Page[] = [
   },
   {
     to: "/app/inventory",
-    label: "Items",
-    labelKey: "nav.items",
+    label: "Inventory",
+    labelKey: "nav.inventory",
     group: "inventory",
     perms: areaPerms("stock"),
   },
@@ -115,8 +115,8 @@ export const workspacePages: Page[] = [
   },
   {
     to: "/app/reports",
-    label: "Overview",
-    labelKey: "nav.overview",
+    label: "Reports",
+    labelKey: "nav.reports",
     group: "finance",
     perms: areaPerms("money"),
   },
@@ -170,8 +170,10 @@ export function visibleWorkspacePages(
 /**
  * Groups whose sibling pages are reached from each page's own actions menu
  * instead of the shell tab row, so the workspace keeps one compact switcher.
+ * Empty: every group now shows its siblings, because a hidden sibling (the
+ * inventory tools) is a page nobody can find.
  */
-export const menuNavigationGroups: WorkspaceGroup[] = ["inventory"];
+export const menuNavigationGroups: WorkspaceGroup[] = [];
 
 export function workspacePageAt(path: string) {
   const normalized = path.replace(/\/$/, "");

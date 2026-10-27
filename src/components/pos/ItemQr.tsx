@@ -159,7 +159,7 @@ export function ItemQrDialog({
         </DialogHeader>
         <ItemCodeCard item={item} />
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("code.copiesLabel")}
           </span>
           <div className="flex items-center gap-2">

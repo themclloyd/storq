@@ -51,11 +51,17 @@ export const Route = createFileRoute("/_authenticated/app/dashboard")({
   component: Dashboard,
 });
 
+const RANGE_LABEL_KEY: Record<RangeKey, string> = {
+  today: "dashboard.rangeToday",
+  week: "dashboard.rangeWeek",
+  month: "dashboard.rangeMonth",
+};
+
 const DONE = ["completed", "layby_completed"];
 
 function Dashboard() {
   const { t, locale } = useI18n();
-  const { store, money, can } = usePos();
+  const { store, money, compactMoney, can } = usePos();
   const [range, setRange] = useState<RangeKey>("today");
   const start = useMemo(() => rangeStart(range), [range]);
   const hourly = isHourly(range);
@@ -115,25 +121,9 @@ function Dashboard() {
           to: "/app/laybys",
           tone: "info",
         });
-      {
-        const { data: low } = await supabase
-          .from("store_stock")
-          .select("qty, products(name)")
-          .eq("store_id", storeId)
-          .lte("qty", 5)
-          .limit(5);
-        for (const r of low ?? []) {
-          const name =
-            (r as { products?: { name?: string } | null }).products?.name ??
-            t("dashboard.genericItem");
-          out.push({
-            icon: MoneyBag02Icon,
-            text: t("dashboard.alertLowStock", { name, qty: Number((r as { qty: number }).qty) }),
-            to: can("stock", "view_stock") ? "/app/inventory" : "/app/stocktake",
-            tone: "warn",
-          });
-        }
-      }
+      // Low stock is not repeated here: the "Needs reorder" card below lists the
+      // same items against each product's own reorder point, so a second feed
+      // built on a fixed "5 units" threshold only disagreed with it.
       return out;
     },
   });
@@ -208,11 +198,17 @@ function Dashboard() {
       <PageHeader
         title={t("dashboard.title")}
         sub={store?.name ?? ""}
-        actions={<RangeToggle value={range} onChange={setRange} options={ranges} />}
+        actions={
+          <RangeToggle
+            value={range}
+            onChange={setRange}
+            options={ranges.map((r) => ({ key: r.key, label: t(RANGE_LABEL_KEY[r.key]) }))}
+          />
+        }
       />
 
       {/* Top stat cards */}
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <StatCard key={c.label} label={c.label} value={c.value} sub={c.sub} icon={c.icon} />
         ))}
@@ -222,9 +218,9 @@ function Dashboard() {
       <div className="mt-4">
         <DashboardSection
           title={hourly ? t("dashboard.byHour") : t("dashboard.byDay")}
-          note={`${ranges.find((r) => r.key === range)?.label} · ${rangeSpanLabel(start)}`}
+          note={`${t(RANGE_LABEL_KEY[range])} · ${rangeSpanLabel(start)}`}
         >
-          <TrendChart data={d.trend} money={money} loading={loading} />
+          <TrendChart data={d.trend} money={money} compact={compactMoney} loading={loading} />
         </DashboardSection>
       </div>
 

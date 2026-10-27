@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, PageHeader, Pager, fmtDate } from "@/components/pos/bits";
+import { Empty, PageHeader, Pager, fmtDate, rowLinkProps } from "@/components/pos/bits";
 import {
   accessRunway,
   applyEntitlementChange,
@@ -230,7 +230,7 @@ function Ops() {
           <Empty>{t("ops.checking")}</Empty>
         ) : !role.data ? (
           <Card className="space-y-3 p-6 text-center">
-            <p className="font-display text-lg">{t("ops.deniedTitle")}</p>
+            <p className="text-base font-semibold">{t("ops.deniedTitle")}</p>
             <p className="text-sm text-muted-foreground">{t("ops.deniedSub")}</p>
             <Button variant="outline" onClick={() => void signOut()}>
               <HugeiconsIcon icon={Logout02Icon} className="size-4" /> {t("nav.signOut")}
@@ -250,7 +250,7 @@ function Ops() {
                       className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                     />
                     <Input
-                      className="h-9 pl-9"
+                      className="h-9 pl-9 sm:pl-9"
                       maxLength={ROSTER_SEARCH_MAX}
                       value={q}
                       onChange={(e) => {
@@ -265,7 +265,7 @@ function Ops() {
                       <Button variant="outline" className="h-9 bg-card">
                         <HugeiconsIcon icon={FilterIcon} /> {t("common.filter")}
                         {state !== "all" && (
-                          <Badge variant="secondary" className="ml-0.5 rounded-full px-1.5">
+                          <Badge variant="secondary" className="ml-0.5 px-1.5">
                             1
                           </Badge>
                         )}
@@ -322,7 +322,7 @@ function Ops() {
               </Empty>
             ) : (
               <Card className="overflow-hidden">
-                <Table>
+                <Table className="text-[13px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-1/3">{t("ops.colBusiness")}</TableHead>
@@ -388,21 +388,27 @@ function TenantTr({
       : row.state === "closed"
         ? t("ops.closedSince", { date: fmtDate(row.closed_at ?? row.created_at) })
         : row.state === "over_capacity"
-          ? t("ops.slotsOver", { over })
+          ? t("ops.slotsOver", { over, count: over })
           : row.state === "grace"
             ? // Still trading on borrowed time, so count the window down rather
               // than printing a negative expiry a support call would misread.
-              t("ops.graceLeft", { days: graceDaysLeft(row.paid_until) })
+              t("ops.graceLeft", {
+                days: graceDaysLeft(row.paid_until),
+                count: graceDaysLeft(row.paid_until),
+              })
             : runway.days >= 0
-              ? t("ops.daysLeft", { days: runway.days })
-              : t("ops.daysOver", { days: -runway.days });
+              ? t("ops.daysLeft", { days: runway.days, count: runway.days })
+              : t("ops.daysOver", { days: -runway.days, count: -runway.days });
   return (
     <TableRow
-      className={cn(canWrite && "cursor-pointer")}
-      onClick={canWrite ? onManage : undefined}
+      className={cn(
+        canWrite &&
+          "cursor-pointer focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+      )}
+      {...(canWrite && rowLinkProps(onManage))}
     >
       <TableCell className="min-w-0">
-        <div className="truncate font-medium">{row.name}</div>
+        <div className="truncate text-[13px] font-semibold">{row.name}</div>
         <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {row.owner_email || t("ops.noEmail")} · {row.currency}
         </div>
@@ -416,7 +422,7 @@ function TenantTr({
       <TableCell>
         <Badge
           className={cn(
-            "rounded-full border-transparent px-2.5 py-0.5",
+            "border-transparent px-2 py-0.5",
             stateStyle[row.state] ?? "bg-secondary text-muted-foreground",
           )}
         >
@@ -572,12 +578,12 @@ function ManageTenant({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg rounded-3xl">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("ops.manageTitle", { name: row.name })}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-2xl bg-secondary/40 p-3 text-[13px]">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-secondary/40 p-3 text-[13px]">
           <Current
             label={t("ops.colStores")}
             value={`${row.store_count} / ${row.paid_store_limit}`}
@@ -616,7 +622,7 @@ function ManageTenant({
         </div>
 
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             {t("ops.changeLabel")}
           </span>
           <Select
@@ -643,7 +649,9 @@ function ManageTenant({
         </Label>
 
         <Label className="block space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">{t("ops.newValue")}</span>
+          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("ops.newValue")}
+          </span>
           {action === "plan" ? (
             <Select value={value} onValueChange={setValue}>
               <SelectTrigger className="h-9 bg-card text-sm">
@@ -676,12 +684,7 @@ function ManageTenant({
         {preview.ok ? (
           <p className="flex flex-wrap items-center gap-1.5 text-[13px]">
             <span className="text-muted-foreground">{t("ops.becomes")}</span>
-            <Badge
-              className={cn(
-                "rounded-full border-transparent px-2.5 py-0.5",
-                stateStyle[preview.state],
-              )}
-            >
+            <Badge className={cn("border-transparent px-2 py-0.5", stateStyle[preview.state])}>
               {t(stateLabelKey[preview.state])}
             </Badge>
             <span className="text-muted-foreground">
@@ -697,7 +700,7 @@ function ManageTenant({
         )}
 
         <Label className="block space-y-1">
-          <span className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+          <span className="flex items-center justify-between text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
             <span>{t("ops.reasonLabel")}</span>
             <span className="tabular">
               {why.length}/{REASON_MAX_CHARS}
@@ -713,8 +716,8 @@ function ManageTenant({
         </Label>
 
         {!!pendingPays.data?.length && (
-          <div className="space-y-2 rounded-2xl border border-warning/40 bg-warning/10 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground">
+          <div className="space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-3">
+            <p className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t("ops.pendingPayments")}
             </p>
             {pendingPays.data.map((p) => (
@@ -751,18 +754,17 @@ function ManageTenant({
 
         {(verbs.length > 0 || canPurge) && (
           <div className="space-y-2 border-t pt-3">
-            <p className="text-[11px] font-medium text-muted-foreground">{t("ops.accessTitle")}</p>
+            <p className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+              {t("ops.accessTitle")}
+            </p>
             {pending ? (
-              <div className="space-y-2 rounded-2xl border p-3">
+              <div className="space-y-2 rounded-xl border p-3">
                 <p className="text-[13px] text-muted-foreground">{t(actionHintKey[pending])}</p>
                 {accessState && (
                   <p className="flex flex-wrap items-center gap-1.5 text-[13px]">
                     <span className="text-muted-foreground">{t("ops.becomes")}</span>
                     <Badge
-                      className={cn(
-                        "rounded-full border-transparent px-2.5 py-0.5",
-                        stateStyle[accessState],
-                      )}
+                      className={cn("border-transparent px-2 py-0.5", stateStyle[accessState])}
                     >
                       {t(stateLabelKey[accessState])}
                     </Badge>
@@ -770,7 +772,7 @@ function ManageTenant({
                 )}
                 {pending === "purge" && (
                   <Label className="block space-y-1">
-                    <span className="text-[11px] font-medium text-muted-foreground">
+                    <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                       {t("ops.purgeNameLabel", { name: row.name })}
                     </span>
                     <Input
@@ -781,7 +783,7 @@ function ManageTenant({
                   </Label>
                 )}
                 <Label className="block space-y-1">
-                  <span className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <span className="flex items-center justify-between text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
                     <span>{t("ops.reasonLabel")}</span>
                     <span className="tabular">
                       {why.length}/{REASON_MAX_CHARS}
@@ -846,7 +848,9 @@ function ManageTenant({
         )}
 
         <div className="space-y-2 border-t pt-3">
-          <p className="text-[11px] font-medium text-muted-foreground">{t("ops.recentTitle")}</p>
+          <p className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("ops.recentTitle")}
+          </p>
           {audit.isError ? (
             <p className="text-[12px] text-destructive">{(audit.error as Error).message}</p>
           ) : audit.isPending ? (
@@ -873,7 +877,9 @@ function Current({
 }) {
   return (
     <div className="min-w-0">
-      <div className="truncate text-[11px] text-muted-foreground">{label}</div>
+      <div className="truncate text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+        {label}
+      </div>
       <div
         className={cn(
           "truncate font-medium",
