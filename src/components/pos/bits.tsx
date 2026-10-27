@@ -125,7 +125,7 @@ export function NativeSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange} {...(disabled !== undefined && { disabled })}>
-      <SelectTrigger className={cn("h-9 bg-card text-sm", className)}>
+      <SelectTrigger className={cn("bg-card text-sm", className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

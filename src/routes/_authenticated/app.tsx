@@ -747,7 +747,7 @@ function Shell() {
       </Sidebar>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b bg-rail px-4 py-3 md:hidden">
+        <header className="glass-bar sticky top-0 z-30 flex items-center gap-2 border-b border-border/60 px-3 py-2.5 md:hidden">
           <NativeSelect
             className="flex-1"
             value={store?.id ?? ""}
@@ -767,7 +767,7 @@ function Shell() {
             <GraceBanner />
           </div>
         )}
-        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-20 pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">
           {staff && (
             <WorkspaceTabs
               path={path}
@@ -776,38 +776,51 @@ function Shell() {
               pendingCount={pendingCount}
             />
           )}
-          <div key={store?.id}>
+          {/* Keyed on the route so each screen arrives with the short rise a
+              pushed view gets; the store id keeps a store switch remounting too. */}
+          <div key={`${store?.id}-${path}`} className="screen-in">
             <Outlet />
           </div>
         </main>
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex overflow-x-auto border-t bg-rail md:hidden">
-          {navItems.map((n) => {
-            const active = current?.group === n.group;
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-w-[72px] flex-1 flex-col items-center gap-1 py-2 text-[11px] font-semibold",
-                  active ? "text-accent" : "text-muted-foreground",
-                )}
-              >
-                <HugeiconsIcon icon={navIcons[n.group]} className="size-5" />
-                <span className="flex items-center gap-1">
-                  {t(n.labelKey)}
-                  {n.group === "sales" && pendingCount > 0 && (
-                    <span
-                      className="tabular rounded-full bg-warning-soft px-1 text-[9px] font-bold leading-4 text-warning-foreground"
-                      aria-hidden
-                    >
-                      {pendingBadge}
-                    </span>
+        <nav className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t border-border/60 pb-[env(safe-area-inset-bottom,0px)] md:hidden">
+          <div className="no-scrollbar flex overflow-x-auto">
+            {navItems.map((n) => {
+              const active = current?.group === n.group;
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "press flex min-w-[68px] flex-1 basis-0 flex-col items-center gap-0.5 px-1 pb-1.5 pt-2 text-[11px] font-semibold",
+                    active ? "text-primary-soft-foreground" : "text-muted-foreground",
                   )}
-                </span>
-              </Link>
-            );
-          })}
+                >
+                  {/* Active tab borrows the iOS pill: the glyph sits in a tinted
+                      capsule instead of only recolouring the label. */}
+                  <span
+                    className={cn(
+                      "grid h-7 w-12 place-items-center rounded-full transition-colors duration-200",
+                      active && "bg-primary-soft",
+                    )}
+                  >
+                    <HugeiconsIcon icon={navIcons[n.group]} className="size-5" />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {t(n.labelKey)}
+                    {n.group === "sales" && pendingCount > 0 && (
+                      <span
+                        className="tabular rounded-full bg-warning-soft px-1 text-[9px] font-bold leading-4 text-warning-foreground"
+                        aria-hidden
+                      >
+                        {pendingBadge}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </SidebarProvider>

@@ -61,13 +61,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // `viewport-fit=cover` lets the shell paint behind the notch and home
+      // indicator, which is what the safe-area insets below measure. The
+      // interactive-widget hint keeps the on-screen keyboard from scrolling a
+      // field out of view when a dialog opens on Android.
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+      },
       { title: "Storq POS | Point of sale, inventory and layby" },
       {
         name: "description",
         content: "Point of sale, stock and layby for single and multi-store businesses.",
       },
-      { name: "theme-color", content: "#00a4a6" },
+      { name: "theme-color", content: "#f5f7f8", media: "(prefers-color-scheme: light)" },
+      { name: "theme-color", content: "#1b2226", media: "(prefers-color-scheme: dark)" },
+      // Installed-to-home-screen chrome (iOS reads the apple-* names, Android
+      // reads the manifest). Without these Safari shows a browser bar and adds
+      // its own inset, which is the main thing that gives a web app away.
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Storq" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "format-detection", content: "telephone=no" },
       { name: "robots", content: PUBLIC_ROBOTS },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE_NAME },
@@ -83,6 +99,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // render-blocking third-party stylesheet and no extra CSP origin.
       { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
       { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      // Safari ignores SVG for the home-screen tile and needs a 180px PNG.
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
