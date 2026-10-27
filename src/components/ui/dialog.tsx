@@ -51,6 +51,7 @@ const DialogContent = React.forwardRef<
       {/* Grabber: the affordance that says "this panel came from the bottom". */}
       <div
         aria-hidden
+        data-sheet-grabber
         className="mx-auto -mb-1 h-1.5 w-9 shrink-0 rounded-full bg-foreground/15 sm:hidden"
       />
       {children}

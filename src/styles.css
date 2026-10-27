@@ -75,6 +75,9 @@
   --color-tile-5: var(--tile-5);
   --color-tile-6: var(--tile-6);
   --color-tile-foreground: var(--tile-foreground);
+  --color-charge: var(--charge);
+  --color-charge-foreground: var(--charge-foreground);
+  --color-hairline: var(--hairline);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --font-hero: var(--font-hero);
@@ -145,15 +148,23 @@
   --ring: oklch(0.6514 0.111 196.31); /* Everyday Blue */
   --rail: oklch(1 0 0);
 
-  /* Pastel tiles for item thumbnails, tuned to the brand teal/gold/sky family.
-     tile-foreground is DARK because the tiles are light. */
-  --tile-1: oklch(0.93 0.03 196);
-  --tile-2: oklch(0.94 0.035 189);
-  --tile-3: oklch(0.95 0.045 82);
-  --tile-4: oklch(0.94 0.04 35);
-  --tile-5: oklch(0.93 0.03 235);
-  --tile-6: oklch(0.93 0.03 300);
-  --tile-foreground: oklch(0.4 0.02 200);
+  /* Counter tiles: Square's flat saturated blocks (navy, forest, terracotta,
+     ochre, berry, slate) carrying white type. Deep enough for AA at 13px, so a
+     tile is legible from standing height at the till. */
+  --tile-1: oklch(0.38 0.08 255); /* navy */
+  --tile-2: oklch(0.4 0.07 160); /* forest */
+  --tile-3: oklch(0.5 0.13 40); /* terracotta */
+  --tile-4: oklch(0.46 0.09 78); /* ochre */
+  --tile-5: oklch(0.42 0.12 350); /* berry */
+  --tile-6: oklch(0.44 0.02 250); /* slate */
+  --tile-foreground: oklch(0.99 0 0);
+
+  /* The commanding Charge action: jet charcoal on white, so the one button that
+     takes money outweighs every teal affordance around it. */
+  --charge: oklch(0.1776 0 0);
+  --charge-foreground: oklch(0.999 0 0);
+  /* Hairline between counter panes (Square's #E5E7EB). */
+  --hairline: oklch(0.9215 0.004 240);
 
   --chart-1: oklch(0.6514 0.111 196.31); /* Everyday Blue: sales */
   --chart-2: oklch(0.8305 0.1453 74.18); /* warm gold: profit */
@@ -209,13 +220,18 @@
   --ring: oklch(0.72 0.11 196.31);
   --rail: oklch(0.23 0.012 205);
 
-  --tile-1: oklch(0.34 0.05 196);
-  --tile-2: oklch(0.34 0.05 189);
-  --tile-3: oklch(0.36 0.06 82);
-  --tile-4: oklch(0.34 0.05 35);
-  --tile-5: oklch(0.34 0.05 235);
-  --tile-6: oklch(0.32 0.02 300);
-  --tile-foreground: oklch(0.9 0.03 196);
+  /* Same color blocks, lifted just enough to separate from a dark counter. */
+  --tile-1: oklch(0.45 0.09 255);
+  --tile-2: oklch(0.46 0.08 160);
+  --tile-3: oklch(0.55 0.13 40);
+  --tile-4: oklch(0.53 0.1 78);
+  --tile-5: oklch(0.48 0.12 350);
+  --tile-6: oklch(0.5 0.02 250);
+  --tile-foreground: oklch(0.99 0 0);
+
+  --charge: oklch(0.96 0.005 196);
+  --charge-foreground: oklch(0.19 0.01 210);
+  --hairline: oklch(0.32 0.012 205);
 
   --chart-1: oklch(0.72 0.11 196);
   --chart-2: oklch(0.83 0.13 74);
@@ -489,6 +505,39 @@ html:has(.storq-landing) {
       opacity: 1;
       transform: none;
     }
+  }
+
+  /* ---- Counter surfaces (Square-style till) ----------------------------
+   * Flat white panels, one hairline, a 12–14px corner and no drop shadow.
+   * Elevation is reserved for things that float (sheets, the tender screen),
+   * so a dense grid of tiles still reads as one plane. */
+  .till-surface {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  /* Tiles and keys are physical: a fast squeeze on touch-down, a small lift in
+   * brightness on hover, never a rise off the surface. */
+  .till-tile {
+    border-radius: 12px;
+    transition:
+      transform 120ms var(--ease-native),
+      filter 120ms ease;
+  }
+  .till-tile:hover {
+    filter: brightness(1.06);
+  }
+  .till-tile:active {
+    transform: scale(0.97);
+  }
+  .till-key {
+    border-radius: 12px;
+    transition:
+      transform 100ms var(--ease-native),
+      background-color 120ms ease;
+  }
+  .till-key:active {
+    transform: scale(0.95);
   }
 }
 

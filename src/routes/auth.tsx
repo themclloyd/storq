@@ -22,6 +22,9 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Turnstile, type TurnstileHandle } from "@/components/Turnstile";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
+import { redirect } from "@tanstack/react-router";
+import { currentUserId } from "@/lib/auth-session";
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -30,6 +33,10 @@ export const Route = createFileRoute("/auth")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
+  beforeLoad: async () => {
+    const userId = await currentUserId();
+    if (userId) throw redirect({ to: await landingRouteFor() });
+  },
   component: AuthPage,
 });
 

@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, useDeferredValue, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
+  ArrowRight01Icon,
+  CalculatorIcon,
   Delete02Icon,
-  MinusSignIcon,
-  PlusSignIcon,
+  GridViewIcon,
   Search01Icon,
-  ShoppingBag01Icon,
 } from "@/lib/icons";
 import {
   useProducts,
@@ -23,16 +23,9 @@ import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
 import { useOnce } from "@/hooks/use-once";
 import { normalizeCode } from "@/lib/item-codes";
 import { usePos } from "@/lib/pos";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -41,31 +34,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
-import { Empty, Field, NativeSelect, NoAccess } from "@/components/pos/bits";
-import { PasswordInput } from "@/components/password-input";
+import { Empty, Field, NoAccess } from "@/components/pos/bits";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
 import { QuickAddItem } from "@/components/pos/QuickAddItem";
 import { useScannerWedge } from "@/components/pos/use-scanner";
 import { DiscountDialog, type DiscountLine } from "@/components/pos/DiscountDialog";
+import { CustomerDialog } from "@/components/pos/till/CustomerDialog";
+import { ItemTile } from "@/components/pos/till/ItemTile";
+import { KeypadPanel } from "@/components/pos/till/KeypadPanel";
+import { TenderScreen } from "@/components/pos/till/TenderScreen";
+import {
+  Ticket,
+  type TicketCustomer,
+  type TicketRow,
+  type TicketTotals,
+} from "@/components/pos/till/Ticket";
+import { TicketLineSheet } from "@/components/pos/till/TicketLineSheet";
 import { Receipt, type ReceiptTender } from "@/lib/receipts";
-import { validatePin } from "@/lib/validate";
-import { cn } from "@/lib/utils";
-import { isCashMethod, methodIcon, methodLabel } from "@/lib/payment-methods";
 import { useCollections, salePrice } from "@/lib/collections";
-import { useI18n, type TranslateParams } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import { changeDue, composeNote, type SaleForm } from "@/lib/till";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
@@ -83,29 +80,11 @@ export const Route = createFileRoute("/_authenticated/app/")({
   component: Register,
 });
 
-const tiles = ["bg-tile-1", "bg-tile-2", "bg-tile-3", "bg-tile-4", "bg-tile-5", "bg-tile-6"];
-const tileFor = (s: string) =>
-  tiles[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % tiles.length];
-
-type Line = { p: Product; qty: number };
-type TenderRow = { method: string; amount: number };
-type SaleForm = {
-  payment: number;
-  method: string;
-  tenders: TenderRow[];
-  name: string;
-  phone: string;
-  note: string;
-  overridePin: string | null;
-};
-
-/** Change comes only from the cash portion beyond what the other tenders miss. */
-function calcChange(tenders: TenderRow[], total: number, kind: "sale" | "layby"): number {
-  if (kind !== "sale") return 0;
-  const cash = tenders.filter((t) => t.method === "cash").reduce((a, t) => a + t.amount, 0);
-  const other = tenders.filter((t) => t.method !== "cash").reduce((a, t) => a + t.amount, 0);
-  return Math.max(0, round2(cash - Math.max(0, total - other)));
-}
+/** A cart line, with the note the cashier pinned to that one item. */
+type Line = { p: Product; qty: number; note?: string | undefined };
+type Held = { id: string; at: number; cart: Line[]; discounts: Record<string, number> };
+/** Square's two ways to ring up: the item grid, or a calculator. */
+type Mode = "library" | "keypad";
 
 /** The till acts on money and stock, so it is never a read-only screen. */
 function Register() {
@@ -130,19 +109,28 @@ function RegisterContent() {
   const stock = useStock(store?.id, { live: true });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
+  // Square's All tab browses the whole catalogue; we only load it once asked,
+  // so a till does not dump the menu (and its costs of reading) up front.
+  const [browseAll, setBrowseAll] = useState(false);
+  const [mode, setMode] = useState<Mode>("library");
   const [cart, setCart] = useState<Line[]>([]);
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
+  const [customer, setCustomer] = useState<TicketCustomer>({ name: "", phone: "" });
+  const [orderNote, setOrderNote] = useState("");
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [lineId, setLineId] = useState<string | null>(null);
   const [showDisc, setShowDisc] = useState(false);
-  const [dlg, setDlg] = useState<null | "sale" | "layby">(null);
+  const [tender, setTender] = useState<null | "sale" | "layby">(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [scanning, setScanning] = useState(false);
   // Codes seen while the catalog query refreshed: applied once a match exists.
   const [pendingScan, setPendingScan] = useState<string | null>(null);
   // An unknown code lets a manager register the item right here (one code, no
-  // trip to Inventory); cashiers just see the "no item matches" error.
-  const [quickAdd, setQuickAdd] = useState<string | null>(null);
-  // Below the two-column breakpoint the sale panel lives in a bottom sheet
-  // (spec §5); this drives that sheet while a floating bar summarises the cart.
+  // trip to Inventory); the keypad's custom amount uses the same door.
+  const [quickAdd, setQuickAdd] = useState<null | { code: string; amount?: number }>(null);
+  // Below the two-column breakpoint the ticket lives in a bottom sheet and a
+  // fixed bar summarises it, with Charge one tap away.
   const [mobileCart, setMobileCart] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -155,11 +143,11 @@ function RegisterContent() {
   const cats = (cols.data?.list ?? []).map((c) => c.id);
   const catName = (id: string) => cols.data?.list.find((c) => c.id === id)?.name ?? "";
   const dq = useDeferredValue(q);
-  // The till reveals stock only on demand: a search term or an opened category
-  // shows the tiles, so the register never dumps the whole menu up front — a
-  // store rings up what the customer asks for (like a restaurant order), and a
-  // barcode scan drops the item straight into the cart.
-  const browsing = dq.trim().length > 0 || !!cat;
+  // The till reveals stock only on demand: a search term, an opened category or
+  // the All tab shows the tiles, so the register never dumps the whole menu up
+  // front — a store rings up what the customer asks for, and a barcode scan
+  // drops the item straight into the cart.
+  const browsing = dq.trim().length > 0 || !!cat || browseAll;
   const shown = useMemo(() => {
     const needle = dq.trim().toLowerCase();
     return list.filter(
@@ -203,17 +191,31 @@ function RegisterContent() {
       qty <= 0 ? c.filter((l) => l.p.id !== id) : c.map((l) => (l.p.id === id ? { ...l, qty } : l)),
     );
   // Removing a line or clearing the basket is reversible: offer Undo in the
-  // toast so an accidental tap never loses the sale (spec §5, §10).
+  // toast so an accidental tap never loses the sale.
   const removeLine = (id: string) => {
     const line = cart.find((l) => l.p.id === id);
     if (!line) return;
     setCart((c) => c.filter((l) => l.p.id !== id));
+    setDiscounts((d) => {
+      const next = { ...d };
+      delete next[id];
+      return next;
+    });
     toast(t("till.removedItem", { name: line.p.name }), {
       action: {
         label: t("till.undo"),
         onClick: () => setCart((c) => (c.some((l) => l.p.id === id) ? c : [...c, line])),
       },
     });
+  };
+  const resetSale = () => {
+    setCart([]);
+    setDiscounts({});
+    setCustomer({ name: "", phone: "" });
+    setOrderNote("");
+    setLineId(null);
+    setMobileCart(false);
+    setTender(null);
   };
   const clearCart = () => {
     if (!cart.length) return;
@@ -233,7 +235,6 @@ function RegisterContent() {
   };
 
   // ---- held (parked) sales: kept on this device per store ----
-  type Held = { id: string; at: number; cart: Line[]; discounts: Record<string, number> };
   const heldKey = `storq:held:${store?.id ?? "none"}`;
   const [held, setHeld] = useState<Held[]>([]);
   useEffect(() => {
@@ -258,9 +259,10 @@ function RegisterContent() {
     const h = held.find((x) => x.id === id);
     if (!h) return;
     // Re-link to the fresh catalog so prices/stock are current; drop removed items.
-    const lines = h.cart
-      .map((l) => ({ p: list.find((p) => p.id === l.p.id), qty: l.qty }))
-      .filter((l): l is Line => !!l.p);
+    const lines: Line[] = h.cart.flatMap((l) => {
+      const p = list.find((x) => x.id === l.p.id);
+      return p ? [{ p, qty: l.qty, note: l.note }] : [];
+    });
     const rest = held.filter((x) => x.id !== id);
     // Swap: the current basket (if any) is held in its place.
     saveHeld(
@@ -281,7 +283,17 @@ function RegisterContent() {
     setPendingScan(code);
     return false;
   };
-  useScannerWedge(applyCode, { enabled: !!store && !dlg && !scanning && !quickAdd });
+  useScannerWedge(applyCode, {
+    enabled:
+      !!store &&
+      !tender &&
+      !scanning &&
+      !quickAdd &&
+      !lineId &&
+      !customerOpen &&
+      !noteOpen &&
+      !showDisc,
+  });
   useEffect(() => {
     if (!pendingScan) return;
     const p = findByBarcode(list, pendingScan);
@@ -292,7 +304,7 @@ function RegisterContent() {
       toast.error(t("till.noBarcodeMatch", { code: pendingScan }));
       if (can("stock")) {
         setScanning(false);
-        setQuickAdd(pendingScan.trim());
+        setQuickAdd({ code: pendingScan.trim() });
       }
       setPendingScan(null);
     }
@@ -310,20 +322,27 @@ function RegisterContent() {
         )
       ) {
         e.preventDefault();
+        setMode("library");
         searchRef.current?.focus();
       }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
-  // Auto-focus the search on mount (spec §5) so a cashier can start typing or
-  // let a scanner wedge land in the box without a click first.
+  // Auto-focus the search on mount so a cashier can start typing or let a
+  // scanner wedge land in the box without a click first.
   useEffect(() => {
     if (store) searchRef.current?.focus();
   }, [store]);
 
   async function finish(kind: "sale" | "layby", f: SaleForm) {
     if (!store) return;
+    // The order note and every line note travel together, so the receipt and
+    // the sale record explain what was actually handed over.
+    const note = composeNote(
+      f.note,
+      cart.map((l) => ({ name: l.p.name, note: l.note })),
+    );
     const lines = cart.map((l) => ({
       name: l.p.name,
       qty: l.qty,
@@ -351,27 +370,23 @@ function RegisterContent() {
           p_method: f.method,
           p_customer_name: f.name || null,
           p_customer_phone: f.phone || null,
-          p_note: f.note || null,
+          p_note: note || null,
           ...(tenderArg.length ? { p_tenders: tenderArg } : {}),
           ...(disList.length ? { p_discounts: disList } : {}),
           ...(f.overridePin ? { p_override_pin: f.overridePin } : {}),
         },
-        { offlineOk: kind === "sale" && !approval, estTotal: Math.round(total * 100) / 100 },
+        { offlineOk: kind === "sale" && !approval, estTotal: round2(total) },
       );
       if (r.offline) {
-        setCart([]);
-        setDiscounts({});
-        setDlg(null);
-        const change = calcChange(f.tenders, r.total, kind);
+        const change = changeDue(f.tenders, r.total, kind);
+        resetSale();
         toast.success(
           t("till.noInternetSale", { amount: money(r.total) }) +
             (change ? t("till.changeSuffix", { amount: money(change) }) : ""),
         );
         return;
       }
-      setCart([]);
-      setDiscounts({});
-      setDlg(null);
+      resetSale();
       invalidateKeys(qc, SALE_TOUCHED);
       // Approval invoices carry no payment yet, so only completed sales / laybys get a receipt.
       if (r.status !== "pending_approval") {
@@ -395,12 +410,14 @@ function RegisterContent() {
           taxInclusive: incl,
           total: r.total,
           method: pm,
-          tenders: f.tenders.map((t) => ({ method: t.method, raw: t.amount }) as ReceiptTender),
+          tenders: f.tenders.map(
+            (ten) => ({ method: ten.method, raw: ten.amount }) as ReceiptTender,
+          ),
           paid: kind === "layby" ? round2(f.tenders.length ? tenderSum : f.payment) : r.total,
-          change: calcChange(f.tenders, r.total, kind),
+          change: changeDue(f.tenders, r.total, kind),
           customerName: f.name || null,
           customerPhone: f.phone || null,
-          note: f.note || null,
+          note: note || null,
         });
       } else {
         toast.success(t("till.invoiceSentApproval", { no: r.number }));
@@ -412,59 +429,76 @@ function RegisterContent() {
 
   if (!store) return <Empty>{t("till.addStoreFirst")}</Empty>;
 
-  const rows: SaleRow[] = cart.map((l) => {
-    const d = lineDisc(l);
+  const rows: TicketRow[] = cart.map((l) => {
+    const gross = lineGross(l);
+    const disc = lineDisc(l);
     return {
       id: l.p.id,
       name: l.p.name,
       unit: price(l.p),
-      disc: d,
-      gross: lineGross(l),
-      net: round2(lineGross(l) - d),
       qty: l.qty,
+      note: l.note,
+      gross,
+      disc,
+      net: round2(gross - disc),
     };
   });
-  // One element reused by the desktop column and the mobile bottom sheet, so the
-  // two surfaces can never drift apart (spec §5, §11).
-  const salePanel = (
-    <SalePanel
+  const totals: TicketTotals = {
+    gross: grossSub,
+    discount: discountTotal,
+    tax,
+    rate,
+    incl,
+    total,
+  };
+  const count = cart.reduce((a, l) => a + l.qty, 0);
+  const active = lineId ? rows.find((r) => r.id === lineId) : undefined;
+
+  // One Ticket element feeds the desktop pane and the phone sheet, so the two
+  // surfaces can never drift apart.
+  const ticket = (className: string) => (
+    <Ticket
+      className={className}
       title={approval ? t("till.currentInvoice") : t("till.currentSale")}
       storeName={store.name}
       rows={rows}
-      emptyText={t("till.tapItems")}
-      discountTotal={discountTotal}
-      grossSub={grossSub}
-      rate={rate}
-      incl={incl}
-      tax={tax}
-      total={total}
+      totals={totals}
+      customer={customer}
+      note={orderNote}
       approval={approval}
-      money={money}
-      t={t}
-      onStep={setQty}
-      onRemove={removeLine}
+      onCustomer={() => setCustomerOpen(true)}
       onClear={clearCart}
+      onHold={holdCart}
       onDiscount={() => setShowDisc(true)}
-      onCharge={() => setDlg("sale")}
-      onLayby={() => setDlg("layby")}
+      onNote={() => setNoteOpen(true)}
+      onOpenLine={(id) => setLineId(id)}
+      onCharge={() => {
+        // Charge owns the screen: the phone sheet closes first so two overlays
+        // never fight over focus.
+        setMobileCart(false);
+        setTender("sale");
+      }}
+      onLayby={() => {
+        setMobileCart(false);
+        setTender("layby");
+      }}
     />
   );
 
   return (
     <>
-      {/* No PageHeader: the tab bar, sidebar store picker and sale panel already
-          carry the breadcrumb, title and store name — the register keeps the full
-          viewport for items. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      {/* 60/40 counter split: the catalogue on the left, the receipt tape on the
+          right. The ticket is sticky so the Charge button never scrolls away. */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(340px,384px)] lg:items-start lg:gap-4">
         <section className="min-w-0">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="relative flex-1">
+          <div className="mb-2.5 flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
               <Label htmlFor="pos-search" className="sr-only">
                 {t("till.searchLabel")}
               </Label>
               <HugeiconsIcon
                 icon={Search01Icon}
-                className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 ref={searchRef}
@@ -476,21 +510,35 @@ function RegisterContent() {
               />
             </div>
             <ScanCameraButton onOpen={() => setScanning(true)} />
-            {cart.length > 0 && (
-              <Button variant="outline" className="h-11" onClick={holdCart}>
-                {t("till.holdCart")}
-              </Button>
-            )}
+            <div
+              role="group"
+              aria-label={t("till.catalogMode")}
+              className="flex shrink-0 items-center gap-0.5 rounded-[10px] border border-border bg-card p-0.5"
+            >
+              <ModeButton
+                icon={GridViewIcon}
+                label={t("till.modeLibrary")}
+                active={mode === "library"}
+                onClick={() => setMode("library")}
+              />
+              <ModeButton
+                icon={CalculatorIcon}
+                label={t("till.modeKeypad")}
+                active={mode === "keypad"}
+                onClick={() => setMode("keypad")}
+              />
+            </div>
           </div>
+
           {held.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
+            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground">
                 {t("till.heldCarts", { count: held.length })}
               </span>
               {held.map((h) => (
                 <span
                   key={h.id}
-                  className="flex items-center gap-1 rounded-full border bg-card py-1 pl-3 pr-1 text-xs"
+                  className="flex items-center gap-0.5 rounded-full border border-border bg-card py-0.5 pr-0.5 pl-2.5 text-[11px]"
                 >
                   <span className="tabular">
                     {new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{" "}
@@ -499,7 +547,7 @@ function RegisterContent() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2"
+                    className="h-6 px-2 text-[11px] font-semibold text-primary"
                     onClick={() => resumeHeld(h.id)}
                   >
                     {t("till.resume")}
@@ -507,8 +555,8 @@ function RegisterContent() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 text-muted-foreground"
-                    aria-label="Discard held sale"
+                    className="size-6 p-0 text-muted-foreground"
+                    aria-label={t("till.discardHeld")}
                     onClick={() => saveHeld(held.filter((x) => x.id !== h.id))}
                   >
                     <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
@@ -517,151 +565,197 @@ function RegisterContent() {
               ))}
             </div>
           )}
-          {cats.length > 0 && (
-            <div className="mb-4 flex justify-start gap-2 overflow-x-auto pb-1">
-              <CatChip active={!cat} onClick={() => setCat(null)}>
-                {t("till.all")}
-              </CatChip>
-              {cats.map((id) => (
-                <CatChip
-                  key={id}
-                  active={cat === id}
-                  onClick={() => setCat(cat === id ? null : id)}
-                >
-                  {catName(id)}
-                </CatChip>
-              ))}
-            </div>
-          )}
-          {products.isError ? (
-            <Empty>
-              <div className="flex flex-col items-center gap-3">
-                <span>{t("errors.generic")}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={retryingProducts}
-                  onClick={() => void retryProducts()}
-                >
-                  {t("common.tryAgain")}
-                </Button>
-              </div>
-            </Empty>
-          ) : list.length === 0 ? (
-            <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
-          ) : !browsing ? (
-            <Empty>{t(approval ? "till.searchToStartInvoice" : "till.searchToStart")}</Empty>
-          ) : shown.length === 0 ? (
-            <Empty>{t("till.noMatchingItems")}</Empty>
+
+          {mode === "keypad" ? (
+            <KeypadPanel
+              onAddCode={(code) => {
+                const p = findByBarcode(list, code);
+                if (!p) {
+                  toast.error(t("till.noBarcodeMatch", { code }));
+                  return false;
+                }
+                add(p);
+                return true;
+              }}
+              onCustomAmount={(amount) => setQuickAdd({ code: "", amount })}
+              canCreateItem={can("stock")}
+            />
           ) : (
-            <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
-              {shown.map((p) => {
-                const s = stock.data?.[p.id] ?? 0;
-                const threshold = p.reorder_point ?? 5;
-                const soldOut = s <= 0;
-                const low = s > 0 && s <= threshold;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => add(p)}
-                    disabled={soldOut}
-                    aria-disabled={soldOut}
-                    className={cn(
-                      "pos-tile pos-card overflow-hidden text-left hover:border-primary",
-                      soldOut && "pointer-events-none opacity-45",
-                    )}
+            <>
+              {cats.length > 0 && (
+                <div className="no-scrollbar mb-2.5 flex gap-1.5 overflow-x-auto pb-0.5">
+                  <CatChip
+                    active={!cat && browseAll}
+                    onClick={() => {
+                      setCat(null);
+                      setBrowseAll(true);
+                    }}
                   >
-                    <div
-                      className={cn(
-                        "font-display relative grid h-[120px] place-items-center rounded-t-2xl text-3xl text-tile-foreground",
-                        tileFor(p.name),
-                      )}
+                    {t("till.all")}
+                  </CatChip>
+                  {cats.map((id) => (
+                    <CatChip
+                      key={id}
+                      active={cat === id}
+                      onClick={() => setCat(cat === id ? null : id)}
                     >
-                      {p.name.slice(0, 2).toUpperCase()}
-                      {low && (
-                        <span className="absolute left-2 top-2">
-                          <Badge variant="destructive">{t("till.low")}</Badge>
-                        </span>
-                      )}
-                      {soldOut && (
-                        <span className="absolute inset-x-0 bottom-2 text-center text-xs font-medium text-destructive">
-                          {t("till.outOfStock")}
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <div className="truncate text-sm font-medium">{p.name}</div>
-                      <div className="mt-1 flex items-baseline justify-between text-xs">
-                        <span className="tabular font-semibold text-secondary-foreground">
-                          {price(p) < Number(p.price) && (
-                            <span className="mr-1 font-normal text-muted-foreground line-through">
-                              {money(p.price)}
-                            </span>
-                          )}
-                          {money(price(p))}
-                        </span>
-                        {!soldOut && (
-                          <span className="tabular text-muted-foreground">
-                            {t("till.inStock", { count: s })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                      {catName(id)}
+                    </CatChip>
+                  ))}
+                </div>
+              )}
+              {products.isError ? (
+                <Empty>
+                  <div className="flex flex-col items-center gap-3">
+                    <span>{t("errors.generic")}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={retryingProducts}
+                      onClick={() => void retryProducts()}
+                    >
+                      {t("common.tryAgain")}
+                    </Button>
+                  </div>
+                </Empty>
+              ) : list.length === 0 ? (
+                <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
+              ) : !browsing ? (
+                <Empty>
+                  <div className="flex flex-col items-center gap-3">
+                    <span>{t(approval ? "till.searchToStartInvoice" : "till.searchToStart")}</span>
+                    <Button size="sm" variant="outline" onClick={() => setBrowseAll(true)}>
+                      {t("till.showAll")}
+                    </Button>
+                  </div>
+                </Empty>
+              ) : shown.length === 0 ? (
+                <Empty>{t("till.noMatchingItems")}</Empty>
+              ) : (
+                <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(142px,1fr))] sm:gap-2.5">
+                  {shown.map((p) => {
+                    const s = stock.data?.[p.id] ?? 0;
+                    return (
+                      <ItemTile
+                        key={p.id}
+                        name={p.name}
+                        price={price(p)}
+                        compareAt={Number(p.price)}
+                        stock={s}
+                        threshold={p.reorder_point ?? 5}
+                        onAdd={() => add(p)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </section>
 
-        {/* Desktop: the sticky Current-sale column (spec §5). */}
-        <div className="hidden lg:block">
-          <div className="lg:sticky lg:top-8">{salePanel}</div>
-        </div>
+        {/* Desktop / tablet landscape: the ticket as a fixed-height column. */}
+        <aside className="hidden lg:block">
+          <div className="lg:sticky lg:top-4">{ticket("h-[min(calc(100dvh-9rem),820px)]")}</div>
+        </aside>
 
-        {/* Mobile / tablet: a floating summary bar that opens the sale as a
-            bottom sheet below the two-column breakpoint. */}
+        {/* Phone / small tablet: a summary bar with Charge one tap away; the bar
+            opens the full ticket as a sheet. */}
         <div className="lg:hidden">
           {cart.length > 0 && (
-            <Sheet open={mobileCart} onOpenChange={setMobileCart}>
-              <SheetTrigger asChild>
+            <>
+              <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom,0px))] z-30 flex items-stretch gap-2 border-t border-border bg-card px-3 py-2 shadow-[0_-1px_0_var(--hairline)] md:bottom-0">
                 <button
                   type="button"
-                  className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t bg-card px-5 py-4 text-left shadow-lg"
+                  onClick={() => setMobileCart(true)}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] px-1 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
                 >
-                  <span className="flex items-center gap-2.5">
-                    <span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground [&_svg]:size-4">
-                      <HugeiconsIcon icon={ShoppingBag01Icon} />
+                  <span className="tabular grid size-9 shrink-0 place-items-center rounded-[10px] bg-secondary text-[12px] font-bold text-secondary-foreground">
+                    {count}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-semibold">
+                      {t("till.reviewSale")}
                     </span>
-                    <span className="text-sm font-medium">
-                      {t("till.itemsCount", { count: cart.length })}
+                    <span className="tabular block truncate text-[11px] text-muted-foreground">
+                      {money(total)}
                     </span>
                   </span>
-                  <span className="font-display tabular text-lg">{money(total)}</span>
                 </button>
-              </SheetTrigger>
-              <SheetContent
-                side="bottom"
-                className="max-h-[85vh] gap-0 overflow-hidden rounded-t-3xl bg-background p-0"
-              >
-                <SheetHeader className="sr-only">
-                  <SheetTitle>{t("till.currentSale")}</SheetTitle>
-                  <SheetDescription>{store.name}</SheetDescription>
-                </SheetHeader>
-                <div className="max-h-[calc(85vh-2rem)] overflow-y-auto">{salePanel}</div>
-              </SheetContent>
-            </Sheet>
+                <Button
+                  variant="charge"
+                  className="h-11 shrink-0 px-3 text-[13px]"
+                  onClick={() => setTender("sale")}
+                >
+                  {approval
+                    ? t("till.sendForApproval")
+                    : t("till.charge", { amount: money(total) })}
+                  <HugeiconsIcon icon={ArrowRight01Icon} />
+                </Button>
+              </div>
+              <Sheet open={mobileCart} onOpenChange={setMobileCart}>
+                <SheetContent
+                  side="bottom"
+                  className="max-h-[88vh] gap-0 overflow-hidden rounded-t-[16px] bg-background p-0"
+                >
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>{t("till.currentSale")}</SheetTitle>
+                    <SheetDescription>{store.name}</SheetDescription>
+                  </SheetHeader>
+                  <div className="max-h-[86vh] overflow-hidden pt-2">
+                    {ticket("max-h-[84vh] rounded-t-none border-x-0 border-b-0")}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </>
           )}
         </div>
 
-        {dlg && (
-          <CheckoutDialog
-            kind={dlg}
+        {tender && (
+          <TenderScreen
+            kind={tender}
             total={total}
             approval={approval}
             needsPin={overCap}
-            onClose={() => setDlg(null)}
-            onDone={(f) => finish(dlg, f)}
+            customer={customer}
+            note={orderNote}
+            onClose={() => setTender(null)}
+            onDone={(f) => finish(tender, f)}
+          />
+        )}
+        {active && (
+          <TicketLineSheet
+            line={active}
+            stock={stock.data?.[active.id] ?? 0}
+            capped={capped}
+            onSave={(qty, disc, note) => {
+              setQty(active.id, qty);
+              setDiscounts((d) => {
+                const next = { ...d };
+                if (disc > 0) next[active.id] = disc;
+                else delete next[active.id];
+                return next;
+              });
+              setCart((c) =>
+                c.map((l) => (l.p.id === active.id ? { ...l, note: note || undefined } : l)),
+              );
+            }}
+            onRemove={() => removeLine(active.id)}
+            onClose={() => setLineId(null)}
+          />
+        )}
+        {customerOpen && (
+          <CustomerDialog
+            customer={customer}
+            onSave={setCustomer}
+            onRemove={() => setCustomer({ name: "", phone: "" })}
+            onClose={() => setCustomerOpen(false)}
+          />
+        )}
+        {noteOpen && (
+          <OrderNoteDialog
+            note={orderNote}
+            onSave={setOrderNote}
+            onClose={() => setNoteOpen(false)}
           />
         )}
         {showDisc && (
@@ -685,7 +779,9 @@ function RegisterContent() {
         )}
         {quickAdd && (
           <QuickAddItem
-            code={quickAdd}
+            code={quickAdd.code}
+            initialPrice={quickAdd.amount !== undefined ? String(quickAdd.amount) : undefined}
+            custom={quickAdd.amount !== undefined}
             onCreated={(p) => {
               add(p);
               setQuickAdd(null);
@@ -698,494 +794,81 @@ function RegisterContent() {
   );
 }
 
-type SaleRow = {
-  id: string;
-  name: string;
-  unit: number;
-  disc: number;
-  gross: number;
-  net: number;
-  qty: number;
-};
-
-// The Current-sale panel (spec §5): header + clear, empty state, pill-stepper
-// rows, and the tinted footer (discount / VAT / total / charge / layby). Rendered
-// inline on desktop and inside the mobile bottom sheet from a single element.
-function SalePanel({
-  title,
-  storeName,
-  rows,
-  emptyText,
-  discountTotal,
-  grossSub,
-  rate,
-  incl,
-  tax,
-  total,
-  approval,
-  money,
-  t,
-  onStep,
-  onRemove,
-  onClear,
-  onDiscount,
-  onCharge,
-  onLayby,
+/** Library / Keypad switch: the two ways Square lets a cashier ring up. */
+function ModeButton({
+  icon,
+  label,
+  active,
+  onClick,
 }: {
-  title: string;
-  storeName: string;
-  rows: SaleRow[];
-  emptyText: string;
-  discountTotal: number;
-  grossSub: number;
-  rate: number;
-  incl: boolean;
-  tax: number;
-  total: number;
-  approval: boolean;
-  money: (n: number | string | null | undefined) => string;
-  t: (key: string, opts?: TranslateParams) => string;
-  onStep: (id: string, qty: number) => void;
-  onRemove: (id: string) => void;
-  onClear: () => void;
-  onDiscount: () => void;
-  onCharge: () => void;
-  onLayby: () => void;
+  icon: IconSvgElement;
+  label: string;
+  active: boolean;
+  onClick: () => void;
 }) {
-  const has = rows.length > 0;
   return (
-    <Card className="flex h-fit flex-col overflow-hidden rounded-3xl">
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 border-b px-5 py-4">
-        <div className="min-w-0">
-          <CardTitle className="font-display text-lg font-medium">{title}</CardTitle>
-          <CardDescription className="truncate text-xs">{storeName}</CardDescription>
-        </div>
-        {has && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="shrink-0 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {t("till.clear")}
-          </button>
-        )}
-      </CardHeader>
-      <CardContent className="flex-1 p-0">
-        <ScrollArea className="max-h-[45vh]">
-          <div className="divide-y">
-            {!has && (
-              <div className="flex flex-col items-center gap-3 p-8 text-center">
-                <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
-                  <HugeiconsIcon icon={ShoppingBag01Icon} />
-                </span>
-                <p className="text-sm text-muted-foreground">{emptyText}</p>
-              </div>
-            )}
-            {rows.map((r) => (
-              <div key={r.id} className="pos-row flex items-center gap-3 px-5 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{r.name}</div>
-                  <div className="tabular text-xs text-muted-foreground">
-                    {money(r.unit)} {t("till.eachWord")}
-                    {r.disc > 0 && <span className="ml-1 text-warning">· −{money(r.disc)}</span>}
-                  </div>
-                </div>
-                <div className="inline-flex items-center gap-0.5 rounded-full border border-input bg-card p-0.5">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    aria-label={r.qty <= 1 ? t("till.remove") : t("till.decrease")}
-                    onClick={() => (r.qty <= 1 ? onRemove(r.id) : onStep(r.id, r.qty - 1))}
-                  >
-                    {r.qty <= 1 ? (
-                      <HugeiconsIcon icon={Delete02Icon} />
-                    ) : (
-                      <HugeiconsIcon icon={MinusSignIcon} />
-                    )}
-                  </Button>
-                  <span className="tabular w-6 text-center text-sm font-medium">{r.qty}</span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    aria-label={t("till.increase")}
-                    onClick={() => onStep(r.id, r.qty + 1)}
-                  >
-                    <HugeiconsIcon icon={PlusSignIcon} />
-                  </Button>
-                </div>
-                <div className="tabular w-20 text-right text-sm">
-                  {r.disc > 0 && (
-                    <div className="text-xs font-normal text-muted-foreground line-through">
-                      {money(r.gross)}
-                    </div>
-                  )}
-                  <span className="font-semibold text-secondary-foreground">{money(r.net)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </CardContent>
-      <CardFooter className="flex-col items-stretch gap-3 border-t bg-secondary/40 p-5">
-        <button
-          type="button"
-          onClick={onDiscount}
-          disabled={!has}
-          className="w-full rounded-xl border border-dashed border-input py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
-        >
-          {discountTotal > 0
-            ? t("till.discountApplied", { amount: money(discountTotal) })
-            : `+ ${t("till.addDiscount")}`}
-        </button>
-        {discountTotal > 0 && (
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{t("till.lineItems")}</span>
-            <span className="tabular">{money(grossSub)}</span>
-          </div>
-        )}
-        {rate > 0 && (
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>
-              {t("till.vat")} {rate}% ({incl ? t("till.included") : t("till.added")})
-            </span>
-            <span className="tabular">{money(tax)}</span>
-          </div>
-        )}
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-muted-foreground">{t("common.total")}</span>
-          <span className="font-display tabular text-[38px] leading-none font-medium">
-            {money(total)}
-          </span>
-        </div>
-        <Button size="xl" variant="soft" className="w-full" disabled={!has} onClick={onCharge}>
-          {approval ? t("till.sendForApproval") : t("till.charge", { amount: money(total) })}
-        </Button>
-        <Button size="lg" variant="outline" className="w-full" disabled={!has} onClick={onLayby}>
-          {approval ? t("till.laybyInvoice") : t("till.startLayby")}
-        </Button>
-      </CardFooter>
-    </Card>
+    <button
+      type="button"
+      aria-pressed={active}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+        active
+          ? "bg-foreground text-background"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <HugeiconsIcon icon={icon} className="size-4" />
+      <span className="hidden sm:inline">{label}</span>
+    </button>
   );
 }
 
-const sectionLabel = "text-[11px] font-medium uppercase tracking-wider text-muted-foreground";
-
-function CheckoutDialog({
-  kind,
-  total,
-  approval,
-  needsPin,
+/** The note that travels with the whole ticket, separate from per-item notes. */
+function OrderNoteDialog({
+  note,
+  onSave,
   onClose,
-  onDone,
 }: {
-  kind: "sale" | "layby";
-  total: number;
-  approval: boolean;
-  needsPin: boolean;
+  note: string;
+  onSave: (note: string) => void;
   onClose: () => void;
-  onDone: (f: SaleForm) => Promise<void>;
 }) {
-  const { money, store, paymentMethods } = usePos();
   const { t } = useI18n();
-  const methodOpts = paymentMethods.map((code) => ({ value: code, label: methodLabel(code) }));
-  // Split rows start on a method that is not the primary cash row.
-  const nextMethod = paymentMethods.find((code) => !isCashMethod(code)) ?? "cash";
-  const [method, setMethod] = useState("cash");
-  const [tendered, setTendered] = useState("");
-  const [extra, setExtra] = useState<{ method: string; amount: string }[]>([]);
-  const [pin, setPin] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  const pay = Number(tendered || 0);
-  const splitting = extra.length > 0;
-  const rate = Number(store?.tax_rate ?? 0);
-  // Notes a cashier is likely holding: the next round amounts above the total.
-  const step = total >= 5000 ? 5000 : total >= 1000 ? 1000 : 100;
-  const upTo = (m: number) => Math.ceil(total / m) * m;
-  const notes = [...new Set([upTo(step), upTo(step * 2), upTo(step * 4)])]
-    .filter((v) => v > total)
-    .slice(0, 2);
-  // A layby deposit is any part of a fixed total; half is the other common one.
-  const half = round2(total / 2);
-
-  // Split rows carry their own amounts; the primary row is the cash field when
-  // cash or a layby deposit (any method, any amount up to the total), or covers
-  // the remainder when a lone card/mobile tender pays a sale in full (no split).
-  const tenders: TenderRow[] = approval
-    ? []
-    : splitting
-      ? [
-          { method, amount: pay },
-          ...extra.map((e) => ({ method: e.method, amount: Number(e.amount || 0) })),
-        ].filter((t) => t.amount > 0)
-      : [];
-  const sumT = tenders.reduce((a, t) => a + t.amount, 0);
-  const covered = !splitting ? (kind === "layby" || isCashMethod(method) ? pay : total) : sumT;
-  const short = round2(total - covered);
-  const change = approval
-    ? 0
-    : calcChange(splitting ? tenders : [{ method, amount: pay }], total, kind);
-  const showAmount = !approval && (kind === "layby" || isCashMethod(method) || splitting);
-
-  const submit = async () => {
-    setBusy(true);
-    await onDone({
-      payment: approval
-        ? 0
-        : kind === "sale" && !splitting
-          ? total
-          : round2(splitting ? sumT : Math.min(Math.max(pay, 0), total)),
-      method,
-      tenders: splitting ? tenders : [],
-      name,
-      phone,
-      note,
-      overridePin: needsPin ? pin : null,
-    });
-    setBusy(false);
+  const [value, setValue] = useState(note);
+  const commit = () => {
+    onSave(value.trim());
+    onClose();
   };
-
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-3xl bg-card p-0">
-        <DialogHeader className="space-y-0 border-b px-5 py-4 pr-12 text-left">
-          <DialogTitle>
-            {approval
-              ? kind === "layby"
-                ? t("till.titleLaybyApproval")
-                : t("till.titleInvoiceApproval")
-              : kind === "layby"
-                ? t("till.titleStartLayby")
-                : t("till.titleTakePayment")}
-          </DialogTitle>
-          <DialogDescription className="mt-1.5 truncate text-xs">
-            {store?.name} ·{" "}
-            {approval
-              ? t("till.subApprovalInvoice")
-              : kind === "layby"
-                ? t("till.subLayby")
-                : t("till.subDirectSale")}
+      <DialogContent className="max-w-sm gap-0 overflow-hidden bg-card p-0">
+        <DialogHeader className="space-y-0 border-b border-border px-5 py-4 pr-12 text-left">
+          <DialogTitle className="text-base">{t("till.orderNote")}</DialogTitle>
+          <DialogDescription className="mt-1 text-[11px] leading-relaxed">
+            {t("till.orderNoteHint")}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="px-5 pt-5">
-          <div className="rounded-2xl bg-secondary/50 px-4 py-3 text-center">
-            <div className={sectionLabel}>
-              {approval ? t("till.invoiceTotal") : t("till.amountDue")}
-            </div>
-            <div className="font-display tabular mt-1 text-[34px] leading-none font-medium">
-              {money(total)}
-            </div>
-            {rate > 0 && (
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                {t("till.vat")} {rate}%{" "}
-                {store?.tax_inclusive ? t("till.included") : t("till.added")}
-              </div>
-            )}
-          </div>
+        <div className="px-5 py-4">
+          <Field label={t("till.orderNote")}>
+            <Input
+              autoFocus
+              maxLength={200}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={t("till.orderNotePlaceholder")}
+              onKeyDown={(e) => e.key === "Enter" && commit()}
+            />
+          </Field>
         </div>
-
-        <div className="space-y-4 px-5 py-5">
-          {approval ? (
-            <Alert className="border-warning/40 bg-warning/15 text-warning-foreground">
-              <AlertDescription className="text-xs [&_p]:leading-relaxed">
-                {t("till.approvalNote")}
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-2">
-              <Label className={sectionLabel}>
-                {splitting ? t("till.payment1Method") : t("till.paymentMethod")}
-              </Label>
-              <div
-                role="group"
-                aria-label={t("till.paymentMethod")}
-                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-              >
-                {paymentMethods.map((code) => {
-                  const active = method === code;
-                  return (
-                    <button
-                      key={code}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setMethod(code)}
-                      className={cn(
-                        "flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-[13px] transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
-                        active
-                          ? "border-primary/60 bg-primary/10 font-medium text-foreground"
-                          : "border-border text-muted-foreground hover:bg-muted/60",
-                      )}
-                    >
-                      <HugeiconsIcon icon={methodIcon(code)} className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{methodLabel(code)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {showAmount && (
-            <div className="space-y-2">
-              <Field
-                label={
-                  splitting
-                    ? t("till.labelAmount")
-                    : kind === "layby"
-                      ? t("till.labelDepositPaidNow")
-                      : t("till.labelCashReceived")
-                }
-              >
-                <Input
-                  inputMode="decimal"
-                  value={tendered}
-                  onChange={(e) => setTendered(e.target.value)}
-                  placeholder="0.00"
-                  className="tabular h-12 bg-card text-right text-xl font-semibold md:text-xl"
-                />
-              </Field>
-              {!splitting && (
-                <div className="flex flex-wrap gap-2">
-                  <Tender active={pay === total} onClick={() => setTendered(String(total))}>
-                    {kind === "layby" ? t("till.tenderFullAmount") : t("till.tenderExact")}
-                  </Tender>
-                  {kind === "layby" ? (
-                    <Tender active={pay === half} onClick={() => setTendered(String(half))}>
-                      {t("till.tenderHalfAmount")}
-                    </Tender>
-                  ) : (
-                    notes.map((v) => (
-                      <Tender key={v} active={pay === v} onClick={() => setTendered(String(v))}>
-                        {money(v)}
-                      </Tender>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {!approval && (
-            <div className="space-y-2">
-              {extra.map((e, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <NativeSelect
-                    className="w-36"
-                    value={e.method}
-                    onChange={(v) =>
-                      setExtra((x) => x.map((r, j) => (j === i ? { ...r, method: v } : r)))
-                    }
-                    options={methodOpts}
-                  />
-                  <Input
-                    inputMode="decimal"
-                    aria-label={t("till.ariaPaymentAmount", { no: i + 2 })}
-                    value={e.amount}
-                    onChange={(ev) =>
-                      setExtra((x) =>
-                        x.map((r, j) => (j === i ? { ...r, amount: ev.target.value } : r)),
-                      )
-                    }
-                    placeholder="0.00"
-                    className="tabular h-9 flex-1 text-right"
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-9 shrink-0"
-                    aria-label={t("till.ariaRemovePayment")}
-                    onClick={() => setExtra((x) => x.filter((_, j) => j !== i))}
-                  >
-                    <HugeiconsIcon icon={Delete02Icon} />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setExtra((x) => [...x, { method: nextMethod, amount: "" }])}
-              >
-                <HugeiconsIcon icon={PlusSignIcon} className="size-4" />
-                {t("till.addAnotherPayment")}
-              </Button>
-            </div>
-          )}
-
-          {!approval && (splitting || kind === "layby") && short > 0.005 && (
-            <div className="flex items-center justify-between rounded-2xl bg-muted px-4 py-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                {t("till.remainingDue")}
-              </span>
-              <span className="tabular text-lg font-semibold">{money(short)}</span>
-            </div>
-          )}
-          {change > 0 && (
-            <div className="flex items-center justify-between rounded-2xl bg-success-soft px-4 py-3">
-              <span className="text-sm font-medium text-success">{t("till.changeDue")}</span>
-              <span className="tabular text-lg font-semibold text-success">{money(change)}</span>
-            </div>
-          )}
-
-          {needsPin && (
-            <Field label={t("till.managerPinOverCap")}>
-              <PasswordInput
-                inputMode="numeric"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder={t("till.enterManagerPin")}
-                className="tabular"
-              />
-            </Field>
-          )}
-
-          {(kind === "layby" || approval) && (
-            <div className="grid grid-cols-2 gap-3">
-              <Field
-                label={kind === "layby" ? t("till.customerNameRequired") : t("till.customerName")}
-              >
-                <Input value={name} onChange={(e) => setName(e.target.value)} />
-              </Field>
-              <Field label={t("till.phoneLabel")}>
-                <Input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </Field>
-            </div>
-          )}
-          {approval && (
-            <Field label={t("till.noteForApprover")}>
-              <Input value={note} onChange={(e) => setNote(e.target.value)} />
-            </Field>
-          )}
-        </div>
-
-        <DialogFooter className="flex-row gap-3 border-t bg-muted px-5 py-4 sm:justify-between sm:space-x-0">
-          <Button variant="ghost" size="lg" className="px-4" onClick={onClose}>
+        <DialogFooter className="flex-row gap-2 border-t border-border bg-secondary/35 px-5 py-4 sm:justify-between sm:space-x-0">
+          <Button variant="ghost" size="lg" className="px-3" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button
-            size="lg"
-            className="flex-1"
-            disabled={
-              busy ||
-              (kind === "layby" && !name.trim()) ||
-              (needsPin && validatePin(pin) !== null) ||
-              (kind === "sale" &&
-                !approval &&
-                ((splitting && short > 0.005) ||
-                  (!splitting && isCashMethod(method) && tendered !== "" && pay < total)))
-            }
-            onClick={submit}
-          >
-            {approval
-              ? t("till.sendForApproval")
-              : kind === "layby"
-                ? t("till.openLayby")
-                : t("till.completeSale", { amount: money(total) })}
+          <Button size="lg" className="flex-1" onClick={commit}>
+            {t("common.done")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1193,30 +876,8 @@ function CheckoutDialog({
   );
 }
 
-function Tender({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Button
-      type="button"
-      size="sm"
-      variant={active ? "secondary" : "outline"}
-      aria-pressed={active}
-      onClick={onClick}
-    >
-      {children}
-    </Button>
-  );
-}
-
-// Category filter chips (spec §5): a pill row where the active chip is filled
-// `primary`. Scrollable on narrow screens so the row never wraps the toolbar.
+// Category filter chips: a scrollable row where the active chip is filled ink,
+// so the row never wraps the toolbar.
 function CatChip({
   active,
   onClick,
@@ -1232,10 +893,10 @@ function CatChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-sm font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
+        "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
         active
-          ? "border-transparent bg-primary text-primary-foreground"
-          : "border-input bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "border-transparent bg-foreground text-background"
+          : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       {children}

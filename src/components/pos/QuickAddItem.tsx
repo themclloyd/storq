@@ -32,13 +32,22 @@ import {
  * printed on another device). Admins and managers can register the item on the
  * spot — the code is already filled in, so the till never waits on the
  * Inventory screen — and it drops straight into the basket.
+ *
+ * `custom` is the keypad's "add amount" door: no code, the price prefilled from
+ * the calculator, and one unit is received into stock so the sale can complete
+ * (checkout sells catalogue items only, and refuses to sell stock it cannot
+ * see).
  */
 export function QuickAddItem({
   code,
+  initialPrice,
+  custom = false,
   onCreated,
   onClose,
 }: {
   code: string;
+  initialPrice?: string | undefined;
+  custom?: boolean;
   onCreated: (p: Product) => void;
   onClose: () => void;
 }) {
@@ -46,7 +55,7 @@ export function QuickAddItem({
   const { t } = useI18n();
   const qc = useQueryClient();
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState(initialPrice ?? "");
   const [busy, setBusy] = useState(false);
   const itemCode = normalizeCode(code);
 
@@ -91,6 +100,23 @@ export function QuickAddItem({
         active: true,
         reorder_point: null,
       };
+      // A custom amount is one thing the cashier is holding right now; without
+      // this the line could never be sold from a store that counts its stock.
+      if (custom && p.id && store) {
+        try {
+          await rpc("adjust_stock_reason", {
+            p_store: store.id,
+            p_product: p.id,
+            p_delta: 1,
+            p_reason: "correction",
+            p_note: t("till.customStockNote"),
+          });
+        } catch (e) {
+          // The item still sells from an approval store; everywhere else the
+          // cashier is told to put the quantity in before charging.
+          toast.error((e as Error).message);
+        }
+      }
       toast.success(t("till.itemCreated", { name: p.name }));
       if (p.id) onCreated(p);
       else onClose();
@@ -106,8 +132,10 @@ export function QuickAddItem({
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{t("till.quickAddTitle")}</DialogTitle>
-          <DialogDescription>{t("till.quickAddSub", { code: itemCode || "—" })}</DialogDescription>
+          <DialogTitle>{custom ? t("till.customTitle") : t("till.quickAddTitle")}</DialogTitle>
+          <DialogDescription>
+            {custom ? t("till.customSub") : t("till.quickAddSub", { code: itemCode || "—" })}
+          </DialogDescription>
         </DialogHeader>
         <Label className="block space-y-1">
           <span className="text-[11px] font-medium text-muted-foreground">{t("common.name")}</span>
@@ -132,7 +160,9 @@ export function QuickAddItem({
             onKeyDown={(e) => e.key === "Enter" && !busy && save()}
           />
         </Label>
-        <p className="text-xs text-muted-foreground">{t("till.quickAddStockNote")}</p>
+        <p className="text-xs text-muted-foreground">
+          {custom ? t("till.customStockNote") : t("till.quickAddStockNote")}
+        </p>
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" disabled={busy} onClick={onClose}>
             {t("common.cancel")}

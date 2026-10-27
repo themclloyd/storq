@@ -15,6 +15,10 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:brightness-[0.94]",
         // Tinted primary for large POS actions: soft surface, colored label.
         soft: "bg-primary-soft text-primary-soft-foreground hover:brightness-[0.95]",
+        // The counter's money action: jet ink on white, and the only control a
+        // cashier is meant to reach for last. Opacity (not brightness) so the
+        // hover works in both a light and a dark palette.
+        charge: "bg-charge text-charge-foreground hover:opacity-90",
         destructive: "bg-destructive-soft text-destructive hover:brightness-[0.97]",
         outline: "border border-input bg-card text-foreground hover:bg-muted",
         secondary: "bg-secondary text-secondary-foreground hover:brightness-[0.97]",

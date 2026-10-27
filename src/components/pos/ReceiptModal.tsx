@@ -66,6 +66,18 @@ export function ReceiptModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* The one number the cashier must read from across the counter. */}
+        {receipt.change > 0 && (
+          <div className="flex items-baseline justify-between gap-3 border-b border-border bg-success px-5 py-4 text-success-foreground">
+            <span className="text-[11px] font-bold tracking-wider uppercase">
+              {t("till.changeDue")}
+            </span>
+            <span className="tabular text-4xl leading-none font-extrabold">
+              {money(receipt.change)}
+            </span>
+          </div>
+        )}
+
         <ScrollArea className="max-h-[46vh] bg-secondary/30">
           <div className="px-5 py-5">
             <div
