@@ -20,12 +20,43 @@ import appCss from "../styles.css?url";
 import { SITE_NAME, DEFAULT_OG_IMAGE, PUBLIC_ROBOTS } from "@/lib/seo";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+/**
+ * A tab left open across a deploy — or across a dev-server restart — asks for
+ * route chunks that no longer exist, and the router reports that as a module
+ * load error. Re-rendering can never fix it: the tab needs the new manifest, so
+ * the boundary reloads once and only shows the failure screen if that did not
+ * help. Anything else keeps the normal "try again" behaviour.
+ */
+const STALE_MODULE =
+  /dynamically imported module|module script failed|ChunkLoadError|Loading chunk \S+ failed/i;
+const RELOAD_KEY = "storq:stale-module-reload";
+const RELOAD_COOLDOWN = 60_000;
+
+function isStaleModule(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return STALE_MODULE.test(message);
+}
+
+/** Reload at most once a minute, so a genuinely broken build still shows the screen. */
+function reloadOnce(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
+    if (Date.now() - last < RELOAD_COOLDOWN) return false;
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+  } catch {
+    // Blocked storage: allow the reload, the cooldown is only a safety net.
+  }
+  window.location.reload();
+  return true;
+}
+
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const { t } = useI18n();
   console.error(error);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    if (isStaleModule(error)) reloadOnce();
   }, [error]);
 
   return (
@@ -38,6 +69,8 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
+              // A stale chunk never recovers in place; fetch the current build.
+              if (isStaleModule(error) && reloadOnce()) return;
               router.invalidate();
               reset();
             }}

@@ -1,37 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cashPresets, changeDue, composeNote, depositPresets, tenderTotal } from "@/lib/till";
-
-describe("smart cash tender (Square's quick-cash buttons)", () => {
-  it("leads with the exact total and no change", () => {
-    const [exact] = cashPresets(7420);
-    expect(exact).toEqual({ amount: 7420, change: 0, exact: true });
-  });
-
-  it("offers the next notes above the total, never a duplicate or a lower amount", () => {
-    expect(cashPresets(7420)).toEqual([
-      { amount: 7420, change: 0, exact: true },
-      { amount: 8000, change: 580, exact: false },
-      { amount: 10000, change: 2580, exact: false },
-      { amount: 20000, change: 12580, exact: false },
-    ]);
-  });
-
-  it("keeps every button above the total when the total is already a round note", () => {
-    const presets = cashPresets(8000);
-    expect(presets.map((p) => p.amount)).toEqual([8000, 9000, 10000, 20000]);
-    expect(presets.every((p) => p.amount >= 8000)).toBe(true);
-  });
-
-  it("handles a zero total without offering the same button twice", () => {
-    const amounts = cashPresets(0).map((p) => p.amount);
-    expect(new Set(amounts).size).toBe(amounts.length);
-    expect(amounts[0]).toBe(0);
-  });
-
-  it("rounds a fractional total to two decimals", () => {
-    expect(cashPresets(7420.555)[0]!.amount).toBe(7420.56);
-  });
-});
+import { changeDue, composeNote, depositPresets, tenderTotal } from "@/lib/till";
 
 describe("layby deposit presets", () => {
   it("offers the full amount and half of it", () => {

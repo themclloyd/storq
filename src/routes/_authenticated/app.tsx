@@ -3,33 +3,21 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ChevronDownIcon } from "lucide-react";
 import {
-  DashboardSquare01Icon,
-  BoxesIcon,
   Delete02Icon,
   SquareLockIcon,
   Logout02Icon,
-  PackageIcon,
-  ReceiptIcon,
-  ShoppingBag01Icon,
-  StoreIcon,
-  BarChartIcon,
   Settings01Icon,
   LanguagesIcon,
   Alert02Icon,
-  Download01Icon,
 } from "@/lib/icons";
 import { supabase } from "@/integrations/supabase/client";
-import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop";
 import { PosProvider, usePos } from "@/lib/pos";
 import { usePendingApprovals } from "@/lib/sales";
-import {
-  workspaceNavigation,
-  workspacePageAt,
-  type WorkspaceGroup,
-} from "@/lib/workspace-navigation";
+import { workspaceNavigation, workspacePageAt } from "@/lib/workspace-navigation";
 import { WorkspaceTabs } from "@/components/pos/WorkspaceTabs";
+import { WorkspaceRail } from "@/components/pos/WorkspaceRail";
+import { navIcons } from "@/components/pos/nav-icons";
 import { DrawerChip } from "@/components/pos/DrawerChip";
 import { useSubscription } from "@/lib/billing";
 import { useOnce } from "@/hooks/use-once";
@@ -40,20 +28,6 @@ import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -464,34 +438,15 @@ function PinPad() {
   );
 }
 
-const navIcons: Record<WorkspaceGroup, typeof BoxesIcon> = {
-  dashboard: DashboardSquare01Icon,
-  register: ShoppingBag01Icon,
-  sales: ReceiptIcon,
-  inventory: PackageIcon,
-  finance: BarChartIcon,
-  settings: StoreIcon,
-};
-
 /**
- * Staff menu: settings, lock and sign out live here so the sidebar stays a short
- * list of work screens. The sidebar footer renders the card variant (avatar +
- * name + role); the headers reuse the same items behind a compact avatar icon.
+ * Staff menu: settings, lock, language and sign out live here so the rail stays
+ * a short list of work screens. The rail foot and the mobile header share it.
  */
-function UserMenu({
-  variant,
-  settingsTo,
-}: {
-  variant: "card" | "icon";
-  settingsTo: string | undefined;
-}) {
+function UserMenu({ settingsTo }: { settingsTo: string | undefined }) {
   const { t, locale, setLocale } = useI18n();
   const { staff, lock } = usePos();
   const signOut = useSignOut();
   const initial = staff?.name.slice(0, 2).toUpperCase() ?? "";
-  // The owner created the business; everyone else is a team member whose access
-  // is the checklist of grants on their row.
-  const accessLabel = staff ? (staff.owner ? t("staff.owner") : t("staff.member")) : "";
   const avatar = (
     <Avatar className="size-8 border">
       <AvatarFallback className="text-xs">{initial}</AvatarFallback>
@@ -499,33 +454,16 @@ function UserMenu({
   );
   return (
     <DropdownMenu>
-      {variant === "card" ? (
-        <DropdownMenuTrigger asChild>
-          <button className="pos-card flex w-full items-center gap-2 p-1.5 text-left transition-colors hover:bg-secondary">
-            {avatar}
-            <span className="grid min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-              <span className="truncate text-[13px] font-medium">{staff?.name}</span>
-              <span className="truncate text-[11px] text-muted-foreground">{accessLabel}</span>
-            </span>
-            <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-          </button>
-        </DropdownMenuTrigger>
-      ) : (
-        <DropdownMenuTrigger asChild>
-          <button
-            aria-label={t("nav.menu")}
-            title={t("nav.menu")}
-            className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {avatar}
-          </button>
-        </DropdownMenuTrigger>
-      )}
-      <DropdownMenuContent
-        side={variant === "card" ? "top" : "bottom"}
-        align="end"
-        className="w-56"
-      >
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={t("nav.menu")}
+          title={t("nav.menu")}
+          className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {avatar}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="end" className="w-56">
         {settingsTo && (
           <DropdownMenuItem asChild>
             <Link to={settingsTo}>
@@ -645,111 +583,46 @@ function Shell() {
     return () => window.removeEventListener("keydown", h);
   }, [lock]);
 
+  // A location belongs to the whole workspace, so its switcher rides the rail
+  // under the brand rather than inside one page's header.
+  const storeSwitcher = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild disabled={lockedToStore}>
+        <button
+          title={store?.name ?? t("nav.selectStore")}
+          aria-label={t("nav.stores")}
+          className="press grid size-11 shrink-0 place-items-center rounded-xl border border-border/70 bg-background text-[11px] font-semibold tracking-wide transition-colors hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-primary/30 focus-visible:outline-none disabled:opacity-60"
+        >
+          {store?.name.slice(0, 2).toUpperCase() ?? "S"}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="start" sideOffset={10} className="w-56">
+        <DropdownMenuLabel>{t("nav.stores")}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {stores.map((s) => (
+          <DropdownMenuItem key={s.id} onSelect={() => setStoreId(s.id)}>
+            <span className="truncate">{s.name}</span>
+            {mixedModes && (
+              <span className="ml-auto shrink-0">
+                <StoreTypeTag type={s.store_type} />
+              </span>
+            )}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
-    <SidebarProvider className="storq-workspace bg-background">
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          {/* The rail used to be the only way in: an invisible 4px strip you had
-              to find with the mouse. The toggle is now a visible button, and it
-              stacks under the logo when the rail is collapsed. */}
-          <div className="flex items-center gap-2.5 px-1 py-1.5 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1">
-            <img src="/logo.svg" alt="Storq logo" className="size-[34px] shrink-0 rounded-[10px]" />
-            <span className="font-display text-lg group-data-[collapsible=icon]:hidden">Storq</span>
-            <SidebarTrigger
-              aria-label={t("nav.toggleSidebar")}
-              className="ml-auto hidden text-muted-foreground hover:text-foreground sm:inline-flex group-data-[collapsible=icon]:ml-0"
-            />
-          </div>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild disabled={lockedToStore}>
-                  <SidebarMenuButton>
-                    <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[11px] font-medium text-primary">
-                      {store?.name.slice(0, 2).toUpperCase() ?? "S"}
-                    </span>
-                    <span className="truncate font-medium group-data-[collapsible=icon]:hidden">
-                      {store?.name ?? t("nav.selectStore")}
-                    </span>
-                    <ChevronDownIcon className="ml-auto group-data-[collapsible=icon]:hidden" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" sideOffset={14} className="w-56">
-                  <DropdownMenuLabel>{t("nav.stores")}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {stores.map((s) => (
-                    <DropdownMenuItem key={s.id} onSelect={() => setStoreId(s.id)}>
-                      <span className="truncate">{s.name}</span>
-                      {mixedModes && (
-                        <span className="ml-auto shrink-0">
-                          <StoreTypeTag type={s.store_type} />
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems.map((n) => {
-                  const active = current?.group === n.group;
-                  return (
-                    <SidebarMenuItem key={n.to}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={active}
-                        tooltip={t(n.labelKey)}
-                        aria-current={active ? "page" : undefined}
-                      >
-                        <Link to={n.to}>
-                          <HugeiconsIcon icon={navIcons[n.group]} />
-                          <span>{t(n.labelKey)}</span>
-                          {n.group === "sales" && pendingCount > 0 && (
-                            <span
-                              className="tabular ml-auto rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning-foreground"
-                              aria-hidden
-                            >
-                              {pendingBadge}
-                            </span>
-                          )}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip={t("nav.downloadDesktop")}>
-                    <a
-                      href={DESKTOP_DOWNLOAD_URL}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <HugeiconsIcon icon={Download01Icon} />
-                      <span>{t("nav.downloadDesktop")}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-        <SidebarFooter>
-          <UserMenu variant="card" settingsTo={settingsEntry?.to} />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
+    <div className="storq-workspace flex min-h-screen bg-background">
+      <WorkspaceRail
+        items={navItems}
+        activeGroup={current?.group}
+        pendingCount={pendingCount}
+        settingsTo={settingsEntry?.to}
+        storeMenu={storeSwitcher}
+        userMenu={<UserMenu settingsTo={settingsEntry?.to} />}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="glass-bar sticky top-0 z-30 flex items-center gap-2 border-b border-border/60 px-3 py-2.5 md:hidden">
@@ -762,7 +635,7 @@ function Shell() {
           />
           <DrawerChip storeId={store?.id} compact />
           <ApprovalsAlert count={pendingCount} compact onGo={goToApprovals} />
-          <UserMenu variant="icon" settingsTo={settingsEntry?.to} />
+          <UserMenu settingsTo={settingsEntry?.to} />
         </header>
         {/* The grace window is a business-wide state, so it appears exactly once per
             screen: here above every workspace page, and inside Billing on the billing
@@ -772,7 +645,9 @@ function Shell() {
             <GraceBanner />
           </div>
         )}
-        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] pt-4 md:px-6 md:pb-6 lg:px-11 lg:pt-5">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] pt-4 md:px-6 md:pt-6 md:pb-6 lg:px-11 lg:pt-7">
+          {/* An area holds several pages, so the rail needs a row for them once
+              it is on screen; below md the bottom bar carries the areas. */}
           {staff && (
             <WorkspaceTabs
               path={path}
@@ -828,6 +703,6 @@ function Shell() {
           </div>
         </nav>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

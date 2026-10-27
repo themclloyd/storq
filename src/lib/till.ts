@@ -1,4 +1,4 @@
-// Counter arithmetic shared by the register screens: smart cash presets, the
+// Counter arithmetic shared by the register screens: layby deposits, the
 // change a cash drawer owes, and the single note that travels with a sale.
 // Pure and client-safe, so the money rules are tested apart from the UI.
 import { round2 } from "@/lib/products";
@@ -16,32 +16,6 @@ export type SaleForm = {
   note: string;
   overridePin: string | null;
 };
-
-/** One-tap cash amount: the exact total, then the next notes above it. */
-export type CashPreset = { amount: number; change: number; exact: boolean };
-
-/** Cash rounding steps a Malawian counter actually meets: 1,000 / 5,000 / 10,000. */
-const CASH_STEPS = [1000, 5000, 10000];
-
-/**
- * Square's "smart change" tender: the exact total plus the next note above it
- * for each common denomination. A step that lands on an amount already offered
- * moves up one increment (7,420 → 8,000 / 10,000 / 20,000), so every button is
- * distinct and every button is a note a customer could plausibly hand over.
- */
-export function cashPresets(total: number): CashPreset[] {
-  const due = round2(Math.max(0, total));
-  const out: CashPreset[] = [{ amount: due, change: 0, exact: true }];
-  let last = due;
-  for (const step of CASH_STEPS) {
-    let amount = Math.ceil(due / step) * step;
-    while (amount <= last) amount += step;
-    amount = round2(amount);
-    out.push({ amount, change: round2(amount - due), exact: false });
-    last = amount;
-  }
-  return out;
-}
 
 /** Layby deposits a counter asks for: the whole amount, or half of it. */
 export function depositPresets(total: number): number[] {

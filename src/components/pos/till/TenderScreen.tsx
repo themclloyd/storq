@@ -14,22 +14,16 @@ import { isCashMethod, methodIcon, methodLabel } from "@/lib/payment-methods";
 import { round2 } from "@/lib/products";
 import { validatePin } from "@/lib/validate";
 import { cn } from "@/lib/utils";
-import {
-  cashPresets,
-  changeDue,
-  depositPresets,
-  tenderTotal,
-  type SaleForm,
-  type TenderPart,
-} from "@/lib/till";
+import { changeDue, depositPresets, tenderTotal, type SaleForm, type TenderPart } from "@/lib/till";
 
 type Stage = "pick" | "cash";
 
 /**
- * The tender screen: a full-viewport, high-focus surface with Square's two
- * shortcuts — one-tap smart cash bills, and a number pad for anything else.
- * Everything the checkout RPC needs is assembled here and handed to the
- * register as one `SaleForm`; this component never talks to the database.
+ * The tender screen: a full-viewport, high-focus surface. Cash is one number
+ * pad plus a single "exact cash" shortcut; the other methods pick first and
+ * then take an amount. Everything the checkout RPC needs is assembled here and
+ * handed to the register as one `SaleForm`; this component never talks to the
+ * database.
  */
 export function TenderScreen({
   kind,
@@ -71,7 +65,6 @@ export function TenderScreen({
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const presets = useMemo(() => cashPresets(total), [total]);
   const deposits = useMemo(() => depositPresets(total), [total]);
   const methodOpts = paymentMethods.map((code) => ({ value: code, label: methodLabel(code) }));
   const nextMethod = paymentMethods.find((code) => !isCashMethod(code)) ?? "cash";
@@ -141,11 +134,13 @@ export function TenderScreen({
     void submit(rows, payment, pm);
   };
 
+  // The total is stated once, in the header. The action names the step, not the
+  // number again.
   const cta = approval
     ? t("till.sendForApproval")
     : kind === "layby"
       ? t("till.openLayby")
-      : t("till.completeSale", { amount: money(total) });
+      : t("till.completeSale");
 
   return (
     <DialogPrimitive.Root open onOpenChange={(o) => !o && !busy && onClose()}>
@@ -210,32 +205,26 @@ export function TenderScreen({
                     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
                       <NumberPad value={tendered} onChange={setTendered} decimal />
                       <div className="flex flex-col gap-2">
-                        <PresetKey
-                          amount={total}
-                          sub={t("till.cashExact")}
-                          active={pay === total}
+                        {/* One shortcut only: hand over the amount owed. Anything
+                            else is typed on the pad. */}
+                        <Button
+                          size="xl"
+                          variant={pay === total ? "default" : "soft"}
+                          className="w-full"
                           onClick={() => setTendered(String(total))}
-                        />
-                        {presets.slice(1).map((p) => (
-                          <PresetKey
-                            key={p.amount}
-                            amount={p.amount}
-                            sub={t("till.cashNext", { amount: money(p.change) })}
-                            active={pay === p.amount}
-                            onClick={() => setTendered(String(p.amount))}
-                          />
-                        ))}
-                        {tendered !== "" && (
-                          <Button size="sm" variant="ghost" onClick={() => setTendered("")}>
-                            {t("till.keyClear")}
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => setStage("pick")}>
+                        >
+                          {t("till.cashExact")}
+                        </Button>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setStage("pick")}
+                        >
                           {t("till.otherPayment")}
                         </Button>
                       </div>
                     </div>
-                    {change > 0 && <ChangeBanner change={change} money={money} t={t} />}
                   </section>
                 ) : (
                   <>
@@ -436,15 +425,9 @@ export function TenderScreen({
                     </Field>
                   </section>
                 )}
-
-                {change > 0 && stage === "pick" && (
-                  <ChangeBanner change={change} money={money} t={t} />
-                )}
               </div>
 
-              {!approval && (
-                <OrderSummary rows={orderRows} total={total} received={pay} change={change} />
-              )}
+              {!approval && <OrderSummary rows={orderRows} />}
             </div>
           </div>
 
@@ -508,18 +491,10 @@ function SectionTitle({ children }: { children: ReactNode }) {
 /**
  * What is being paid for, pinned beside the pad. The till should never ask a
  * cashier to go back to the sale to check what the customer is paying for.
+ * The total lives once in the header, received and change once in the footer;
+ * this panel is only the lines being paid for.
  */
-function OrderSummary({
-  rows,
-  total,
-  received,
-  change,
-}: {
-  rows: TicketRow[];
-  total: number;
-  received: number;
-  change: number;
-}) {
+function OrderSummary({ rows }: { rows: TicketRow[] }) {
   const { t } = useI18n();
   const { money } = usePos();
   const count = rows.reduce((a, r) => a + r.qty, 0);
@@ -538,58 +513,7 @@ function OrderSummary({
           </li>
         ))}
       </ul>
-      <div className="space-y-1.5 border-t border-border px-4 py-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[13px] font-semibold text-muted-foreground">
-            {t("common.total")}
-          </span>
-          <Money value={money(total)} className="tabular text-xl font-extrabold" />
-        </div>
-        {received > 0 && (
-          <div className="flex items-baseline justify-between gap-2 text-[12px] text-muted-foreground">
-            <span>{t("till.summaryReceived")}</span>
-            <span className="tabular">{money(received)}</span>
-          </div>
-        )}
-        {change > 0 && (
-          <div className="flex items-baseline justify-between gap-2 text-[12px] font-semibold text-success">
-            <span>{t("till.summaryChange")}</span>
-            <span className="tabular">{money(change)}</span>
-          </div>
-        )}
-      </div>
     </aside>
-  );
-}
-
-/** One quick-cash bill: the amount it hands over and what it leaves as change. */
-function PresetKey({
-  amount,
-  sub,
-  active,
-  onClick,
-}: {
-  amount: number;
-  sub: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  const { money } = usePos();
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "till-key flex h-12 items-center justify-between gap-2 border px-3 transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30",
-        active
-          ? "border-primary bg-primary-soft text-primary-soft-foreground"
-          : "border-border bg-card text-foreground hover:bg-muted",
-      )}
-    >
-      <span className="tabular text-[15px] font-extrabold">{money(amount)}</span>
-      <span className="truncate text-[11px] font-medium opacity-70">{sub}</span>
-    </button>
   );
 }
 
@@ -657,22 +581,5 @@ function Chip({
     >
       {children}
     </button>
-  );
-}
-
-function ChangeBanner({
-  change,
-  money,
-  t,
-}: {
-  change: number;
-  money: (n: number) => string;
-  t: (key: string, params?: Record<string, string | number>) => string;
-}) {
-  return (
-    <div className="mt-3 flex items-center justify-between gap-3 rounded-[12px] bg-success px-4 py-3 text-success-foreground">
-      <span className="text-[11px] font-bold tracking-wider uppercase">{t("till.changeDue")}</span>
-      <span className="tabular text-2xl font-extrabold">{money(change)}</span>
-    </div>
   );
 }
