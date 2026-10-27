@@ -223,7 +223,7 @@ export function receiptText(r: Receipt, money: MoneyFmt) {
   return out.join("\n");
 }
 
-/** 80mm thermal HTML used for both the on-screen preview and printing. */
+/** 80mm thermal HTML for the print sheet. */
 export function receiptHtml(r: Receipt, money: MoneyFmt) {
   const status = statusLabel(r.status);
   const row = (l: string, v: string, bold = false) =>

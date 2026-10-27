@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
@@ -11,8 +11,8 @@ import {
   Search01Icon,
 } from "@/lib/icons";
 import {
-  useProducts,
-  useStock,
+  fetchProductsByIds,
+  useTillStock,
   findByBarcode,
   round2,
   cartCapBlocked,
@@ -20,6 +20,10 @@ import {
   type Product,
 } from "@/lib/products";
 import { SALE_TOUCHED, invalidateKeys } from "@/lib/cache-invalidation";
+import { isNetworkError } from "@/lib/offline";
+import { TILL_BROWSE_LIMIT, findProductByCode, useTillCatalog } from "@/lib/till-catalog";
+import { useRecentItems } from "@/lib/recent-items";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useOnce } from "@/hooks/use-once";
 import { normalizeCode } from "@/lib/item-codes";
 import { usePos } from "@/lib/pos";
@@ -59,7 +63,12 @@ import {
 } from "@/components/pos/till/Ticket";
 import { TicketLineSheet } from "@/components/pos/till/TicketLineSheet";
 import { Receipt, type ReceiptTender } from "@/lib/receipts";
-import { useCollections, salePrice } from "@/lib/collections";
+import {
+  salePrice,
+  useTillCollections,
+  useTillMemberships,
+  type CollectionData,
+} from "@/lib/collections";
 import { useI18n } from "@/lib/i18n";
 import { changeDue, composeNote, type SaleForm } from "@/lib/till";
 import { cn } from "@/lib/utils";
@@ -94,24 +103,21 @@ function Register() {
 }
 
 function RegisterContent() {
-  const { store, money, business, staff, checkout, can } = usePos();
+  const { store, money, business, staff, checkout, can, userId } = usePos();
   const { t } = useI18n();
   const qc = useQueryClient();
-  const products = useProducts(store?.id);
-  // Cool the "Try again" click on the till's error state so a session cannot
-  // hammer the catalog query on a flaky connection.
-  const { run: retryProducts, running: retryingProducts } = useOnce(
-    () => products.refetch(),
-    3_000,
-  );
-  // Live screen: re-read quantities so a CSV import or another till's sale is
-  // never sold against a badge this device cached earlier.
-  const stock = useStock(store?.id, { live: true });
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
-  // Square's All tab browses the whole catalogue; we only load it once asked,
-  // so a till does not dump the menu (and its costs of reading) up front.
+  // The All chip is the one page a cashier asks for without searching; it is
+  // still capped, and search is how a long catalogue is crossed.
   const [browseAll, setBrowseAll] = useState(false);
+  // Search is a server read now, so wait for the typist to pause instead of
+  // spending a query per keystroke.
+  const term = useDebouncedValue(q, 300);
+  const catalog = useTillCatalog({ storeId: store?.id, term, collectionId: cat, browseAll });
+  // Cool the "Try again" click on the till's error state so a session cannot
+  // hammer the catalogue query on a flaky connection.
+  const { run: retryProducts, running: retryingProducts } = useOnce(() => catalog.refetch(), 3_000);
   const [mode, setMode] = useState<Mode>("library");
   const [cart, setCart] = useState<Line[]>([]);
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
@@ -124,8 +130,6 @@ function RegisterContent() {
   const [tender, setTender] = useState<null | "sale" | "layby">(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [scanning, setScanning] = useState(false);
-  // Codes seen while the catalog query refreshed: applied once a match exists.
-  const [pendingScan, setPendingScan] = useState<string | null>(null);
   // An unknown code lets a manager register the item right here (one code, no
   // trip to Inventory); the keypad's custom amount uses the same door.
   const [quickAdd, setQuickAdd] = useState<null | { code: string; amount?: number }>(null);
@@ -134,34 +138,44 @@ function RegisterContent() {
   const [mobileCart, setMobileCart] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const cols = useCollections();
-  // Catalog filtering runs over the whole cached product list, so memoize it
-  // (avoids re-scanning on every cart/discount render) and defer the search
-  // term so the input stays instantly responsive while tiles catch up.
-  const list = useMemo(() => (products.data ?? []).filter((p) => p.active), [products.data]);
-  const price = (p: Product) => salePrice(p, cols.data);
-  const cats = (cols.data?.list ?? []).map((c) => c.id);
-  const catName = (id: string) => cols.data?.list.find((c) => c.id === id)?.name ?? "";
-  const dq = useDeferredValue(q);
-  // The till reveals stock only on demand: a search term, an opened category or
-  // the All tab shows the tiles, so the register never dumps the whole menu up
-  // front — a store rings up what the customer asks for, and a barcode scan
-  // drops the item straight into the cart.
-  const browsing = dq.trim().length > 0 || !!cat || browseAll;
-  const shown = useMemo(() => {
-    const needle = dq.trim().toLowerCase();
-    return list.filter(
-      (p) =>
-        (!cat || (cols.data?.byProduct[p.id] ?? []).includes(cat)) &&
-        (!needle ||
-          p.name.toLowerCase().includes(needle) ||
-          normalizeCode(p.sku).toLowerCase().includes(needle)),
-    );
-  }, [list, cat, cols.data, dq]);
+  // The register holds a page of tiles, not a catalogue: collection names and
+  // discounts here, the page's memberships with the page, and quantities only
+  // for the ids on screen (see `useTillCatalog` for why).
+  const cols = useTillCollections();
+  const list = useMemo(() => catalog.data?.items ?? [], [catalog.data]);
+  const { items: recent, remember } = useRecentItems(userId);
+  const cartIds = useMemo(() => cart.map((l) => l.p.id), [cart]);
+  const recentIds = useMemo(() => recent.map((p) => p.id), [recent]);
+  // One id set covers every badge in the sale: the page, the basket and this
+  // device's shortcuts. Nothing here reads the store's whole stock sheet.
+  const stockIds = useMemo(
+    () => [...new Set([...list.map((p) => p.id), ...cartIds, ...recentIds])],
+    [list, cartIds, recentIds],
+  );
+  const stock = useTillStock(store?.id, stockIds);
+  // A page brings its own memberships; the basket and the shortcuts are asked
+  // for by id, so a held line keeps the discount it was rung up with.
+  const heldIds = useMemo(() => [...new Set([...cartIds, ...recentIds])], [cartIds, recentIds]);
+  const heldMembers = useTillMemberships(heldIds);
+  const priceData = useMemo<CollectionData>(
+    () => ({
+      list: cols.data ?? [],
+      byProduct: { ...(catalog.data?.byProduct ?? {}), ...(heldMembers.data ?? {}) },
+    }),
+    [cols.data, catalog.data, heldMembers.data],
+  );
+  const price = (p: Product) => salePrice(p, priceData);
+  const cats = priceData.list.map((c) => c.id);
+  const catName = (id: string) => priceData.list.find((c) => c.id === id)?.name ?? "";
+  // The server applied the term or the collection already; the till renders the
+  // page it was handed. `q` (not the debounced term) drives the empty states so
+  // the screen answers the moment a key is pressed.
+  const shown = list;
+  const browsing = q.trim().length > 0 || !!cat || browseAll;
   // Discount-adjusted money: net sub = gross - per-line discounts, tax on net.
   const lineGross = (l: Line) => round2(l.qty * price(l.p));
   const lineDisc = (l: Line) => Math.min(round2(discounts[l.p.id] ?? 0), lineGross(l));
-  // lineGross/lineDisc close over `price` (a cols.data-derived fn), so these
+  // lineGross/lineDisc close over `price` (a priceData-derived fn), so these
   // totals recompute each render — cheap over a single cart, no memo needed.
   const grossSub = round2(cart.reduce((a, l) => a + lineGross(l), 0));
   const discountTotal = round2(cart.reduce((a, l) => a + lineDisc(l), 0));
@@ -180,12 +194,16 @@ function RegisterContent() {
     (cartCapBlocked(grossSub, discountTotal) ||
       cart.some((l) => lineCapBlocked(lineGross(l), lineDisc(l))));
 
-  const add = (p: Product) =>
+  const add = (p: Product) => {
+    // Remembering the item is what makes the next scan of it instant — and what
+    // an offline till can still resolve once the connection drops.
+    remember(p);
     setCart((c) =>
       c.find((l) => l.p.id === p.id)
         ? c.map((l) => (l.p.id === p.id ? { ...l, qty: l.qty + 1 } : l))
         : [...c, { p, qty: 1 }],
     );
+  };
   const setQty = (id: string, qty: number) =>
     setCart((c) =>
       qty <= 0 ? c.filter((l) => l.p.id !== id) : c.map((l) => (l.p.id === id ? { ...l, qty } : l)),
@@ -255,12 +273,26 @@ function RegisterContent() {
     setDiscounts({});
     toast.success(t("till.heldSaved"));
   };
-  const resumeHeld = (id: string) => {
+  const resumeHeld = async (id: string) => {
     const h = held.find((x) => x.id === id);
     if (!h) return;
-    // Re-link to the fresh catalog so prices/stock are current; drop removed items.
+    // Re-link to the live catalogue so prices/stock are current — one read for
+    // the ids this held sale carries, never the whole menu. Offline keeps the
+    // snapshots rather than losing a sale that was already rung up.
+    let fresh: Product[];
+    try {
+      fresh = store
+        ? await fetchProductsByIds(
+            store.id,
+            h.cart.map((l) => l.p.id),
+          )
+        : [];
+    } catch {
+      fresh = h.cart.map((l) => l.p);
+    }
+    const byId = new Map(fresh.map((p) => [p.id, p]));
     const lines: Line[] = h.cart.flatMap((l) => {
-      const p = list.find((x) => x.id === l.p.id);
+      const p = byId.get(l.p.id);
       return p ? [{ p, qty: l.qty, note: l.note }] : [];
     });
     const rest = held.filter((x) => x.id !== id);
@@ -274,14 +306,53 @@ function RegisterContent() {
   };
 
   // ---- barcode: hardware wedge + camera scan ----
-  const applyCode = (code: string) => {
-    const p = findByBarcode(list, code);
-    if (p) {
-      add(p);
+  /**
+   * Adds whatever carries this code and answers whether it landed in the sale.
+   * A code already on screen is instant; an unseen one costs exactly one item
+   * lookup, and an offline till falls back to what this device has rang up
+   * before. No path here needs a catalogue in memory.
+   */
+  const addCode = async (code: string): Promise<boolean> => {
+    const seen = findByBarcode(list, code);
+    if (seen) {
+      add(seen);
       return true;
     }
-    setPendingScan(code);
+    const online = typeof navigator === "undefined" || navigator.onLine;
+    if (store && online) {
+      try {
+        const p = await findProductByCode(store.id, code);
+        if (p) {
+          add(p);
+          return true;
+        }
+      } catch (e) {
+        // A dropped connection falls through to what this device remembers;
+        // anything else is a read the till cannot explain to the cashier.
+        if (!isNetworkError((e as Error).message)) {
+          toast.error(t("errors.generic"));
+          return false;
+        }
+      }
+    }
+    // Offline (or the lookup never landed): this device's own recall list.
+    const recalled = findByBarcode(recent, code);
+    if (recalled) {
+      add(recalled);
+      return true;
+    }
+    toast.error(online ? t("till.noBarcodeMatch", { code }) : t("till.offlineLookup"));
+    if (online && can("stock")) {
+      setScanning(false);
+      setQuickAdd({ code: normalizeCode(code) });
+    }
     return false;
+  };
+  // The wedge claims the burst either way: a scanned code must never land in
+  // the page while its lookup is still in flight.
+  const applyCode = (code: string) => {
+    void addCode(code);
+    return true;
   };
   useScannerWedge(applyCode, {
     enabled:
@@ -294,22 +365,6 @@ function RegisterContent() {
       !noteOpen &&
       !showDisc,
   });
-  useEffect(() => {
-    if (!pendingScan) return;
-    const p = findByBarcode(list, pendingScan);
-    if (p) {
-      add(p);
-      setPendingScan(null);
-    } else if (products.isFetched) {
-      toast.error(t("till.noBarcodeMatch", { code: pendingScan }));
-      if (can("stock")) {
-        setScanning(false);
-        setQuickAdd({ code: pendingScan.trim() });
-      }
-      setPendingScan(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingScan, products.data]);
   // `/` focuses the search box, like Square/Shopify tills.
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -454,6 +509,21 @@ function RegisterContent() {
   const count = cart.reduce((a, l) => a + l.qty, 0);
   const active = lineId ? rows.find((r) => r.id === lineId) : undefined;
 
+  // One tile for the page and for this device's shortlist, so both surfaces
+  // stay identical. A quantity that has not landed yet is `undefined` rather
+  // than 0: an item must never flash as sold out while its badge loads.
+  const tile = (p: Product) => (
+    <ItemTile
+      key={p.id}
+      name={p.name}
+      price={price(p)}
+      compareAt={Number(p.price)}
+      stock={stock.data?.[p.id]}
+      threshold={p.reorder_point ?? 5}
+      onAdd={() => add(p)}
+    />
+  );
+
   // One Ticket element feeds the desktop pane and the phone sheet, so the two
   // surfaces can never drift apart.
   const ticket = (className: string) => (
@@ -507,7 +577,12 @@ function RegisterContent() {
                 className="h-11 bg-card pl-9 text-[15px] sm:pl-9"
                 placeholder={t("till.searchPlaceholder")}
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  // Typing is a search of the whole catalogue, so it takes over
+                  // from an opened collection instead of quietly narrowing it.
+                  if (e.target.value) setCat(null);
+                }}
               />
             </div>
             <ScanCameraButton onOpen={() => setScanning(true)} />
@@ -549,7 +624,7 @@ function RegisterContent() {
                     size="sm"
                     variant="ghost"
                     className="h-6 px-2 text-[11px] font-semibold text-primary"
-                    onClick={() => resumeHeld(h.id)}
+                    onClick={() => void resumeHeld(h.id)}
                   >
                     {t("till.resume")}
                   </Button>
@@ -569,15 +644,7 @@ function RegisterContent() {
 
           {mode === "keypad" ? (
             <KeypadPanel
-              onAddCode={(code) => {
-                const p = findByBarcode(list, code);
-                if (!p) {
-                  toast.error(t("till.noBarcodeMatch", { code }));
-                  return false;
-                }
-                add(p);
-                return true;
-              }}
+              onAddCode={addCode}
               onCustomAmount={(amount) => setQuickAdd({ code: "", amount })}
               canCreateItem={can("stock")}
             />
@@ -588,8 +655,13 @@ function RegisterContent() {
                   <CatChip
                     active={!cat && browseAll}
                     onClick={() => {
+                      // All is a toggle like a collection chip: one tap opens the
+                      // first page, another goes back to scan/search. Opening a
+                      // collection ends the search, so only one filter is ever on.
+                      const next = !!cat || !browseAll;
+                      setQ("");
                       setCat(null);
-                      setBrowseAll(true);
+                      setBrowseAll(next);
                     }}
                   >
                     {t("till.all")}
@@ -598,14 +670,18 @@ function RegisterContent() {
                     <CatChip
                       key={id}
                       active={cat === id}
-                      onClick={() => setCat(cat === id ? null : id)}
+                      onClick={() => {
+                        setQ("");
+                        setCat(cat === id ? null : id);
+                        setBrowseAll(false);
+                      }}
                     >
                       {catName(id)}
                     </CatChip>
                   ))}
                 </div>
               )}
-              {products.isError ? (
+              {catalog.isError ? (
                 <Empty>
                   <div className="flex flex-col items-center gap-3">
                     <span>{t("errors.generic")}</span>
@@ -619,36 +695,48 @@ function RegisterContent() {
                     </Button>
                   </div>
                 </Empty>
-              ) : list.length === 0 ? (
-                <Empty>{products.isFetched ? t("till.noItemsYet") : t("common.loading")}</Empty>
               ) : !browsing ? (
-                <Empty>
-                  <div className="flex flex-col items-center gap-3">
-                    <span>{t(approval ? "till.searchToStartInvoice" : "till.searchToStart")}</span>
-                    <Button size="sm" variant="outline" onClick={() => setBrowseAll(true)}>
-                      {t("till.showAll")}
-                    </Button>
-                  </div>
-                </Empty>
+                // Nothing is fetched until the cashier asks for something: the
+                // register opens on this device's own shortlist and the prompt.
+                <>
+                  {recent.length > 0 && (
+                    <div className="mb-3">
+                      <p className="mb-2 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                        {t("till.recent")}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                        {recent.map((p) => tile(p))}
+                      </div>
+                    </div>
+                  )}
+                  <Empty>
+                    <div className="flex flex-col items-center gap-3">
+                      <span>
+                        {t(approval ? "till.searchToStartInvoice" : "till.searchToStart")}
+                      </span>
+                      <Button size="sm" variant="outline" onClick={() => setBrowseAll(true)}>
+                        {t("till.showAll")}
+                      </Button>
+                    </div>
+                  </Empty>
+                </>
+              ) : !catalog.data ? (
+                <Empty>{t("common.loading")}</Empty>
               ) : shown.length === 0 ? (
-                <Empty>{t("till.noMatchingItems")}</Empty>
+                <Empty>
+                  {!q.trim() && !cat ? t("till.noItemsYet") : t("till.noMatchingItems")}
+                </Empty>
               ) : (
-                <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(142px,1fr))] sm:gap-2.5">
-                  {shown.map((p) => {
-                    const s = stock.data?.[p.id] ?? 0;
-                    return (
-                      <ItemTile
-                        key={p.id}
-                        name={p.name}
-                        price={price(p)}
-                        compareAt={Number(p.price)}
-                        stock={s}
-                        threshold={p.reorder_point ?? 5}
-                        onAdd={() => add(p)}
-                      />
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                    {shown.map((p) => tile(p))}
+                  </div>
+                  {!q.trim() && shown.length >= TILL_BROWSE_LIMIT && (
+                    <p className="mt-3 text-center text-[11px] text-muted-foreground">
+                      {t("till.narrowHint", { count: TILL_BROWSE_LIMIT })}
+                    </p>
+                  )}
+                </>
               )}
             </>
           )}

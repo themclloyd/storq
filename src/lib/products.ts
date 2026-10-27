@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeCode } from "@/lib/item-codes";
 import { usePos } from "@/lib/pos";
@@ -105,6 +106,67 @@ export function useStock(storeId?: string, opts: { live?: boolean } = {}) {
       >;
     },
   });
+}
+
+/**
+ * Quantities for the rows a screen is actually showing.
+ *
+ * The till asks for the ids on its tiles (plus the basket and its recent
+ * items) instead of the store's whole stock sheet: a shop with thousands of
+ * items then reads a few dozen rows per poll rather than thousands, and the
+ * badge is still fresh when another till sells. `ids` is compared as a set, so
+ * a re-render with the same items never spends a query.
+ */
+export function useTillStock(storeId: string | undefined, ids: string[]) {
+  const key = useMemo(() => [...ids].sort().join(","), [ids]);
+  return useQuery({
+    // Keyed under `stock`, so the existing invalidations reach the till.
+    queryKey: ["stock", "till", storeId, key],
+    enabled: !!storeId && !!key,
+    staleTime: 60_000,
+    // Live screen: quantities also move on other tills and through CSV
+    // imports, whose invalidation cannot reach this device's cache. Polling a
+    // bounded id set costs almost nothing; polling the whole sheet did not.
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_stock")
+        .select("product_id,qty")
+        .eq("store_id", storeId!)
+        .in("product_id", ids);
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).map((r) => [r.product_id, Number(r.qty)])) as Record<
+        string,
+        number
+      >;
+    },
+  });
+}
+
+/**
+ * Fresh copies of the items a held sale is waiting on. Resuming re-links the
+ * basket to live prices, but only for the ids it carries — never the catalogue.
+ */
+export async function fetchProductsByIds(storeId: string, ids: string[]): Promise<Product[]> {
+  const unique = [...new Set(ids)];
+  const out: Product[] = [];
+  // A long basket would overflow the URL in one `in.(...)` list.
+  for (let i = 0; i < unique.length; i += 100) {
+    const chunk = unique.slice(i, i + 100);
+    const { data, error } = await supabase
+      .from("products")
+      .select("id,name,sku,category,price,active,reorder_point")
+      .eq("store_id", storeId)
+      .eq("active", true)
+      .in("id", chunk);
+    if (error) throw error;
+    out.push(
+      ...((data ?? []) as unknown as Omit<Product, "cost">[]).map((p) => ({ ...p, cost: 0 })),
+    );
+  }
+  return out;
 }
 
 // ---- export helpers (lazy — called only on button click) ----

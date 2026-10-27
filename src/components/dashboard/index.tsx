@@ -355,14 +355,17 @@ export function PaymentMethods({
                 <ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />
               }
             />
+            {/* Radii stay in percent: the square box is rem-sized, so its pixel
+                size follows the root font size (clamp 13–15px). Fixed pixels
+                overflow the chart surface and the SVG clips the ring. */}
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius={44}
-              outerRadius={66}
+              innerRadius="66%"
+              outerRadius="98%"
               paddingAngle={3}
               strokeWidth={0}
             >

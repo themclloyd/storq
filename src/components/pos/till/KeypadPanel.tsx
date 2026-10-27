@@ -17,8 +17,8 @@ export function KeypadPanel({
   onCustomAmount,
   canCreateItem,
 }: {
-  /** Adds the item carrying this code; returns true when it landed in the cart. */
-  onAddCode: (code: string) => boolean;
+  /** Adds the item carrying this code; resolves true when it landed in the cart. */
+  onAddCode: (code: string) => boolean | Promise<boolean>;
   onCustomAmount: (amount: number) => void;
   canCreateItem: boolean;
 }) {
@@ -51,7 +51,11 @@ export function KeypadPanel({
               className="w-full"
               disabled={!hasValue}
               onClick={() => {
-                if (onAddCode(value.trim())) setValue("");
+                // A code that has to be looked up resolves asynchronously; the
+                // pad only clears once the item really joined the sale.
+                void Promise.resolve(onAddCode(value.trim())).then((ok) => {
+                  if (ok) setValue("");
+                });
               }}
             >
               <HugeiconsIcon icon={PlusSignIcon} />

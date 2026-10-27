@@ -23,7 +23,14 @@ const PERSIST = new Set([
 const persistable = (key: readonly unknown[]) =>
   PERSIST.has(String(key[0])) &&
   !(key[0] === "products" && key[2] === true) &&
-  !(key[0] === "subscription" && key[1] === "history");
+  !(key[0] === "subscription" && key[1] === "history") &&
+  // The register's catalogue is read per search, per collection and per code,
+  // not kept as one catalogue snapshot: persisting every page would grow this
+  // snapshot with each keystroke. What an offline till needs between two sales
+  // is the short recent-items list it keeps on its own (`recent-items.ts`).
+  !(key[0] === "products" && key[1] === "till") &&
+  !(key[0] === "stock" && key[1] === "till") &&
+  !(key[0] === "collections" && key[1] === "members");
 
 /**
  * Access-neutral reference data every staff member may read. It survives PIN

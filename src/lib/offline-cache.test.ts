@@ -67,4 +67,19 @@ describe("offline reference cache", () => {
     expect(saved.q.map((e: { k: unknown[] }) => e.k)).toEqual([catalog]);
     expect(saved.q[0].t).toBeTypeOf("number");
   });
+
+  it("keeps the register's per-search pages out of the snapshot", async () => {
+    vi.useFakeTimers();
+    const qc = new QueryClient();
+    const stop = persistCache(qc, user);
+    // A page read per keystroke must not grow the device snapshot; the till's
+    // own short list is what carries it between sales.
+    qc.setQueryData(["products", "till", "s1", "sugar", "", ""], { items: [], byProduct: {} });
+    qc.setQueryData(["stock", "till", "s1", "p1"], { p1: 2 });
+    qc.setQueryData(["collections", "till", "b1"], [{ id: "c1" }]);
+    await vi.advanceTimersByTimeAsync(2_000);
+    stop();
+    const saved = JSON.parse(localStorage.getItem("storq-cache-" + user) ?? "{}");
+    expect(saved.q.map((e: { k: unknown[] }) => e.k)).toEqual([["collections", "till", "b1"]]);
+  });
 });

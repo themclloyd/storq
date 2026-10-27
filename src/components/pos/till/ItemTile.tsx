@@ -7,6 +7,10 @@ import { tileTone } from "@/components/pos/till/tiles";
  * One catalogue tile: a flat colour block with the item's name and price in
  * white. Tapping it adds a unit instantly — the press state is the feedback, so
  * there is no confirming dialog between the finger and the cart.
+ *
+ * The register lays tiles two per row at every width, so the height is fixed at
+ * the old single-tile height: only the width grows, and a wide counter monitor
+ * shows more items instead of taller blocks.
  */
 export function ItemTile({
   name,
@@ -20,14 +24,16 @@ export function ItemTile({
   price: number;
   /** Catalogue price when a collection discount is active; struck through. */
   compareAt?: number;
-  stock: number;
+  /** Units on hand, or undefined while the quantity read is still in flight. */
+  stock: number | undefined;
   threshold: number;
   onAdd: () => void;
 }) {
   const { money } = usePos();
   const { t } = useI18n();
-  const soldOut = stock <= 0;
-  const low = !soldOut && stock <= threshold;
+  const known = stock !== undefined;
+  const soldOut = known && stock <= 0;
+  const low = known && !soldOut && stock <= threshold;
   const discounted = compareAt !== undefined && compareAt > price;
 
   return (
@@ -38,10 +44,12 @@ export function ItemTile({
       aria-label={
         soldOut
           ? `${name}, ${money(price)}, ${t("till.outOfStock")}`
-          : `${name}, ${money(price)}, ${t("till.inStock", { count: stock })}`
+          : known
+            ? `${name}, ${money(price)}, ${t("till.inStock", { count: stock })}`
+            : `${name}, ${money(price)}`
       }
       className={cn(
-        "till-tile relative flex aspect-[4/3] flex-col justify-end p-2.5 text-left text-tile-foreground",
+        "till-tile relative flex h-[112px] flex-col justify-end p-2.5 text-left text-tile-foreground",
         "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 focus-visible:ring-offset-2",
         tileTone(name),
         soldOut && "pointer-events-none opacity-40 grayscale",
@@ -77,7 +85,7 @@ export function ItemTile({
           )}
           {money(price)}
         </span>
-        {!soldOut && (
+        {!soldOut && known && (
           <span className="tabular rounded-md bg-foreground/30 px-1.5 py-0.5 text-[11px] font-semibold">
             {stock}
           </span>

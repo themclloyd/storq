@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePos } from "@/lib/pos";
 import type { Product } from "@/lib/products";
@@ -31,6 +32,63 @@ export function useCollections() {
         list: (c.data ?? []).map((x) => ({ ...x, discount_pct: Number(x.discount_pct) })),
         byProduct,
       };
+    },
+  });
+}
+
+/**
+ * The register's chips: collection names and their discount, and nothing else.
+ * A business may hold thousands of item memberships, so the till never reads
+ * `product_collections` wholesale — it asks for the ids on screen
+ * (`useTillMemberships`) and prices from there.
+ */
+export function useTillCollections() {
+  const { business } = usePos();
+  return useQuery({
+    // Nested under `collections` so saving a collection refreshes the chips.
+    queryKey: ["collections", "till", business?.id],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("collections")
+        .select("id,name,discount_pct,is_shared")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((c) => ({
+        ...c,
+        discount_pct: Number(c.discount_pct),
+      })) as Collection[];
+    },
+  });
+}
+
+/**
+ * Which collections the items a till is showing belong to. One bounded read per
+ * page (plus the basket), so a discounted tile is priced without the device
+ * ever holding the tenant's membership table.
+ */
+export function useTillMemberships(ids: string[]) {
+  const key = useMemo(() => [...new Set(ids)].sort().join(","), [ids]);
+  return useQuery({
+    queryKey: ["collections", "members", key],
+    enabled: !!key,
+    staleTime: 300_000,
+    // Keep the last map while the next page loads: a price must not blink to
+    // the undiscounted figure and back.
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const values = key.split(",");
+      const byProduct: Record<string, string[]> = {};
+      // A long basket would overflow the URL in one `in.(...)` list.
+      for (let i = 0; i < values.length; i += 100) {
+        const { data, error } = await supabase
+          .from("product_collections")
+          .select("collection_id,product_id")
+          .in("product_id", values.slice(i, i + 100));
+        if (error) throw error;
+        for (const row of data ?? []) (byProduct[row.product_id] ??= []).push(row.collection_id);
+      }
+      return byProduct;
     },
   });
 }
