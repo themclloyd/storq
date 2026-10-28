@@ -414,7 +414,7 @@ const SPLIT_RAMP = [
  *  keeps a distinct hue instead of recycling the ramp. */
 const SPLIT_MAX = SPLIT_RAMP.length;
 
-/** `48%` for a normal share, `0.4%` for a sliver — never a rounding `0%`. */
+/** `48%` for a normal share, `0.4%` for a sliver, never a rounding `0%`. */
 function shareLabel(ratio: number): string {
   return ratio >= 0.1 ? `${Math.round(ratio * 100)}%` : `${(ratio * 100).toFixed(1)}%`;
 }

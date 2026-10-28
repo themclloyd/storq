@@ -2,12 +2,12 @@
  * Shared number & money formatting (redesign spec §1).
  *
  * One source of truth so every screen renders amounts identically:
- * - Comma as the thousands separator (`6,000,000`) — the format owners read on
+ * - Comma as the thousands separator (`6,000,000`), the format owners read on
  *   receipts, price tags and bank statements in our markets.
  * - Currency symbol sits flush against the digits (`MK6,000`), no space.
  * - Decimals shown only when the value is fractional.
  * - Negatives use a real minus glyph (U+2212) in leading position, placed
- *   before the currency symbol: `−MK41,400` — never `MK -41,400` and never
+ *   before the currency symbol: `−MK41,400`, never `MK -41,400` and never
  *   an en-dash with a space.
  */
 
@@ -22,7 +22,7 @@ function group(abs: string): string {
 }
 
 // The business now stores an ISO code (`MWK`), so amounts keep their local look
-// (`MK6,000`). Codes not listed — and symbols an older tenant typed — print as-is.
+// (`MK6,000`). Codes not listed, and symbols an older tenant typed, print as-is.
 const SYMBOLS: Record<string, string> = {
   MWK: "MK",
   USD: "$",
@@ -43,7 +43,7 @@ function displayCurrency(currency: string): string {
 /**
  * Format `n` as `<currency><digits>` with the rules above. `currency` is the
  * stored currency code or symbol; ISO codes print as their familiar sign
- * (`MWK` → `MK`), anything else — including symbols older tenants typed in —
+ * (`MWK` → `MK`), anything else, including symbols older tenants typed in,
  * prints unchanged. An empty symbol yields bare digits.
  */
 export function formatMoney(currency: string, n: number | string | null | undefined): string {
@@ -65,7 +65,7 @@ function compactMagnitude(v: number): string {
 
 /**
  * Compact axis label for charts (spec §1): `40k`, `1.2M`, `0`, `−20k`. Currency
- * symbol is intentionally omitted — the axis unit is stated in the chart title.
+ * symbol is intentionally omitted, the axis unit is stated in the chart title.
  */
 export function formatCompactMoney(n: number | string | null | undefined): string {
   const num = Number(n ?? 0);

@@ -10,7 +10,7 @@ import { sanitizeText } from "@/lib/validate";
  * Everything here is cross-tenant. The database does the authorization: each call
  * lands on a SECURITY DEFINER RPC that resolves the operator from the JWT subject
  * (`require_platform_admin`) and raises for a customer, so this module never decides
- * what an operator may see or change — and it is deliberately free of `usePos`,
+ * what an operator may see or change, and it is deliberately free of `usePos`,
  * because an operator holds no staff session.
  *
  * The entitlement helpers below mirror `ops_update_subscription` closely enough to
@@ -23,14 +23,14 @@ export type OperatorRole = "support" | "billing" | "owner";
 /**
  * Tenant lifecycle, in the order the roster SQL ranks it. `suspended` and `closed`
  * are operator decisions recorded as clocks on the subscription row, and they
- * outrank the money maths — which is why they are states here and not a faked
+ * outrank the money maths, which is why they are states here and not a faked
  * expiry date. `grace` is the three days after a prepaid term ends during which
  * the tills still trade: the tenant owes money, but nothing is broken yet, so it
  * is a state of its own rather than a shade of "expired".
  */
 export type TenantState =
   "active" | "trial" | "expired" | "grace" | "over_capacity" | "suspended" | "closed";
-/** The roster filter set — `all` plus every derivable state. */
+/** The roster filter set, `all` plus every derivable state. */
 export type RosterFilter = "all" | TenantState;
 
 export type TenantRow = {
@@ -90,7 +90,7 @@ export function rosterPage(page: number, total: number): number {
  * of the two clocks, which matches `subscription_active()` in SQL: a paid term
  * governs while it runs, a trial extends access only once the paid term is
  * exhausted, and a tenant that has stopped paying is judged by whichever clock
- * ran out last — reporting a trial that ended a year ago would be noise.
+ * ran out last, reporting a trial that ended a year ago would be noise.
  */
 export function accessRunway(
   row: Pick<TenantRow, "paid_until" | "trial_ends_at">,
@@ -121,7 +121,7 @@ export const entitlementActions: EntitlementAction[] = [
  * The verbs that change whether a tenant may trade at all, as opposed to what they
  * bought. Each is one intent on its own RPC call, and none of them touches a money
  * column: `suspended_at` / `closed_at` are their own clocks, so prepaid time stays.
- * There is no impersonation verb anywhere in this module, by design — staff
+ * There is no impersonation verb anywhere in this module, by design, staff
  * authority only ever comes from a PIN session.
  */
 export type LifecycleAction = "suspend" | "restore" | "close" | "reopen";
@@ -196,12 +196,12 @@ export function tenantState(
   if (paid) return sub.paid_store_limit >= storeCount ? "active" : "over_capacity";
   // The term has run out but nothing has broken yet: `subscription_active()` keeps
   // the tills open for `GRACE_DAYS` while the slots still cover the live locations.
-  // An owner who is late *and* a store over gets no courtesy — SQL reads capacity
-  // inside the grace branch too — so that case falls through to expired.
+  // An owner who is late *and* a store over gets no courtesy, SQL reads capacity
+  // inside the grace branch too, so that case falls through to expired.
   if (graceDaysLeft(sub.paid_until, now) > 0 && sub.paid_store_limit >= storeCount) return "grace";
   // The roster SQL counts a trial's single grace day as trial time, because the
   // tills are still open on it. Reading the raw clock here would label a trading
-  // tenant "expired" for a day — the label and the till have to agree.
+  // tenant "expired" for a day, the label and the till have to agree.
   const trialEnds = new Date(sub.trial_ends_at).getTime();
   return trialEnds + TRIAL_GRACE_DAYS * DAY_MS > now.getTime() ? "trial" : "expired";
 }
@@ -211,7 +211,7 @@ export type EntitlementPreview =
 
 const refused = (error: string): { ok: false; error: string } => ({ ok: false, error });
 
-/** Whole numbers only — the RPC takes integers, and 12.5 slots has never meant anything. */
+/** Whole numbers only, the RPC takes integers, and 12.5 slots has never meant anything. */
 function toInteger(raw: string): number | null {
   const v = raw.trim();
   return /^-?\d+$/.test(v) ? Number(v) : null;
@@ -241,7 +241,7 @@ function becomes(
 }
 
 /**
- * What this change would leave the tenant as — the same bounds, clamps and refusals
+ * What this change would leave the tenant as, the same bounds, clamps and refusals
  * as `ops_update_subscription`, in the RPC's own words so an inline hint and a
  * rejection say the same thing. SQL stays the authority: nothing here can let through
  * a call the function would refuse.
@@ -261,7 +261,7 @@ export function previewEntitlement(
     if (n < 1 || n > SLOTS_MAX) return refused(`Slots must be between 1 and ${SLOTS_MAX}`);
     if (n < row.store_count)
       return refused(
-        `They already have ${row.store_count} live stores — archive one before lowering capacity`,
+        `They already have ${row.store_count} live stores, archive one before lowering capacity`,
       );
     if (n === row.paid_store_limit) return refused("That is already their capacity");
     return becomes({ ...row, paid_store_limit: n }, row.store_count, now);
@@ -284,7 +284,7 @@ export function previewEntitlement(
     if (!at) return refused("Pick the day their access runs to");
     if (at <= now)
       return refused(
-        "An expiry in the past stops their tills — that is a suspension, not an entitlement change",
+        "An expiry in the past stops their tills, that is a suspension, not an entitlement change",
       );
     if (at > horizon) return refused("Cannot grant more than 24 months ahead");
     const current = row.paid_until ?? row.trial_ends_at;
@@ -406,7 +406,7 @@ export async function applyEntitlementChange(
 /**
  * Which lifecycle verbs this operator role may send. `ops_set_tenant_state` takes
  * `billing` and `owner` but refuses `close`/`reopen` unless the caller is the super
- * admin, and `ops_purge_tenant` is super admin only — a suspension is a collections
+ * admin, and `ops_purge_tenant` is super admin only, a suspension is a collections
  * step, while ending a business is a judgement.
  */
 export function lifecycleActionsFor(role?: OperatorRole | null): LifecycleAction[] {
@@ -415,7 +415,7 @@ export function lifecycleActionsFor(role?: OperatorRole | null): LifecycleAction
   return [];
 }
 
-/** The day a closed tenant becomes purgeable — the same 30×24h SQL adds. */
+/** The day a closed tenant becomes purgeable, the same 30×24h SQL adds. */
 export function purgeWindowEnds(closedAt: string): Date {
   return new Date(new Date(closedAt).getTime() + PURGE_WAIT_DAYS * DAY_MS);
 }
@@ -433,7 +433,7 @@ export type LifecyclePreview = { ok: true; state: TenantState } | { ok: false; e
  * certainly be rejected is explained before it is pressed. Role and state are the
  * two things the function weighs, and the state rules are the ladder this console
  * already displays: closed outranks suspended, and only `restore` clears a
- * suspension — reopening never does.
+ * suspension, reopening never does.
  */
 export function previewLifecycle(
   row: TenantRow,
@@ -448,15 +448,15 @@ export function previewLifecycle(
   const closed = !!row.closed_at;
   const suspended = !!row.suspended_at;
   if (action === "suspend") {
-    if (closed) return refused("This tenant is closed — reopen it first");
+    if (closed) return refused("This tenant is closed, reopen it first");
     if (suspended) return refused("They are already suspended");
     return { ok: true, state: "suspended" };
   }
   if (action === "restore") {
-    if (closed) return refused("This tenant is closed — reopen it instead");
+    if (closed) return refused("This tenant is closed, reopen it instead");
     if (!suspended) return refused("They are not suspended");
     // The stamp is lifted before the state is read, so the preview shows the state
-    // underneath — paid, trial or expired — exactly as SQL returns the new clocks.
+    // underneath, paid, trial or expired, exactly as SQL returns the new clocks.
     return {
       ok: true,
       state: tenantState({ ...row, suspended_at: null }, row.store_count, new Date()),
@@ -515,7 +515,7 @@ export function previewPurge(
     return refused(`Your operator role (${role ?? "none"}) is not allowed to do this`);
   const problem = reasonProblem(reason);
   if (problem) return refused(problem);
-  if (!row.closed_at) return refused("Purge only accepts a closed business — close it first");
+  if (!row.closed_at) return refused("Purge only accepts a closed business, close it first");
   if (purgeWaitDaysLeft(row.closed_at, now) > 0) {
     // The same `YYYY-MM-DD` the function prints into its own message.
     return refused(
@@ -604,8 +604,8 @@ export function usePendingPayments(businessId: string | null) {
 }
 
 /**
- * Journal what the operator found. This grants nothing — the time and slots a
- * paid charge buys are still granted inside the server-side verifier — it only
+ * Journal what the operator found. This grants nothing, the time and slots a
+ * paid charge buys are still granted inside the server-side verifier, it only
  * records who checked and why, next to the outcome.
  */
 export async function journalPaymentCheck(

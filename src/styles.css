@@ -298,7 +298,7 @@
   letter-spacing: -0.015em;
 }
 
-/* Hero face: the landing headline only — sans contrast to the serif display. */
+/* Hero face: the landing headline only, sans contrast to the serif display. */
 .font-hero {
   font-family: var(--font-hero);
   font-weight: 600;
@@ -406,7 +406,7 @@
   letter-spacing: -0.04em;
   color: var(--foreground);
 }
-/* The "0": a full-circle dashed ring that spins at loading-spinner speed —
+/* The "0": a full-circle dashed ring that spins at loading-spinner speed,
    the page is still looking for what you typed in. */
 .notf-ring {
   display: inline-block;

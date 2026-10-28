@@ -179,7 +179,7 @@ const harmful = (a: AccessChoice) => a === "suspend" || a === "close" || a === "
 function openingValue(row: TenantRow, action: EntitlementAction): string {
   if (action === "slots") return String(row.paid_store_limit);
   if (action === "plan") return row.plan ?? "monthly";
-  return ""; // days and dates have no sensible default — they must be chosen
+  return ""; // days and dates have no sensible default, they must be chosen
 }
 
 function Ops() {
@@ -222,7 +222,7 @@ function Ops() {
   }
 
   // The shell theme is defined for `.storq-workspace`, so the console opts into
-  // it explicitly — no sidebar here, but the same tokens and overlay styling.
+  // it explicitly, no sidebar here, but the same tokens and overlay styling.
   return (
     <div className="storq-workspace min-h-screen bg-background px-6 py-8 sm:px-10">
       <div className="mx-auto w-full max-w-6xl">
@@ -380,7 +380,7 @@ function TenantTr({
   const over = row.store_count - row.paid_store_limit;
   // Runway wording follows the state, not just the clock: an over-capacity
   // tenant has time but the wrong number of slots, which is the actionable fact.
-  // And a suspended or closed tenant has neither yet — what matters is when the
+  // And a suspended or closed tenant has neither yet, what matters is when the
   // operator's decision was taken, because the clocks underneath keep running.
   const when =
     row.state === "suspended"
@@ -445,7 +445,7 @@ function TenantTr({
 /**
  * One tenant's entitlement, their account state, and the single change an operator
  * wants to make. The preview is computed from the same rules the RPCs apply, so what
- * this dialog promises and what the database does are one sentence — the functions
+ * this dialog promises and what the database does are one sentence, the functions
  * still decide every rule for themselves, and their refusals are what `preview` and
  * `accessPreview` echo back.
  *
@@ -511,7 +511,7 @@ function ManageTenant({
 
   // A stuck charge: ask the provider once more, then record the operator's name
   // and reason beside the outcome. Activation, when it happens, is the server-side
-  // verifier's decision — pressing this button cannot credit anyone by itself.
+  // verifier's decision, pressing this button cannot credit anyone by itself.
   async function verifyNow(payment: PendingPayment) {
     if (whyText.length < REASON_MIN_CHARS) {
       toast.error(t("ops.verifyNeedsReason"));
@@ -694,7 +694,7 @@ function ManageTenant({
             </span>
           </p>
         ) : (
-          // An empty box is not a mistake — the hint under the field already says
+          // An empty box is not a mistake, the hint under the field already says
           // what to type, so the refusal only appears once there is something to refuse.
           value.trim() !== "" && <p className="text-[13px] text-destructive">{preview.error}</p>
         )}

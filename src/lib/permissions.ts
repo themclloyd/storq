@@ -9,7 +9,7 @@
  *
  * The database enforces the same model (`app.expand_perms` / `app.require_perm`
  * and the 12-key `app.all_permissions()`), so hiding a button here is a
- * courtesy — an RPC refuses a view-only session either way.
+ * courtesy, an RPC refuses a view-only session either way.
  */
 export const AREAS = ["sales", "stock", "approvals", "money", "staff", "locations"] as const;
 
@@ -105,7 +105,7 @@ export function areaAccess(access: Access | null | undefined, area: Area) {
 
 /**
  * Mirror of `app.expand_perms`: a change grant brings its view grant with it.
- * Used to decide which boxes an editor may tick — an editor who may change
+ * Used to decide which boxes an editor may tick, an editor who may change
  * stock may also hand out the read-only view of it.
  */
 export function expandPermissions(perms: readonly string[]): Permission[] {

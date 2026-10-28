@@ -19,7 +19,7 @@ const PHONE_RE = /^[+0-9()\- ]{6,32}$/;
 
 /**
  * Customer on the ticket: a name and a phone, enough to print on the receipt,
- * send it over WhatsApp, and find the sale later. Kept on this sale only — the
+ * send it over WhatsApp, and find the sale later. Kept on this sale only, the
  * till has no customer register to keep in sync while it trades.
  */
 export function CustomerDialog({

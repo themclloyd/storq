@@ -23,7 +23,7 @@ export function calcTotal(currency: Currency, stores: number, months: number): n
 }
 
 /**
- * Mean Gregorian month in seconds — the divisor `start_store_subscription_payment`
+ * Mean Gregorian month in seconds, the divisor `start_store_subscription_payment`
  * uses when it prices a slot bought mid-term. Seconds rather than calendar months
  * because the remainder of a paid term is rarely a whole month, and the server
  * rounds it up before charging.
@@ -57,7 +57,7 @@ export function billedSlotCount(totalSlots: number, paidSlots: number): number {
 }
 
 /**
- * Whole months left on a paid term, rounded up and never below one — the term a slot
+ * Whole months left on a paid term, rounded up and never below one, the term a slot
  * bought mid-cycle joins. Mirrors the `2629800` division in SQL, so the months a
  * prorated purchase is charged for are the months the database derives.
  */
@@ -139,7 +139,7 @@ export function useSubscription(businessId?: string, storeCount = 0) {
     retry: 1,
     queryFn: async () => {
       // subscriptions predates type regeneration for paid_store_limit and the
-      // operator lifecycle stamps — read via any-cast with an explicit column list
+      // operator lifecycle stamps, read via any-cast with an explicit column list
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("subscriptions")

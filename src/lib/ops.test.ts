@@ -91,7 +91,7 @@ describe("accessRunway", () => {
 });
 
 // A tenant paying roughly ninety days on, three slots bought, two stores open,
-// a trial that ended yesterday and no operator decision on top — the shape of a
+// a trial that ended yesterday and no operator decision on top, the shape of a
 // normal active account.
 const tenant = (over: Partial<TenantRow> = {}): TenantRow => ({
   id: "b0000000-0000-4000-8000-000000000001",
@@ -193,7 +193,7 @@ describe("tenantState", () => {
 
   it("puts an operator decision above the money maths in both directions", () => {
     // Prepaid time does not make trading allowed, and an expired account that was
-    // restored is not expired either — the stamp is the fact being reported.
+    // restored is not expired either, the stamp is the fact being reported.
     expect(tenantState(tenant({ suspended_at: iso(-DAY) }), 2, now)).toBe("suspended");
     expect(
       tenantState(tenant({ paid_until: iso(-4 * DAY), trial_ends_at: iso(-4 * DAY) }), 2, now),
@@ -268,7 +268,7 @@ describe("previewLifecycle", () => {
   });
 
   it("says what the tenant becomes, including a suspension that outlives closure", () => {
-    // Reopening lifts the closure but not the suspension — collections still owns it.
+    // Reopening lifts the closure but not the suspension, collections still owns it.
     const both = tenant({ closed_at: iso(-DAY), suspended_at: iso(-5 * DAY) });
     expect(previewLifecycle(both, "reopen", "owner")).toEqual({ ok: true, state: "suspended" });
     // And a restore on a healthy paid tenant simply reveals the state underneath.
@@ -361,7 +361,7 @@ describe("applyLifecycleChange / applyPurge", () => {
   });
 });
 
-describe("previewEntitlement — slots", () => {
+describe("previewEntitlement, slots", () => {
   it("never goes below the stores they actually run, and says how to free a slot", () => {
     expect(refusal(tenant(), "slots", "1")).toMatch(/live stores/);
     expect(refusal(tenant(), "slots", "1")).toMatch(/archive one/);
@@ -384,7 +384,7 @@ describe("previewEntitlement — slots", () => {
   });
 });
 
-describe("previewEntitlement — extend", () => {
+describe("previewEntitlement, extend", () => {
   it("counts from the expiry they already bought", () => {
     expect(outcome(tenant(), "extend", "30").days).toBe(120);
   });
@@ -411,7 +411,7 @@ describe("previewEntitlement — extend", () => {
   });
 });
 
-describe("previewEntitlement — until", () => {
+describe("previewEntitlement, until", () => {
   it("refuses a date in the past, which is a suspension not a change", () => {
     expect(refusal(tenant(), "until", "2020-01-01")).toMatch(/suspension/);
   });
@@ -430,7 +430,7 @@ describe("previewEntitlement — until", () => {
   });
 });
 
-describe("previewEntitlement — trial and plan", () => {
+describe("previewEntitlement, trial and plan", () => {
   it("sets a trial only inside the window the RPC allows", () => {
     expect(refusal(tenant(), "trial", "0")).toMatch(/1 to/);
     expect(refusal(tenant(), "trial", String(TRIAL_MAX_DAYS + 1))).toMatch(/1 to/);

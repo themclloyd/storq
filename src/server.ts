@@ -29,7 +29,7 @@ async function getServerEntry(): Promise<ServerEntry> {
 // opens a hosted checkout frame and posts to its API, so script-src, frame-src,
 // and connect-src must allow its domain. Cloudflare Turnstile loads its embed
 // script and runs the challenge in its own frame, so both script-src and
-// frame-src must allow challenges.cloudflare.com — only when a site key (and
+// frame-src must allow challenges.cloudflare.com, only when a site key (and
 // therefore the widget) is actually in use; harmless to allow otherwise.
 const CSP = [
   "default-src 'self'",
@@ -75,7 +75,7 @@ function applySecurityHeaders(response: Response): Response {
 }
 
 // h3 swallows in-handler throws into a normal 500 Response with body
-// {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
+// {"unhandled":true,"message":"HTTPError"}, try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";

@@ -5,7 +5,7 @@
  * The real limits live server-side (public.pin_throttle + the login-wide
  * backstop for PINs, Supabase Auth for passwords). This gate only stops one
  * browser from turning a fat finger, a stuck key or a script into a request
- * storm — and it survives a reload, so F5 does not clear the countdown.
+ * storm, and it survives a reload, so F5 does not clear the countdown.
  *
  * Storage holds a counter and a timestamp, never a credential.
  */

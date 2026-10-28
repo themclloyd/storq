@@ -46,7 +46,7 @@ export function useExpenses(filter: { storeId?: string | undefined; since?: stri
         .limit(1000);
       if (filter.storeId) q = q.eq("store_id", filter.storeId);
       // `spent_on` is a bare date column, so the period start has to be compared as a local
-      // calendar day — slicing the UTC ISO string shifts the day for offsets ahead of GMT.
+      // calendar day, slicing the UTC ISO string shifts the day for offsets ahead of GMT.
       if (filter.since) q = q.gte("spent_on", localDateKey(filter.since));
       const { data, error } = await q;
       if (error) throw error;
@@ -64,7 +64,7 @@ export function sinceFor(r: keyof typeof rangeDays) {
   return d.toISOString();
 }
 
-// ---- export helper (lazy — called only on button click) ----
+// ---- export helper (lazy, called only on button click) ----
 export async function fetchExpensesForExport(filter: {
   storeId?: string | undefined;
   since: string;

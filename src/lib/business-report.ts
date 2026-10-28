@@ -37,7 +37,7 @@ export type ReportRefund = {
 export type ReportKind = "cash" | "bank" | "mobile" | "other";
 
 /**
- * `split` is a sale-level label with no money behind it — the tender rows say
+ * `split` is a sale-level label with no money behind it, the tender rows say
  * which provider took each part. Only a legacy sale with no tender rows can
  * reach the fallback and land in `other`.
  */

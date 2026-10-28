@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatMoney } from "@/lib/format";
 
-describe("formatMoney — currency display", () => {
+describe("formatMoney, currency display", () => {
   it("prints ISO codes as their local sign", () => {
     expect(formatMoney("MWK", 6000)).toBe("MK6,000");
     expect(formatMoney("zar", 2500.5)).toBe("R2,500.50");

@@ -1,5 +1,5 @@
 /**
- * Storq's icon surface — one line per glyph, each backed by its own module.
+ * Storq's icon surface, one line per glyph, each backed by its own module.
  *
  * `@hugeicons/core-free-icons` exposes ~6 000 glyphs from a single barrel. A
  * production build tree-shakes that down to what we use, but a dev server cannot:

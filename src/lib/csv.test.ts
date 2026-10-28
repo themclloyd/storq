@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseCsv, readCsvText, toCsv } from "@/lib/pdf";
 import { LIMITS, csvFileIssue, parseAmountCell, validateCsvFile } from "@/lib/validate";
 
-describe("parseCsv — text tables only", () => {
+describe("parseCsv, text tables only", () => {
   it("reads quoted fields, doubled quotes and both delimiters", () => {
     expect(parseCsv('name,note\n"Sugar, 1kg","say ""hi"""')).toEqual([
       ["name", "note"],
@@ -46,7 +46,7 @@ describe("parseCsv — text tables only", () => {
   });
 });
 
-describe("validateCsvFile — the picker's accept is only a hint", () => {
+describe("validateCsvFile, the picker's accept is only a hint", () => {
   const file = (name: string, type: string, size: number) => ({ name, type, size });
 
   it("accepts what a browser actually reports for a CSV", () => {
@@ -67,10 +67,10 @@ describe("validateCsvFile — the picker's accept is only a hint", () => {
   });
 });
 
-describe("csvFileIssue — contents, not just the extension", () => {
+describe("csvFileIssue, contents, not just the extension", () => {
   it("accepts a real table, BOM and accents included", () => {
     expect(csvFileIssue("name,sku,cost\nSugar 1kg,SUG-1,90")).toBeNull();
-    expect(csvFileIssue("\ufeffname,note\nCafé,naïve — ok")).toBeNull();
+    expect(csvFileIssue("\ufeffname,note\nCafé,naïve, ok")).toBeNull();
     expect(csvFileIssue("name,note\nRice 🍚,fine")).toBeNull();
   });
   it("rejects a renamed workbook, PDF, gzip and RTF", () => {
@@ -91,7 +91,7 @@ describe("csvFileIssue — contents, not just the extension", () => {
   });
 });
 
-describe("readCsvText — Excel's ANSI export still imports", () => {
+describe("readCsvText, Excel's ANSI export still imports", () => {
   const fileOf = (bytes: number[]) => ({ arrayBuffer: async () => new Uint8Array(bytes).buffer });
 
   it("decodes UTF-8, BOM included", async () => {
@@ -104,7 +104,7 @@ describe("readCsvText — Excel's ANSI export still imports", () => {
   });
 });
 
-describe("parseAmountCell — a payload is not a price", () => {
+describe("parseAmountCell, a payload is not a price", () => {
   it("parses plain and spreadsheet-formatted numbers", () => {
     expect(parseAmountCell("25")).toBe(25);
     expect(parseAmountCell(" 25.50 ")).toBe(25.5);

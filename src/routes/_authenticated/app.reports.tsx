@@ -59,7 +59,7 @@ function Reports() {
 }
 
 function ReportsContent() {
-  // A statement is history, so it reads every location that ever sold — an
+  // A statement is history, so it reads every location that ever sold, an
   // archived branch included. Using the live list here would drop a closed shop's
   // rows and quietly rewrite last month's report.
   const { store, allStores: stores, money, business } = usePos();
@@ -131,7 +131,7 @@ function ReportsContent() {
   const fetching =
     sales.isFetching || expenses.isFetching || refundsQ.isFetching || costs.isFetching;
 
-  // downloadPdf is async — keep the promise (no `void`) so useOnce can await
+  // downloadPdf is async, keep the promise (no `void`) so useOnce can await
   // it and lock the button until the browser has actually handed the file off.
   const exportReport = async (kind: "csv" | "pdf") => {
     if (kind === "csv") {

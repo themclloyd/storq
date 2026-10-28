@@ -56,7 +56,7 @@ export function useTransfers(storeId?: string) {
     enabled: !!storeId,
     staleTime: 30_000,
     queryFn: async () => {
-      // the new transfer tables predate type regeneration — read via any-cast
+      // the new transfer tables predate type regeneration, read via any-cast
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from as any)("stock_transfers")
         .select(

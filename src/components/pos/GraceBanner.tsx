@@ -1,7 +1,7 @@
 /**
  * Grace / due / trial banner. SQL stretches the paid-expiry test by three days inside
- * `subscription_active()`, so a shop keeps selling while the owner — usually the only
- * person carrying the mobile-money SIM — is away. This makes that window visible
+ * `subscription_active()`, so a shop keeps selling while the owner, usually the only
+ * person carrying the mobile-money SIM, is away. This makes that window visible
  * instead of silent, and lets any staff member hand the renewal to the owner over
  * WhatsApp. It grants nothing: the renew button opens the same billing screen whose
  * payment UI stays role-gated, and sharing only passes information along.
@@ -29,7 +29,7 @@ const DAY_MS = 86_400_000;
 export function GraceBanner({ hideLink = false }: { hideLink?: boolean }) {
   const { t } = useI18n();
   const { business, stores, store } = usePos();
-  // Same cached entitlement row the gate uses — no extra database read per screen.
+  // Same cached entitlement row the gate uses, no extra database read per screen.
   const sub = useSubscription(business?.id, stores.length);
   const s = sub.data;
   const [number, setNumber] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function GraceBanner({ hideLink = false }: { hideLink?: boolean }) {
   const trialEnds = s?.sub?.trial_ends_at ? new Date(s.sub.trial_ends_at) : null;
   // Four states worth warning about: inside the paid grace window, a paid term that
   // ends within two days, a trial in its last week, or a trial in its single day of
-  // grace. A suspension, a closure or an over-capacity account is excluded — those
+  // grace. A suspension, a closure or an over-capacity account is excluded, those
   // stop writes immediately, so counting down days there would be a false comfort.
   const blocked = !s || s.suspended || s.closed || s.overLimit;
   const dueSoon = !!s?.paid && !!paidUntil && paidUntil.getTime() - Date.now() < 2 * DAY_MS;
@@ -94,7 +94,7 @@ export function GraceBanner({ hideLink = false }: { hideLink?: boolean }) {
       days,
       link: `${window.location.origin}/app/billing`,
     });
-    // Without a usable number the plain share still works — WhatsApp asks the sender
+    // Without a usable number the plain share still works, WhatsApp asks the sender
     // to pick a chat, which is exactly what a cashier at the counter would do anyway.
     const url = digits
       ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}`

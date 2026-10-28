@@ -26,7 +26,7 @@ function startOfDay(value: Date) {
 }
 
 /**
- * Local `YYYY-MM-DD`. Bare Postgres `date` strings must be read as local calendar days —
+ * Local `YYYY-MM-DD`. Bare Postgres `date` strings must be read as local calendar days,
  * `new Date("2026-10-08")` and `.slice(0, 10)` of a UTC ISO both shift the day by the offset.
  */
 export function localDateKey(value: string | Date): string {

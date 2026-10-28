@@ -278,7 +278,7 @@ export async function downloadPdf(d: PdfDoc) {
 
 // ---------- Thermal receipt PDF (80mm roll) ----------
 // The till prints on an 80mm thermal roll (see PRINT_CSS in receipts.ts), so a
-// saved receipt is cut to that same roll — an A4 sheet shrinks the receipt into
+// saved receipt is cut to that same roll, an A4 sheet shrinks the receipt into
 // a corner and looks nothing like what leaves the printer. Courier matches the
 // monospace look of the printed sheet.
 
@@ -419,8 +419,8 @@ export function downloadCsv(filename: string, rows: (string | number | null | un
 
 /**
  * Decode an uploaded CSV. Excel's plain "CSV" export on Windows still writes the
- * ANSI code page, so a valid file must not be refused — or imported with "Café"
- * mangled into "Caf\uFFFD" — just because strict UTF-8 did not decode. UTF-8 is
+ * ANSI code page, so a valid file must not be refused, or imported with "Café"
+ * mangled into "Caf\uFFFD", just because strict UTF-8 did not decode. UTF-8 is
  * tried first (it also strips a BOM); windows-1252 maps every byte, so it is the
  * safe fallback for a text file that is not UTF-8.
  */

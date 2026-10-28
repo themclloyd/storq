@@ -51,8 +51,8 @@ function InvoicesContent() {
     statuses: ["rejected", "completed", "layby_open", "layby_completed"],
   });
   const [approving, setApproving] = useState<SaleRow | null>(null);
-  // The queue reads as two explicit tabs — what still waits for a decision
-  // and the ones already done — so nobody wonders where an invoice went.
+  // The queue reads as two explicit tabs, what still waits for a decision
+  // and the ones already done, so nobody wonders where an invoice went.
   const [tab, setTab] = useState<"waiting" | "done">("waiting");
   const approver = can("approvals");
 

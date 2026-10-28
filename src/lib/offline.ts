@@ -9,7 +9,7 @@ const QUEUE_PREFIX = "storq-offline-";
 const CACHE_VERSION = 2;
 
 // Reference data the register needs to open instantly. Never persist gated
-// data (buying costs, reports) — only what every staff member can already read.
+// data (buying costs, reports), only what every staff member can already read.
 const PERSIST = new Set([
   "business",
   "stores",

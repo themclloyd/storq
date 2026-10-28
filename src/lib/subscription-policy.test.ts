@@ -24,7 +24,7 @@ const sub = (over: Partial<Subscription> = {}): Subscription => ({
   ...over,
 });
 
-describe("subscriptionAccess — entitlement is derived in SQL, mirrored here", () => {
+describe("subscriptionAccess, entitlement is derived in SQL, mirrored here", () => {
   it("is active while paid and within the paid store capacity", () => {
     const a = subscriptionAccess(sub(), 2, NOW);
     expect(a.paid).toBe(true);
@@ -86,7 +86,7 @@ describe("subscriptionAccess — entitlement is derived in SQL, mirrored here", 
   });
 
   it("an operator suspension blocks the till even while prepaid time is still running", () => {
-    // The money clock is untouched — that is the point of a suspension — so the
+    // The money clock is untouched, that is the point of a suspension, so the
     // block cannot come from `paid`/`expired`, only from the stamp itself.
     const a = subscriptionAccess(sub({ suspended_at: PAST }), 2, NOW);
     expect(a.paid).toBe(true);
@@ -112,7 +112,7 @@ describe("subscriptionAccess — entitlement is derived in SQL, mirrored here", 
   });
 });
 
-describe("grace window — mirrors the 3-day expiry stretch in subscription_active()", () => {
+describe("grace window, mirrors the 3-day expiry stretch in subscription_active()", () => {
   it("keeps a just-lapsed term selling and counts the days left", () => {
     const a = subscriptionAccess(sub({ paid_until: LAPSED_1D }), 2, NOW);
     expect(a.paid).toBe(false);
@@ -163,7 +163,7 @@ describe("grace window — mirrors the 3-day expiry stretch in subscription_acti
   });
 });
 
-describe("trial grace — one day of selling after the single-day trial", () => {
+describe("trial grace, one day of selling after the single-day trial", () => {
   const ago = (hours: number) => new Date(NOW - hours * 3_600_000).toISOString();
 
   it("keeps selling through the day after the trial ends", () => {
@@ -210,11 +210,11 @@ describe("trial grace — one day of selling after the single-day trial", () => 
   });
 });
 
-describe("trial notice — the countdown starts the day the trial does", () => {
+describe("trial notice, the countdown starts the day the trial does", () => {
   // The trial is a single day, so there is no "quiet period" left to spend: the
   // warning has to be up from the first moment, and the day of grace after it is
-  // the banner's other job. A longer trial is still possible — an operator can
-  // grant up to TRIAL_MAX_DAYS — which is what the quiet case below covers.
+  // the banner's other job. A longer trial is still possible, an operator can
+  // grant up to TRIAL_MAX_DAYS, which is what the quiet case below covers.
   const trialIn = (days: number) => new Date(NOW + days * 86_400_000).toISOString();
 
   it("warns from the first moment of the one-day trial", () => {

@@ -21,7 +21,7 @@ import { SITE_NAME, DEFAULT_OG_IMAGE, PUBLIC_ROBOTS } from "@/lib/seo";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 /**
- * A tab left open across a deploy — or across a dev-server restart — asks for
+ * A tab left open across a deploy, or across a dev-server restart, asks for
  * route chunks that no longer exist, and the router reports that as a module
  * load error. Re-rendering can never fix it: the tab needs the new manifest, so
  * the boundary reloads once and only shows the failure screen if that did not
@@ -129,7 +129,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      // Fonts ship inside appCss (see styles.css) — self-hosted, so no
+      // Fonts ship inside appCss (see styles.css), self-hosted, so no
       // render-blocking third-party stylesheet and no extra CSP origin.
       { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
       { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },

@@ -12,7 +12,7 @@ import {
   LIMITS,
 } from "@/lib/validate";
 
-describe("sanitizeText — nothing that starts markup leaves the browser", () => {
+describe("sanitizeText, nothing that starts markup leaves the browser", () => {
   it("strips control chars, angle brackets, backticks and collapses whitespace", () => {
     expect(sanitizeText("  a\u0000b <script> `x`  y  ", 100)).toBe("ab script x y");
   });
@@ -21,7 +21,7 @@ describe("sanitizeText — nothing that starts markup leaves the browser", () =>
   });
 });
 
-describe("requireText — server bounds mirrored with a readable message", () => {
+describe("requireText, server bounds mirrored with a readable message", () => {
   it("accepts a clean value", () => {
     expect(requireText("Fresh Bread", "item name", LIMITS.productName)).toBeNull();
   });
@@ -35,7 +35,7 @@ describe("requireText — server bounds mirrored with a readable message", () =>
     expect(requireText("'; drop table sales; --", "name", LIMITS.name)).not.toBeNull();
     expect(requireText("1 union select pin_hash from staff", "name", LIMITS.name)).not.toBeNull();
   });
-  it("no longer rejects a double dash — writes are parameterized, not interpolated", () => {
+  it("no longer rejects a double dash, writes are parameterized, not interpolated", () => {
     expect(requireText("drop--users", "name", LIMITS.name)).toBeNull();
     expect(requireText("Tee -- blue", "name", LIMITS.name)).toBeNull();
     // Markup is still refused on the same path.
@@ -43,7 +43,7 @@ describe("requireText — server bounds mirrored with a readable message", () =>
   });
 });
 
-describe("payloadKind — a document is not a name", () => {
+describe("payloadKind, a document is not a name", () => {
   it("recognises JSON objects and arrays", () => {
     expect(payloadKind('{"$gt":""}')).toBe("json");
     expect(payloadKind('[{"id":1}]')).toBe("json");
@@ -111,7 +111,7 @@ describe("credential rules", () => {
   });
 });
 
-describe("validateAmount — same numeric bounds as the RPC and CHECK", () => {
+describe("validateAmount, same numeric bounds as the RPC and CHECK", () => {
   it("accepts two-decimal money within range", () => {
     expect(validateAmount("19.99", { label: "price", min: 0 })).toBeNull();
   });
@@ -135,7 +135,7 @@ describe("validateSku", () => {
   });
 });
 
-describe("csvCell — Excel formula-injection guard", () => {
+describe("csvCell, Excel formula-injection guard", () => {
   it("neutralises cells that would execute as a formula", () => {
     expect(csvCell("=SUM(A1)")).toBe("'=SUM(A1)");
     expect(csvCell("+1attack")).toBe("'+1attack");

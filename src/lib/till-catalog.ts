@@ -9,7 +9,7 @@ import type { Product } from "@/lib/products";
  * A counter does not browse an e-commerce catalogue: a cashier scans a code,
  * types a few letters, or opens a collection, and only ever looks at the
  * handful of items in front of the customer. Handing every till the whole
- * price list on boot — and again on every catalogue edit — turns one shop into
+ * price list on boot, and again on every catalogue edit, turns one shop into
  * thousands of rows per device for items nobody asked for, which is the read
  * pattern this module exists to stop. Every path here is one bounded query:
  * at most a page of tiles, or exactly one item for a scanned code.
@@ -172,7 +172,7 @@ export type TillFilter = {
   browseAll: boolean;
 };
 
-/** One page for whatever the cashier is looking at — idle means no read at all. */
+/** One page for whatever the cashier is looking at, idle means no read at all. */
 export async function fetchTillPage(
   { storeId, term, collectionId, browseAll }: TillFilter & { storeId: string },
   signal: AbortSignal,

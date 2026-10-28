@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/pos/bits";
 
 /**
- * A tenant's methods as a wrapping grid of toggles. Cash is always on — the
- * server guarantees it too — and `extra` surfaces retired codes that this
+ * A tenant's methods as a wrapping grid of toggles. Cash is always on, the
+ * server guarantees it too, and `extra` surfaces retired codes that this
  * business already had enabled so it can keep or drop them deliberately.
  */
 export function PaymentMethodPicker({

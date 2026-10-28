@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
  *
  * The server opens the drawer by itself on the first sale of a PIN session, so
  * the one way it still gets forgotten is by never saying so. This chip sits on
- * every workspace screen — closed and "open since yesterday" both read as a
- * warning — and doubles as the link to the count-and-close screen.
+ * every workspace screen, closed and "open since yesterday" both read as a
+ * warning, and doubles as the link to the count-and-close screen.
  */
 export function DrawerChip({
   storeId,

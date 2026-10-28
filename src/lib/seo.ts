@@ -3,7 +3,7 @@
 // Absolute URLs (canonical, og:url, og:image, sitemap links) come from the
 // `VITE_SITE_URL` env var. When it is unset we fall back to relative paths,
 // which are always correct and let Google resolve them against the live
-// document URL — so a misconfigured or unknown deployment domain can never
+// document URL, so a misconfigured or unknown deployment domain can never
 // leak a wrong absolute URL into the page.
 
 export const SITE_NAME = "Storq";

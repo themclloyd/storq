@@ -86,7 +86,7 @@ export type Business = {
 type PosCtx = {
   userId: string;
   business: Business | null | undefined;
-  /** Open locations only — what the till, the pickers and the paid-slot count use. */
+  /** Open locations only, what the till, the pickers and the paid-slot count use. */
   stores: Store[];
   /** Locations that stopped trading. Read-only history, restorable from Locations. */
   archivedStores: Store[];
@@ -132,7 +132,7 @@ const Ctx = createContext<PosCtx | null>(null);
 
 /**
  * The server throws controlled business messages ("Only 4 left in stock", etc.).
- * Anything carrying SQL internals — relation names, columns, policy text — is
+ * Anything carrying SQL internals (relation names, columns, policy text) is
  * replaced by a generic message so a raw Postgres error never reaches the UI.
  */
 function maskRpcError(raw: string): string {
@@ -190,7 +190,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       const al = Number(localStorage.getItem(autoLockKey));
       if (Number.isFinite(al) && al >= 0) setAutoLockMinutesState(al);
     } catch {
-      // Unreadable storage just means a fresh lock — no user-facing failure.
+      // Unreadable storage just means a fresh lock, no user-facing failure.
     }
   }, [staffKey, storeKey, autoLockKey]);
 
@@ -224,8 +224,8 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
       return data as Store[];
     },
   });
-  // One read serves both lists. Everything that trades — the till, the pickers, the
-  // capacity counter, the offline snapshot — sees live locations only, so an
+  // One read serves both lists. Everything that trades (the till, the pickers, the
+  // capacity counter, the offline snapshot) sees live locations only, so an
   // archived branch can never be selected, sold from or counted against a slot.
   const liveStores = useMemo(
     () => (storesQ.data ?? []).filter((s) => !s.archived_at),

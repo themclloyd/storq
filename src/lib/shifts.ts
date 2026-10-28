@@ -13,7 +13,7 @@ export type OpenDrawer = {
 /**
  * Drawer state for the shell chip and the drawer screen. The server opens the
  * drawer with the first money movement of a PIN session (app.attach_drawer), so
- * this is a plain read — nothing here has to remember to start it.
+ * this is a plain read, nothing here has to remember to start it.
  */
 export function useOpenDrawer(storeId?: string | null) {
   return useQuery({
@@ -21,7 +21,7 @@ export function useOpenDrawer(storeId?: string | null) {
     enabled: !!storeId,
     staleTime: 60_000,
     queryFn: async () => {
-      // cash_shifts predates type regeneration — read via any-cast
+      // cash_shifts predates type regeneration, read via any-cast
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from as any)("cash_shifts")
         .select("id,store_id,opened_by,opened_at,opening_float")

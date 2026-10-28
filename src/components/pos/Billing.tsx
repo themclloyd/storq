@@ -1,26 +1,26 @@
 /**
- * Billing page — subscription management for Storq.
+ * Billing page, subscription management for Storq.
  *
  * The page is deliberately small: one card says what plan the business is on, when
  * it runs out, how many locations it covers and what another one costs, followed by
  * the receipts. Each purchase starts from that card's own buttons, which open
- * `planMode` in the mode the button means — the dialog never asks "what do you want
+ * `planMode` in the mode the button means, the dialog never asks "what do you want
  * to do?" on top of "how many?":
  *
- * 1. RENEW / EXTEND — a running paid term. They pick:
+ * 1. RENEW / EXTEND, a running paid term. They pick:
  *    - How many locations the new term covers. It defaults to the slots already
  *      paid for and can come down to the locations actually open, so capacity
  *      bought for a branch that has since gone stops being charged.
  *    - How many months to add (1, 3, 6, 12, or any stepper value 1-24)
  *    15% off at 12+ months.
  *
- * 2. ADD STORES — a running paid term that needs more locations. They pick the
+ * 2. ADD STORES, a running paid term that needs more locations. They pick the
  *    number to add; the months are NOT a choice. New slots join the term already
  *    paid for, so the price is "new slots × whole months left", and the expiry does
  *    not move. SQL derives the same months from `paid_until`, so the quote on this
  *    screen is the amount the provider is asked for.
  *
- * 3. NEW SUBSCRIPTION — trial or expired. They pick the slots to cover and the
+ * 3. NEW SUBSCRIPTION, trial or expired. They pick the slots to cover and the
  *    months.
  *
  * All three bill off the single `subscriptions.paid_until` per business, so every
@@ -95,7 +95,7 @@ declare global {
 type PlanMode = "renew" | "add-stores" | "new";
 
 // How long a checkout can plausibly stay open. Mirrors the thirty minutes SQL uses to
-// reuse a pending intent — and, since 011, to abandon one. A reference older than this
+// reuse a pending intent, and, since 011, to abandon one. A reference older than this
 // is a click the buyer walked away from, not a payment still on its way.
 const ATTEMPT_TTL_MS = 30 * 60_000;
 const PENDING_KEY = "paychangu_pending_tx_ref";
@@ -221,8 +221,8 @@ function MonthPicker({
 }
 
 /**
- * Stepper for a count (slots bought or added). The label row carries the arithmetic —
- * "2 of 3 stores used", "New total: 4 slots" — so the big number is never bare.
+ * Stepper for a count (slots bought or added). The label row carries the arithmetic,
+ * "2 of 3 stores used", "New total: 4 slots", so the big number is never bare.
  */
 function CountStepper({
   value,
@@ -352,7 +352,7 @@ function PriceSummary({
 // The three dialogs are one shape: a titled head that stays put, a body that
 // scrolls when a phone is short, and a footer bar holding the single action.
 
-/** Content preset for a sheet — head and footer pinned, body scrolls. */
+/** Content preset for a sheet, head and footer pinned, body scrolls. */
 const SHEET = "flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-[16px] p-0";
 
 function SheetHead({ title, desc }: { title: string; desc: React.ReactNode }) {
@@ -395,7 +395,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   // That pending reference is what the "already debited?" recovery button re-verifies.
   const [pendingTx, setPendingTx] = useState<string | null>(null);
   const checked = useRef(false);
-  // tx_ref of the checkout we opened in the PayChangu iframe this session —
+  // tx_ref of the checkout we opened in the PayChangu iframe this session,
   // used to authenticate postMessage results and ignore stale messages.
   const pendingRef = useRef<string | null>(null);
 
@@ -457,7 +457,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   const months = quote.months;
   const isCapacityPurchase = quote.isCapacity;
   const payUntil = quote.expiry;
-  // The term a newly bought slot joins — the same months the RPC derives and charges.
+  // The term a newly bought slot joins, the same months the RPC derives and charges.
   const termMonthsLeft = remainingTermMonths(s?.sub?.paid_until ?? null);
 
   // A paid term can carry more slots than locations, and a capacity purchase is only
@@ -499,7 +499,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   // The checkout overlay is dismissed once PayChangu reports success, but the
   // pending reference is only cleared after OUR server confirms the payment.
   // A transient failure (provider not yet consistent, missing service key) then
-  // survives in localStorage and is retried on the next load — so a charge that
+  // survives in localStorage and is retried on the next load, so a charge that
   // really happened is never silently dropped.
   async function finalizePayment(ref: string, quiet = false) {
     document.getElementById("iframe1")?.remove();
@@ -547,7 +547,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   // invisible on purpose: a button that greys out and re-labels itself every half
   // minute reads as the page reloading under the owner's hands, and a red "not seen
   // yet" each time reads as an error to act on when nothing is wrong. A payment that
-  // does land still announces itself — that is the one message worth a toast.
+  // does land still announces itself, that is the one message worth a toast.
   const [verifying, setVerifying] = useState(false);
   const verifyRecent = useCallback(
     async (silent = false) => {
@@ -563,7 +563,7 @@ export function Billing({ locked }: { locked?: boolean }) {
 
   // "We keep checking" used to be a promise nothing kept: the references were only
   // looked at once, on mount. Now the page re-reads the pending list and settles it
-  // on its own, so a payment approved on a phone — or made on another till — shows up
+  // on its own, so a payment approved on a phone, or made on another till, shows up
   // without the owner having to press anything.
   const awaitingPayment = pendingCount > 0 || !!pendingTx;
   const refetchPending = pendingQ.refetch;
@@ -581,7 +581,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   // "I didn't pay": the intent exists only because the provider needed a reference
   // before the checkout opened, so closing it here ends the banner, the polling and
   // the provider lookups at once. A charge that landed anyway still activates the
-  // term it paid for — the row is closed, not deleted.
+  // term it paid for, the row is closed, not deleted.
   const [cancelling, setCancelling] = useState(false);
   async function cancelAttempt() {
     setCancelling(true);
@@ -601,7 +601,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   }
 
   // The PayChangu checkout loads inside an iframe (popup.js), so a successful
-  // payment NEVER navigates our top-level window — the iframe's own callback
+  // payment NEVER navigates our top-level window, the iframe's own callback
   // redirect lands inside the frame (and our CSP frame-ancestors 'none' blocks
   // it there). The only reliable completion signal is the
   // `paychangu:payment.success` postMessage the checkout sends to its parent.
@@ -626,7 +626,7 @@ export function Billing({ locked }: { locked?: boolean }) {
     if (checked.current) return;
     checked.current = true;
     // Check URL param first (PayChangu redirect), then fall back to the stored
-    // reference — but only while the checkout it belongs to could still be open.
+    // reference, but only while the checkout it belongs to could still be open.
     // Re-checking an older one is exactly what kept a cancelled click on the screen.
     const urlRef = new URLSearchParams(window.location.search).get("tx_ref");
     const ref = urlRef || freshStoredRef();
@@ -641,7 +641,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   }, []);
 
   // Surface a stored pending reference whenever a billing surface is looked at (read
-  // inside an effect only — localStorage does not exist during the server render).
+  // inside an effect only, localStorage does not exist during the server render).
   useEffect(() => {
     setPendingTx(freshStoredRef());
   }, [planMode, payOpen]);
@@ -747,7 +747,7 @@ export function Billing({ locked }: { locked?: boolean }) {
 
   // One pill for one situation, resolved in the same order SQL resolves it: an
   // operator decision outranks the money clock, and a term inside its three-day grace
-  // window is *not* "expired" — the tills are still selling, so saying otherwise made
+  // window is *not* "expired", the tills are still selling, so saying otherwise made
   // this screen contradict the counter.
   const status = !s
     ? { label: t("common.loading"), cls: "bg-secondary text-muted-foreground" }
@@ -768,7 +768,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                     cls: "bg-destructive-soft text-destructive",
                   };
 
-  // A closed account cannot pay its way back — SQL refuses the intent outright — so
+  // A closed account cannot pay its way back, SQL refuses the intent outright, so
   // it gets no payment affordance at all. A suspension does: paying clears it.
   const canPay = can("money") && !s?.closed;
   // The ledger records what the business paid. A cancelled checkout is a click that
@@ -836,7 +836,7 @@ export function Billing({ locked }: { locked?: boolean }) {
     unitPlural: t("billing.monthUnits"),
   };
 
-  // Shared pay button — always the amount `paymentQuote` priced, which is the
+  // Shared pay button, always the amount `paymentQuote` priced, which is the
   // amount `start_store_subscription_payment` records and the provider charges.
   const payBtn = (
     <Button disabled={busy} className="w-full sm:w-auto" onClick={pay}>
@@ -914,7 +914,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   // locked till nothing at all.
   const trialEnded = !!s && !s.sub?.paid_until && !s.paid && !s.trial && !s.suspended && !s.closed;
   // The card below already carries the long suspension and closure notices, so only
-  // the trial — which has no notice of its own — gets an explanatory sub-line.
+  // the trial, which has no notice of its own, gets an explanatory sub-line.
   const lockedHead = !s
     ? { title: t("billing.needsAttentionTitle"), sub: t("billing.sub") }
     : s.closed
@@ -941,7 +941,7 @@ export function Billing({ locked }: { locked?: boolean }) {
       <GraceBanner hideLink />
 
       {/* Summary band: the plan on the left, how paying works on the right. Below
-          `lg` the rail simply stacks under the card, and a closed account drops it —
+          `lg` the rail simply stacks under the card, and a closed account drops it,
           there is nothing left to pay. */}
       <div
         className={cn(
@@ -1045,7 +1045,7 @@ export function Billing({ locked }: { locked?: boolean }) {
             ) : null}
 
             {/* A capacity purchase finishes only half the job: the slot exists, the
-                location does not. Shown whenever a paid slot is unused — derived, so
+                location does not. Shown whenever a paid slot is unused, derived, so
                 it survives a reload and a payment made on another till. */}
             {spareSlots > 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-success-soft px-3 py-2 text-[13px] text-success">
@@ -1062,8 +1062,8 @@ export function Billing({ locked }: { locked?: boolean }) {
             ) : null}
 
             {/* A charge the provider took but our server has not confirmed yet. Quiet
-                chrome on purpose: nothing is wrong — the bank is still settling and this
-                page is watching — so it does not get a third warning block. */}
+                chrome on purpose: nothing is wrong, the bank is still settling and this
+                page is watching, so it does not get a third warning block. */}
             {awaitingPayment ? (
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border px-3 py-2">
                 <div className="flex min-w-0 items-start gap-2.5">
@@ -1164,7 +1164,7 @@ export function Billing({ locked }: { locked?: boolean }) {
 
         {/* ── How paying works ───────────────────────────────────────── */}
         {/* No stored card: PayChangu is a checkout, not a vault. So the rail answers
-            the questions a payer actually has — who takes the money, whether anything
+            the questions a payer actually has, who takes the money, whether anything
             is charged on its own, and how one date covers every location. */}
         {!s?.closed && (
           <Card className="p-4">
@@ -1324,7 +1324,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                       const paid = r.status === "paid";
                       const when = new Date(r.paid_at ?? r.created_at);
                       // Capacity purchases charge the new slots only, so the label has to
-                      // say what was billed — not the resulting total capacity.
+                      // say what was billed, not the resulting total capacity.
                       const billed = r.billed_stores ?? r.stores;
                       // Period column may be 'monthly', 'yearly', or an integer string
                       const monthCount =
@@ -1430,7 +1430,7 @@ export function Billing({ locked }: { locked?: boolean }) {
           ) : (
             <>
               <SheetBody>
-                {/* Slots — the one thing the three modes genuinely mean differently. The
+                {/* Slots, the one thing the three modes genuinely mean differently. The
                     hint on the label row does the arithmetic, so the big number reads
                     against something ("2 of 3 stores used" / "New total: 4 slots"). */}
                 {planMode === "add-stores" ? (
@@ -1556,7 +1556,7 @@ export function Billing({ locked }: { locked?: boolean }) {
               </SheetBody>
 
               <SheetFooter className="space-y-2">
-                {/* The checkout window opens on the click below — say what the phone must
+                {/* The checkout window opens on the click below, say what the phone must
                     do while it is up. */}
                 {busy && (
                   <p className="rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground">
@@ -1565,7 +1565,7 @@ export function Billing({ locked }: { locked?: boolean }) {
                 )}
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                   {/* The entry button already decided the mode, so the only switch here
-                      is a quiet link beside the action — never a tab row asking the same
+                      is a quiet link beside the action, never a tab row asking the same
                       question twice. */}
                   {s?.paid ? (
                     <button
@@ -1636,7 +1636,7 @@ export function Billing({ locked }: { locked?: boolean }) {
             </div>
 
             {/* Mobile money is approved by hand on the phone, so the three steps live
-                right where the owner picks it — no separate help page to find. */}
+                right where the owner picks it, no separate help page to find. */}
             <div className="rounded-xl bg-muted/50 px-3.5 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {t("billing.mmStepsTitle")}

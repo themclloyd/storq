@@ -131,7 +131,7 @@ function StoreForm({
   >({});
 
   // ── Export helpers ──────────────────────────────────────────────────────────
-  // All time — "all time" is the right default for a location export:
+  // All time, "all time" is the right default for a location export:
   // the user wants everything from that store, not just the last 30 days.
   const since = new Date("2000-01-01").toISOString();
   const stamp = fileStamp();
@@ -144,7 +144,7 @@ function StoreForm({
 
   // Click-loops are already bounded by the per-export in-flight flags below
   // (anyX disables the buttons while a scan runs); a localStorage "quota"
-  // added no real protection — it resets on clear/incognito and can block a
+  // added no real protection, it resets on clear/incognito and can block a
   // legitimate end-of-month owner. The database guard stays where it belongs:
   // RLS + the RPC layer.
   const xSales = useCallback(async () => {

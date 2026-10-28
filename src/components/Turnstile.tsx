@@ -3,7 +3,7 @@ import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 // Minimal surface of the Cloudflare Turnstile embed API we rely on. Loaded once
 // from the official host; the widget runs an invisible "managed challenge", so
-// most users never see a checkbox — the token just arrives via the callback.
+// most users never see a checkbox, the token just arrives via the callback.
 type TurnstileGlobal = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
   reset: (id: string) => void;

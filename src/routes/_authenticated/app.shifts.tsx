@@ -80,7 +80,7 @@ function ShiftsContent() {
     // cached across mounts; the live figures come from the polled summary.
     staleTime: 300_000,
     queryFn: async () => {
-      // cash_shifts predates type regeneration — read via any-cast
+      // cash_shifts predates type regeneration, read via any-cast
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from as any)("cash_shifts")
         .select("*")
@@ -119,7 +119,7 @@ function ShiftsContent() {
   }
 
   // The drawer opens itself on the first sale, so the only state worth
-  // shouting about is one that has been left open since before today — that is
+  // shouting about is one that has been left open since before today, that is
   // yesterday's cash sitting in today's expected amount.
   const stale = !!open && new Date(open.opened_at).toDateString() !== new Date().toDateString();
   // The seller who opened the drawer (or anyone who holds approvals) may

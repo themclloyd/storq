@@ -47,7 +47,7 @@ import storeGrocery from "@/assets/store-grocery.jpg";
 import storeHardware from "@/assets/store-hardware.jpg";
 import ownerPortrait from "@/assets/owner-portrait.jpg";
 
-/** What the one plan unlocks — outcomes an owner buys, not module names. */
+/** What the one plan unlocks, outcomes an owner buys, not module names. */
 const planFeatureKeys = [
   "marketing.feat1",
   "marketing.feat2",
@@ -71,11 +71,11 @@ const faqKeys: [string, string][] = [
 const faqItems: [string, string][] = [
   [
     "What does it cost?",
-    `MK${PRICES.MWK.toLocaleString("en-US")} a month for each store you run — that is the whole plan, with every feature in it. Your first store runs free on the trial, and you pay by Airtel Money, TNM Mpamba or card.`,
+    `MK${PRICES.MWK.toLocaleString("en-US")} a month for each store you run, that is the whole plan, with every feature in it. Your first store runs free on the trial, and you pay by Airtel Money, TNM Mpamba or card.`,
   ],
   [
     "Do I need to buy hardware?",
-    "No. Storq runs in the browser on the Android phone, tablet or laptop you already own — no till machine, no barcode gun, and light enough to run on everyday data.",
+    "No. Storq runs in the browser on the Android phone, tablet or laptop you already own, no till machine, no barcode gun, and light enough to run on everyday data.",
   ],
   [
     "Can my staff see my money?",
@@ -83,7 +83,7 @@ const faqItems: [string, string][] = [
   ],
   [
     "What happens when the internet goes off?",
-    "At a direct-sale till the counter keeps working — sales are held on the device and file themselves as soon as the connection is back, so an outage never turns a customer away.",
+    "At a direct-sale till the counter keeps working, sales are held on the device and file themselves as soon as the connection is back, so an outage never turns a customer away.",
   ],
   [
     "Can I run more than one shop?",
@@ -91,7 +91,7 @@ const faqItems: [string, string][] = [
   ],
   [
     "Can my customer pay how they want?",
-    "Cash, card, Airtel Money or TNM Mpamba — taken at the counter and on every layby instalment, so the drawer always matches what the day sold.",
+    "Cash, card, Airtel Money or TNM Mpamba, taken at the counter and on every layby instalment, so the drawer always matches what the day sold.",
   ],
 ];
 
@@ -120,7 +120,7 @@ const landingJsonLd = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
-        "A point of sale for African shop owners: ring up sales, hold laybys, count stock and know where every kwacha is — from any phone or laptop.",
+        "A point of sale for African shop owners: ring up sales, hold laybys, count stock and know where every kwacha is, from any phone or laptop.",
       offers: {
         "@type": "AggregateOffer",
         lowPrice: "60000",
@@ -142,7 +142,7 @@ const landingJsonLd = {
 export const Route = createFileRoute("/")({
   head: () => {
     const seo = buildSeo({
-      title: "Storq POS | The lite POS for African shops — works offline",
+      title: "Storq POS | The lite POS for African shops that works offline",
       description:
         "Keep your till, your stock and your staff in order from the phone in your pocket, and see the real profit behind every sale before you close. One plan at MK60,000 per store, free trial included.",
       path: "/",
@@ -345,7 +345,7 @@ function Landing() {
         </div>
       </header>
 
-      {/* Hero — the owner's wish, not the product's name */}
+      {/* Hero, the owner's wish, not the product's name */}
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-16 text-center md:pt-24">
         <Rise>
           <Eyebrow>{t("marketing.heroEyebrow")}</Eyebrow>
@@ -419,7 +419,7 @@ function Landing() {
         </Rise>
       </section>
 
-      {/* Who it's for — the owner sees their own shop, not a segment list */}
+      {/* Who it's for, the owner sees their own shop, not a segment list */}
       <section id="shops" className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
@@ -488,7 +488,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Feature: checkout — what a good day at the counter feels like */}
+      {/* Feature: checkout, what a good day at the counter feels like */}
       <section
         id="features"
         className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2"
@@ -525,7 +525,7 @@ function Landing() {
         </Reveal>
       </section>
 
-      {/* Control — the peace of mind that lets an owner leave the counter */}
+      {/* Control, the peace of mind that lets an owner leave the counter */}
       <section className="bg-primary-deep text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
@@ -591,7 +591,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Feature: stock — the sale you lose when you can't see the shelf */}
+      {/* Feature: stock, the sale you lose when you can't see the shelf */}
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
         <Reveal className="md:order-2">
           <img
@@ -626,7 +626,7 @@ function Landing() {
         </Reveal>
       </section>
 
-      {/* Old way vs Storq — the switch an owner recognises from their own day */}
+      {/* Old way vs Storq, the switch an owner recognises from their own day */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
@@ -695,7 +695,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Layby — the sale you would otherwise send away */}
+      {/* Layby, the sale you would otherwise send away */}
       <section id="layby" className="bg-muted">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
           <Reveal>
@@ -750,7 +750,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Customer story — an owner's relief, in her words */}
+      {/* Customer story, an owner's relief, in her words */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="grid items-center gap-12 md:grid-cols-5">
           <Reveal className="md:col-span-2">
@@ -794,7 +794,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* What else is already inside — breadth without repeating the blocks above */}
+      {/* What else is already inside, breadth without repeating the blocks above */}
       <section className="bg-muted">
         <div className="mx-auto max-w-7xl px-6 py-24">
           <Reveal>
@@ -828,7 +828,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* How to get started — the shortest path to a first sale */}
+      {/* How to get started, the shortest path to a first sale */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <Reveal>
           <h2 className="font-display max-w-3xl text-4xl leading-tight tracking-tight md:text-6xl">
@@ -855,7 +855,7 @@ function Landing() {
         </Reveal>
       </section>
 
-      {/* Desktop till — the offline-first counter app, one download away */}
+      {/* Desktop till, the offline-first counter app, one download away */}
       <section id="desktop" className="border-t border-border bg-card">
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
           <div>
@@ -956,7 +956,7 @@ function Landing() {
 
       <Faq />
 
-      {/* Close — the feeling the whole page sold */}
+      {/* Close, the feeling the whole page sold */}
       <section className="bg-primary-deep text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center">
           <Reveal>
@@ -1003,7 +1003,7 @@ function Landing() {
         </div>
       </footer>
 
-      {/* Sticky trial bar — keeps the next step one tap away on phones */}
+      {/* Sticky trial bar, keeps the next step one tap away on phones */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-medium text-muted-foreground">{t("marketing.stickyNote")}</p>

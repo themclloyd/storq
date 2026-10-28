@@ -23,12 +23,12 @@ export const SALE_TOUCHED: readonly QueryKey[] = [
   ["shifts"],
   ["shift-summary"],
   ["dash-alerts"],
-  // The shell's live approvals badge — a sent invoice or a review updates it
+  // The shell's live approvals badge, a sent invoice or a review updates it
   // immediately on this device instead of waiting for the next poll.
   ["pending-approvals"],
 ];
 
-/** Invalidate each key prefix as its own query — TanStack batches them. */
+/** Invalidate each key prefix as its own query, TanStack batches them. */
 export function invalidateKeys(qc: QueryClient, keys: readonly QueryKey[]) {
   for (const queryKey of keys) void qc.invalidateQueries({ queryKey });
 }

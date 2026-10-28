@@ -7,7 +7,7 @@ import type { Product } from "@/lib/products";
  * A counter runs on a dozen items, not a catalogue: the tiles a cashier reaches
  * for again and again are what makes a register feel instant, and they are also
  * the only items an offline till can still resolve by code. Kept per account,
- * deliberately small, and stripped to the fields every staff member may read —
+ * deliberately small, and stripped to the fields every staff member may read,
  * the till never writes a buying cost to disk.
  */
 export const RECENT_MAX = 18;

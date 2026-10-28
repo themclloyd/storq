@@ -3,8 +3,8 @@
 // or a 5 MB string never leaves the browser. The database is the authority: these
 // functions mirror the same CHECK/RPC bounds (lengths, phone and SKU shapes) purely
 // so the user reads a message instead of a server error. Rules with no server
-// counterpart are the credential ones — email, password and PIN are enforced by
-// Supabase auth — while phone mirrors `sales_phone_shape` and SKU `products_sku_shape`.
+// counterpart are the credential ones, email, password and PIN are enforced by
+// Supabase auth, while phone mirrors `sales_phone_shape` and SKU `products_sku_shape`.
 // Nothing here prevents injection: every write goes through parameterized RPCs.
 // What it does add is shape: `payloadKind` refuses values that ARE a JSON document
 // or a SQL statement, so a pasted payload cannot be stored as a name, and email and
@@ -38,13 +38,13 @@ export const LIMITS = {
   money: 10_000_000_000,
 } as const;
 
-/** Control characters and markup delimiters — defense-in-depth for CSV/print output. */
+/** Control characters and markup delimiters, defense-in-depth for CSV/print output. */
 // eslint-disable-next-line no-control-regex
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f<>`]/;
 /**
  * A practical email allowlist: letters, digits and `_ % + - .` in the local part,
  * dot-separated labels in the domain, and an alphabetic TLD. Quotes, braces,
- * brackets, semicolons, slashes and backslashes are all impossible — an address
+ * brackets, semicolons, slashes and backslashes are all impossible, an address
  * is an identifier, not a place to paste a document.
  */
 const EMAIL_RE =
@@ -56,7 +56,7 @@ const SKU_RE = /^[A-Za-z0-9._\- ]{1,64}$/;
 /**
  * Recognise a value that is structurally a data payload rather than prose.
  *
- * This is not the injection defense — parameterized RPCs are — it stops the
+ * This is not the injection defense (parameterized RPCs are). It stops the
  * other failure mode: a pasted `{"$gt":""}` or `'; drop table sales; --`
  * being stored as an item name, then exported to CSV/PDF or shown in a report
  * where a downstream tool (a spreadsheet, a script) treats it as code.
@@ -130,8 +130,8 @@ export function validateEmail(value: string): string | null {
 /**
  * Always-on password rules, applied even when signing IN: a stored password can
  * never exceed 72 bytes, so a longer attempt is either a paste mistake or a
- * payload. Payload *characters* are allowed — bcrypt hashes the whole string, so
- * quotes and braces in a password are inert — but a value that is entirely a
+ * payload. Payload *characters* are allowed, bcrypt hashes the whole string, so
+ * quotes and braces in a password are inert, but a value that is entirely a
  * JSON document or SQL statement is refused before it leaves the browser.
  */
 export function validatePasswordInput(value: string): string | null {
@@ -220,7 +220,7 @@ export function firstError(...errors: (string | null)[]): string | null {
 
 // ---------- CSV uploads ----------
 // The item import is the only file the app reads, so its rules live with the
-// rest of the shape checks. The picker's `accept` attribute is advisory — drag
+// rest of the shape checks. The picker's `accept` attribute is advisory, drag
 // and drop, "All files" and a renamed document all reach the change handler.
 
 /** Types a browser reports for a real CSV; anything else is not one. */
@@ -236,7 +236,7 @@ const CSV_TYPES = new Set([
 
 /**
  * Gate the picked file before it is read: non-empty, under the byte cap, named
- * `.csv` and not claiming to be another kind of document. Metadata only — the
+ * `.csv` and not claiming to be another kind of document. Metadata only, the
  * contents are checked by `csvFileIssue` once the file is decoded.
  */
 export function validateCsvFile(file: { name: string; type: string; size: number }): string | null {
@@ -254,7 +254,7 @@ const DOC_HEADS = ["%PDF-", "{\\rtf"];
  * Content check on the decoded text, because a renamed file keeps its extension
  * but not its contents. A CSV uses only tab, CR and LF as control characters;
  * a zipped `.xlsx`, an image or any other binary is full of them. A saved web
- * page is caught by its opening tag. Accents and emoji are plain text and pass —
+ * page is caught by its opening tag. Accents and emoji are plain text and pass,
  * the decoder falls back to windows-1252 rather than refusing a non-UTF-8 file.
  */
 export function csvFileIssue(text: string): string | null {
@@ -273,7 +273,7 @@ const MONEY_CELL_RE = /^[+-]?(?:\d+|\d{1,3}(?:[ ,]\d{3})+)(?:\.\d{1,2})?$/;
 
 /**
  * Money and quantity cells use an allowlist, not "keep the digits". The old
- * filter turned `1' OR '1'='1` into 111 and `25; drop table` into 25 — a pasted
+ * filter turned `1' OR '1'='1` into 111 and `25; drop table` into 25, a pasted
  * payload became a plausible price. A leading currency code (MK, K, R) and
  * thousand separators still parse, because that is what a real export looks
  * like; anything ambiguous is NaN so the row is reported instead of stored.

@@ -1,10 +1,10 @@
 // One code per item. `products.sku` is that single identifier: it is what a
 // cashier types into search, what a scanner gun emits, and what the printed QR
-// carries — so an item never needs a second code anywhere in the app.
+// carries, so an item never needs a second code anywhere in the app.
 //
 // Codes are always present. A shop that does not have its own coding scheme
 // leaves the field blank and Storq generates one (here for a live preview, in
-// SQL for the stored value — `app.save_product` fills a blank on create); a shop
+// SQL for the stored value, `app.save_product` fills a blank on create); a shop
 // that types its own keeps it untouched. Matching is trimmed and
 // case-insensitive everywhere, which is what the partial unique index
 // `(business_id, lower(sku))` enforces server-side.
@@ -52,12 +52,12 @@ export function suggestCode(taken: Iterable<string>): string {
     if (!used.has(candidate)) return candidate;
   }
   // After 40 attempts we're almost certainly in a tiny test catalog with a
-  // pathological collision rate. Return a new random candidate anyway — the
+  // pathological collision rate. Return a new random candidate anyway, the
   // server will detect a real collision and reject it with a clear error.
   return AUTO_PREFIX + randomChars(AUTO_BODY);
 }
 
-/** Codes currently in the catalog — the pool a generated candidate must avoid. */
+/** Codes currently in the catalog, the pool a generated candidate must avoid. */
 export function takenCodes(list: { sku: string | null }[]): string[] {
   return list.map((p) => p.sku ?? "").filter((c) => c.trim() !== "");
 }

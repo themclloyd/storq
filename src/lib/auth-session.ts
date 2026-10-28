@@ -5,7 +5,7 @@ import { isNetworkError } from "@/lib/offline";
  * Who is signed in on this device, checked once and reused.
  *
  * `beforeLoad` used to call `auth.getUser()` on every sidebar click and every
- * reload. That is a request to the Auth server — and a query in its database —
+ * reload. That is a request to the Auth server, and a query in its database,
  * for data the client already holds. `getClaims()` verifies the JWT against the
  * cached JWKS on projects with asymmetric signing keys and only refreshes the
  * session when it is about to expire, so repeated navigations cost nothing.
@@ -14,7 +14,7 @@ import { isNetworkError } from "@/lib/offline";
  *
  * The stored session is the offline fallback: a till that reloads without a
  * network must still reach the PIN pad. This decides only whether to render
- * the shell — RLS and every staff-session RPC remain the real authority.
+ * the shell, RLS and every staff-session RPC remain the real authority.
  */
 const TTL_MS = 20_000;
 let memo: { sub: string; at: number } | null = null;

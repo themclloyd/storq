@@ -1,6 +1,6 @@
 // Who this device is unlocked as. The PIN session token is what the database
 // checks for every read and write, so the Supabase client has to attach it to
-// each request (see integrations/supabase/client.ts) — RLS resolves the reader's
+// each request (see integrations/supabase/client.ts), RLS resolves the reader's
 // tier and store from the header, not from "the newest session on the account",
 // which would hand a cashier till the manager's screens once two tills were open.
 //
@@ -15,8 +15,8 @@ export const staffStorageKey = (userId: string) => `${STAFF_KEY_PREFIX}${userId}
 /**
  * Stable per-register identity. Every till in a shop signs in with the one
  * business email, so auth.uid() is shared across counters; the server scopes PIN
- * throttling and staff sessions by this id so one till's bad PINs never lock out
- * — or log out — another register. Persisted for the life of the device.
+ * throttling and staff sessions by this id, so one till's bad PINs never lock
+ * out or sign out another register. Persisted for the life of the device.
  */
 export function getDeviceId(): string {
   try {

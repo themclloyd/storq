@@ -6,7 +6,7 @@ import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 const makeQc = () =>
   ({ invalidateQueries: vi.fn() }) as unknown as Parameters<typeof invalidateKeys>[0];
 
-describe("SALE_TOUCHED — targeted invalidation, not a cache wipe", () => {
+describe("SALE_TOUCHED, targeted invalidation, not a cache wipe", () => {
   it("covers every money/stock surface a sale or refund can move", () => {
     const prefixes = SALE_TOUCHED.map((k) => String(k[0]));
     for (const key of ["sales", "sale", "refunds", "stock", "movements", "drawer", "shifts"]) {

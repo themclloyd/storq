@@ -54,7 +54,7 @@ export function useRefunds(filter: {
 export const REFUNDABLE = ["completed", "layby_completed", "partially_refunded"];
 export const COUNTED = ["completed", "layby_completed", "partially_refunded", "refunded"];
 
-// ---- export helper (lazy — called only on button click) ----
+// ---- export helper (lazy, called only on button click) ----
 export async function fetchRefundsForExport(filter: {
   storeId?: string | undefined;
   since: string;

@@ -16,7 +16,7 @@ describe("till pages stay bounded", () => {
   });
 });
 
-describe("tillSearchTerm — safe to hand to PostgREST", () => {
+describe("tillSearchTerm, safe to hand to PostgREST", () => {
   it("removes the characters PostgREST reads as filter syntax", () => {
     expect(tillSearchTerm("sugar, 1kg (red)")).toBe("sugar 1kg red");
     expect(tillSearchTerm('say "hi"')).toBe("say hi");
@@ -32,7 +32,7 @@ describe("tillSearchTerm — safe to hand to PostgREST", () => {
   });
 });
 
-describe("likePattern — a cashier's punctuation is literal", () => {
+describe("likePattern, a cashier's punctuation is literal", () => {
   it("escapes LIKE wildcards instead of dropping them", () => {
     expect(likePattern("50%")).toBe("%50\\%%");
     expect(likePattern("a_b")).toBe("%a\\_b%");
@@ -43,7 +43,7 @@ describe("likePattern — a cashier's punctuation is literal", () => {
   });
 });
 
-describe("codePattern — one code, however it was typed", () => {
+describe("codePattern, one code, however it was typed", () => {
   it("lets a single space stand for any spacing in the stored code", () => {
     expect(codePattern("  abc   123 ")).toBe("abc%123");
   });

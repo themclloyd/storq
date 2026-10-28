@@ -30,8 +30,8 @@ import {
 /**
  * A scanned code the catalog does not know yet (a new product, or a label
  * printed on another device). Admins and managers can register the item on the
- * spot — the code is already filled in, so the till never waits on the
- * Inventory screen — and it drops straight into the basket.
+ * spot, the code is already filled in, so the till never waits on the
+ * Inventory screen, and it drops straight into the basket.
  *
  * `custom` is the keypad's "add amount" door: no code, the price prefilled from
  * the calculator, and one unit is received into stock so the sale can complete

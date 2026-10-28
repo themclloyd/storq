@@ -1,5 +1,5 @@
 // QR rendering for item codes. `qrcode` is pulled in dynamically so it never
-// enters the till's base bundle — only screens that actually show a code pay it.
+// enters the till's base bundle, only screens that actually show a code pay it.
 //
 // One matrix, three outputs: the on-screen SVG, the downloadable SVG/PNG and the
 // printed label sheet all come from the same module grid, so a label can never
@@ -83,7 +83,7 @@ export function qrSvgString(m: QrMatrix): string {
   );
 }
 
-/** PNG at a fixed pixel edge — 4× the on-screen size prints sharp. */
+/** PNG at a fixed pixel edge, 4× the on-screen size prints sharp. */
 export async function qrPngDataUrl(value: string, px = 512): Promise<string> {
   const { toDataURL } = await qrLib();
   return toDataURL(value.trim(), {

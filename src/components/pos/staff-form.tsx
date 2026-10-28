@@ -38,7 +38,7 @@ import {
  * One person's screen, used by both `/app/staff/new` and `/app/staff/$id`.
  *
  * The owner is not editable: they are the business. Everybody else is edited
- * as a pair of boxes per area — view and change — because that is what the
+ * as a pair of boxes per area, view and change, because that is what the
  * database enforces. A change grant always includes its view grant, so the view
  * box reads on and locked whenever change is ticked, and unticking change
  * leaves the view box on: losing the ability to act should not also blind them.

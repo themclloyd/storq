@@ -5,7 +5,7 @@ import { tileTone } from "@/components/pos/till/tiles";
 
 /**
  * One catalogue tile: a flat colour block with the item's name and price in
- * white. Tapping it adds a unit instantly — the press state is the feedback, so
+ * white. Tapping it adds a unit instantly, the press state is the feedback, so
  * there is no confirming dialog between the finger and the cart.
  *
  * The register lays tiles two per row at every width, so the height is fixed at

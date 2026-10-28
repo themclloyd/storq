@@ -21,7 +21,7 @@ type AccountDevice = {
 
 /**
  * A short handle for a till. `device_id` is a UUID, which reads as noise, but two
- * sessions opened by the same person are otherwise identical rows — the owner
+ * sessions opened by the same person are otherwise identical rows, the owner
  * cannot tell which one is the phone upstairs and which is the counter.
  */
 function tillHandle(deviceId: string) {
@@ -35,7 +35,7 @@ function tillHandle(deviceId: string) {
  * The shop's other tills.
  *
  * The business login is shared by every register, so the only thing that says
- * "this phone is open" is its PIN session row — which nothing in the product
+ * "this phone is open" is its PIN session row, which nothing in the product
  * could see or end before. A phone left signed in on a counter is a shop that
  * anyone can walk up to and sell from, so this lists them and lets the owner
  * cut one off without waiting out its eight hours.

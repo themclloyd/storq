@@ -13,7 +13,7 @@ export type Subscription = {
 };
 
 /**
- * Days a lapsed prepaid term still keeps the till open — the mirror of the
+ * Days a lapsed prepaid term still keeps the till open, the mirror of the
  * `paid_until + interval '3 days'` window in `subscription_active()`. A shop must
  * never stop serving customers because the only holder of the mobile-money SIM
  * was asleep when the term ran out.
@@ -22,7 +22,7 @@ export const GRACE_DAYS = 3;
 const GRACE_MS = GRACE_DAYS * 86_400_000;
 
 /**
- * Days a spent free trial still keeps the tills open — the mirror of the
+ * Days a spent free trial still keeps the tills open, the mirror of the
  * `trial_ends_at + interval '1 day'` window in `subscription_active()`. A trial is
  * a single day, and one more day after it ends is enough to reach a mobile-money
  * agent without turning a free account into a free month.
@@ -97,7 +97,7 @@ export function subscriptionAccess(sub: Subscription | null, storeCount: number,
     trialDaysRemaining,
     trialEndingSoon: trial && trialDaysRemaining <= TRIAL_NOTICE_DAYS,
     // A second store on a trial, or one more than the paid capacity, is a write SQL
-    // refuses — so the shell must not stay open on either, and the add-location
+    // refuses, so the shell must not stay open on either, and the add-location
     // affordance must not offer it.
     active:
       !suspended &&

@@ -65,7 +65,7 @@ const fmtDate = (d: string) =>
   });
 
 // Action tiles share one filled style: the order-sheet pattern's Receipt /
-// Return tiles — big touch targets, icon top-left, label bottom-left. The tint
+// Return tiles, big touch targets, icon top-left, label bottom-left. The tint
 // pair (`primary-soft` + its dark-teal ink) is the AA one; a 15% accent wash
 // under accent text sank to ~2.9:1 on the card.
 const TILE_CLASS =
@@ -84,7 +84,7 @@ const dotColor: Record<string, string> = {
 };
 
 // Payment, refund and lifecycle state as independent dot indicators: a layby
-// reads "Layby open · Balance due", a part-refunded sale "Paid · Part refunded" —
+// reads "Layby open · Balance due", a part-refunded sale "Paid · Part refunded",
 // instead of one compound status badge.
 function StateDots({ s }: { s: SaleRow }) {
   const { t } = useI18n();
@@ -182,7 +182,7 @@ function SaleDetailContent() {
   // The record speaks the language of the store that created it: approval
   // stores raise invoices (layby included), direct stores ring up sales.
   const approvalStore = store?.store_type === "approval";
-  // The customer reads best in the meta row: name, phone, or both — whichever
+  // The customer reads best in the meta row: name, phone, or both, whichever
   // the sale carries.
   const customerLabel = [s.customer_name, s.customer_phone].filter(Boolean).join(" · ");
 
@@ -221,7 +221,7 @@ function SaleDetailContent() {
         }
       />
 
-      {/* Money band: what was taken, how, and where it stands — one line. */}
+      {/* Money band: what was taken, how, and where it stands, one line. */}
       <div className="mb-4 flex flex-wrap items-end gap-x-4 gap-y-2">
         <div className="tabular text-3xl leading-none font-extrabold tracking-tight">
           {money(s.total)}

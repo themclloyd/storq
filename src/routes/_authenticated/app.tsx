@@ -500,7 +500,7 @@ function UserMenu({ settingsTo }: { settingsTo: string | undefined }) {
  * selected: it appears the moment a cashier sends an invoice there and only
  * clears when that store's queue has been approved or rejected. Each location
  * keeps its own count, so switching stores never carries a pending alert from
- * one branch to another — the whole point of approval mode is that whoever is
+ * one branch to another, the whole point of approval mode is that whoever is
  * at a till sees what *that* store is waiting on.
  */
 function ApprovalsAlert({
@@ -558,7 +558,7 @@ function Shell() {
   const mixedModes =
     stores.some((x) => x.store_type === "approval") &&
     stores.some((x) => x.store_type !== "approval");
-  // Live approvals signal for the selected store only — switching locations
+  // Live approvals signal for the selected store only, switching locations
   // never drags another store's pending count along with it.
   const pending = usePendingApprovals();
   const pendingCount = pending.data?.length ?? 0;

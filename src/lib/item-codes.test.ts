@@ -72,7 +72,7 @@ describe("findCodeClash", () => {
     expect(findCodeClash(items, "  Box 1  ", "c")?.id).toBe("a");
   });
 
-  it("never clashes on an empty code — the server generates one", () => {
+  it("never clashes on an empty code, the server generates one", () => {
     expect(findCodeClash(items, "")).toBeUndefined();
     expect(findCodeClash(items, "   ")).toBeUndefined();
   });

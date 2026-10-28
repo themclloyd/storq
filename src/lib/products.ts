@@ -28,7 +28,7 @@ export function useProducts(storeId?: string, opts: { withCost?: boolean } = {})
     queryKey: ["products", storeId, withCost],
     enabled: !!storeId,
     // The catalog only changes through the inventory screens, which
-    // invalidate explicitly — no need to re-pull it on every mount.
+    // invalidate explicitly, no need to re-pull it on every mount.
     staleTime: 30 * 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,7 +56,7 @@ export function useProducts(storeId?: string, opts: { withCost?: boolean } = {})
 }
 /**
  * Exact lookup for the one item code (typed SKU, scanner gun, printed QR).
- * Normalized on both sides — trimmed, space-collapsed, case-folded — so a code
+ * Normalized on both sides, trimmed, space-collapsed, case-folded, so a code
  * stored with a stray double space still resolves to exactly one active item.
  * Matched against the already-cached catalog, never a fresh network fetch.
  */
@@ -147,7 +147,7 @@ export function useTillStock(storeId: string | undefined, ids: string[]) {
 
 /**
  * Fresh copies of the items a held sale is waiting on. Resuming re-links the
- * basket to live prices, but only for the ids it carries — never the catalogue.
+ * basket to live prices, but only for the ids it carries, never the catalogue.
  */
 export async function fetchProductsByIds(storeId: string, ids: string[]): Promise<Product[]> {
   const unique = [...new Set(ids)];
@@ -169,7 +169,7 @@ export async function fetchProductsByIds(storeId: string, ids: string[]): Promis
   return out;
 }
 
-// ---- export helpers (lazy — called only on button click) ----
+// ---- export helpers (lazy, called only on button click) ----
 
 export type ProductExportRow = {
   id: string;
@@ -185,7 +185,7 @@ export type ProductExportRow = {
 
 /**
  * Fetches every active + inactive product for `storeId`, joining current stock
- * for that store.  Called only on an Export click — never inside a hook.
+ * for that store.  Called only on an Export click, never inside a hook.
  */
 export async function fetchProductsForExport(storeId: string): Promise<ProductExportRow[]> {
   const [{ data: prods, error: pe }, costRes, { data: stock, error: se }] = await Promise.all([
@@ -232,7 +232,7 @@ export type StockMovementExportRow = {
 
 /**
  * Fetches the immutable stock movement ledger for a store within the given
- * period.  Admin/manager only — RLS silently returns nothing for cashiers.
+ * period.  Admin/manager only, RLS silently returns nothing for cashiers.
  */
 export async function fetchMovementsForExport(filter: {
   storeId: string;

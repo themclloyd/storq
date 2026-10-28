@@ -1,7 +1,7 @@
 /**
  * Catastrophic-failure fallback rendered when h3 has already swallowed the SSR
  * error into a generic 500 (see server.ts / start.ts). It must stay fully
- * self-contained — no bundled CSS, fonts or JS can be assumed available — so
+ * self-contained, no bundled CSS, fonts or JS can be assumed available, so
  * it uses inline styles with system font stacks and the same design-token
  * values as :root / .dark in src/styles.css. Deliberately minimal: this page
  * only needs to tell the user the load failed and offer refresh/home.

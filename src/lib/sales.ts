@@ -84,7 +84,7 @@ export function useSales(
 
 /**
  * Live "invoices awaiting you" signal shown by the workspace shell. It counts
- * pending approvals for the store selected in the switcher only — the badge
+ * pending approvals for the store selected in the switcher only, the badge
  * belongs to that location and never carries over when you switch stores.
  * Oldest first, so the queue opens on what has waited longest. This is a live
  * surface: it polls while anything is waiting here, and on this device a
@@ -109,7 +109,7 @@ export function usePendingApprovals() {
     // or review on this device refreshes the badge immediately (SALE_TOUCHED),
     // so the poll is only the cross-device catch-up.
     refetchInterval: 30_000,
-    // A background tab must not keep polling the approval queue — leave the
+    // A background tab must not keep polling the approval queue, leave the
     // tab and the poll pauses; the badge re-syncs on visibility change.
     refetchIntervalInBackground: false,
     queryFn: async () => {
@@ -224,7 +224,7 @@ export function useSalesSummary(filter: { storeId?: string | undefined; since: s
 
 // One page of the sales ledger, read straight from the server with an exact
 // total, so the list never loads the whole period just to show 50 rows. Parent
-// columns only — the table and pager don't render line items.
+// columns only, the table and pager don't render line items.
 const SALE_PAGE_COLUMNS =
   "id,number,kind,status,total,paid,payment_method,customer_name,customer_phone,store_id,created_at,tax,refunded,created_by";
 
@@ -305,7 +305,7 @@ export type SaleItemExportRow = {
 
 /**
  * Fetches sale line items joined to their parent sale for the full-detail CSV.
- * Called only on Export click — never in a hook.
+ * Called only on Export click, never in a hook.
  */
 export async function fetchSaleItemsForExport(filter: {
   storeId?: string | undefined;

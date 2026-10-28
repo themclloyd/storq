@@ -80,7 +80,7 @@ function Stores() {
   // A viewer reads the locations and their receipt setup; creating one, buying
   // capacity, archiving and restoring stay with the change grant.
   const canEdit = can("locations");
-  // Out of slots, has a lapsed term, or is suspended — all three read the same to
+  // Out of slots, has a lapsed term, or is suspended, all three read the same to
   // an owner holding a locked till, and all three are answered on Billing.
   const atCapacity = !subscription.data?.canAddStore;
 

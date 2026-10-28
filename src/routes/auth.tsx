@@ -182,8 +182,8 @@ function AuthPage() {
           setWait(Math.max(0, gate.blockedUntil - Date.now()));
         }
       }
-      // Never leak account state through error text: a failed sign-in — unknown
-      // email, wrong password or unconfirmed account — always reads the same.
+      // Never leak account state through error text: a failed sign-in, unknown
+      // email, wrong password or unconfirmed account, always reads the same.
       // OWASP asks for consistent responses; Supabase's own wording already is.
       if (mode === "in" && /invalid login credentials|email not confirmed/i.test(message)) {
         toast.error(t("auth.invalidCredentials"));

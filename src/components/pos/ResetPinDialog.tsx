@@ -19,7 +19,7 @@ import {
 import { Field } from "@/components/pos/bits";
 import { cn } from "@/lib/utils";
 
-/** How long a real sign-in counts as "I am the owner" — the server's own window. */
+/** How long a real sign-in counts as "I am the owner", the server's own window. */
 const PROOF_MINUTES = 15;
 const RESEND_SECONDS = 60;
 
@@ -33,7 +33,7 @@ type Proof = "password" | "email";
  * business from the signed-in account and refuses anything that is not its
  * owner, so a cashier standing at the pad cannot re-key the shop's PIN.
  *
- * There are two ways to prove it is really them, and both leave the same trace —
+ * There are two ways to prove it is really them, and both leave the same trace,
  * a fresh sign-in within the last few minutes:
  *
  *  - the account password, typed now;
@@ -82,7 +82,7 @@ export function ResetPinDialog({
       .then(({ data }) => {
         const user = data.user;
         setEmail(user?.email ?? "");
-        // Signed in moments ago — by password, by the emailed code, or by the
+        // Signed in moments ago, by password, by the emailed code, or by the
         // link in that email. That sign-in is the proof; ask for the new PIN.
         const seen = user?.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0;
         setFresh(!!seen && Date.now() - seen < PROOF_MINUTES * 60_000);

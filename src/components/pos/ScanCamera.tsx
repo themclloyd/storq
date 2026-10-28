@@ -85,7 +85,7 @@ export function ScanCamera({
     try {
       detector = new Ctor({ formats: WATCHED_FORMATS });
     } catch {
-      // Some builds reject a formats list — retry with platform defaults.
+      // Some builds reject a formats list, retry with platform defaults.
       detector = new Ctor();
     }
     let alive = true;

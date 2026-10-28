@@ -176,7 +176,7 @@ function RegisterContent() {
   const lineGross = (l: Line) => round2(l.qty * price(l.p));
   const lineDisc = (l: Line) => Math.min(round2(discounts[l.p.id] ?? 0), lineGross(l));
   // lineGross/lineDisc close over `price` (a priceData-derived fn), so these
-  // totals recompute each render — cheap over a single cart, no memo needed.
+  // totals recompute each render, cheap over a single cart, no memo needed.
   const grossSub = round2(cart.reduce((a, l) => a + lineGross(l), 0));
   const discountTotal = round2(cart.reduce((a, l) => a + lineDisc(l), 0));
   const netSub = round2(grossSub - discountTotal);
@@ -195,7 +195,7 @@ function RegisterContent() {
       cart.some((l) => lineCapBlocked(lineGross(l), lineDisc(l))));
 
   const add = (p: Product) => {
-    // Remembering the item is what makes the next scan of it instant — and what
+    // Remembering the item is what makes the next scan of it instant, and what
     // an offline till can still resolve once the connection drops.
     remember(p);
     setCart((c) =>
@@ -276,7 +276,7 @@ function RegisterContent() {
   const resumeHeld = async (id: string) => {
     const h = held.find((x) => x.id === id);
     if (!h) return;
-    // Re-link to the live catalogue so prices/stock are current — one read for
+    // Re-link to the live catalogue so prices/stock are current, one read for
     // the ids this held sale carries, never the whole menu. Offline keeps the
     // snapshots rather than losing a sale that was already rung up.
     let fresh: Product[];

@@ -21,7 +21,7 @@ describe("offline sales queue (replayed through checkout_ref)", () => {
     expect(back.at(-1)?.total).toBe(99);
   });
 
-  it("keeps accounts isolated — one device login's queue never replays into another", () => {
+  it("keeps accounts isolated, one device login's queue never replays into another", () => {
     saveQueue("u1", [sale()]);
     expect(loadQueue("u2")).toEqual([]);
   });

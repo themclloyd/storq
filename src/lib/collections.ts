@@ -39,7 +39,7 @@ export function useCollections() {
 /**
  * The register's chips: collection names and their discount, and nothing else.
  * A business may hold thousands of item memberships, so the till never reads
- * `product_collections` wholesale — it asks for the ids on screen
+ * `product_collections` wholesale, it asks for the ids on screen
  * (`useTillMemberships`) and prices from there.
  */
 export function useTillCollections() {

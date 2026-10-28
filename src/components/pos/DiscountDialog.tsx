@@ -1,6 +1,6 @@
 // Manual discount sheet: per-line flat amounts with a % quick fill. Mirrors
 // the server cap (10% of a line / the cart without `approvals`). Past the cap the
-// checkout asks for an approval PIN (verified server-side) — this sheet only
+// checkout asks for an approval PIN (verified server-side), this sheet only
 // edits the discount amounts, which live on the cart in the register.
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";

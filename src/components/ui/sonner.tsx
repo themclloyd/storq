@@ -4,7 +4,7 @@
  * Sonner ships a stock white/black card with saturated variant colours (that is what
  * `richColors` turns on), which sits badly on the token palette every badge and banner
  * in the product is built from. Each variant here borrows the same soft tint its
- * in-page counterpart uses — `success-soft`, `warning-soft`, `destructive-soft` — so a
+ * in-page counterpart uses (`success-soft`, `warning-soft`, `destructive-soft`), so a
  * toast reads as part of the screen instead of a block dropped on top of it.
  *
  * The background and border live on the per-variant keys, not on `toast`: sonner merges
@@ -18,7 +18,7 @@ import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-// Shape only — no colours, so a variant can own them without a conflict.
+// Shape only, no colours, so a variant can own them without a conflict.
 const SHAPE =
   "group toast group-[.toaster]:items-start group-[.toaster]:gap-3 group-[.toaster]:rounded-xl " +
   "group-[.toaster]:border group-[.toaster]:px-3.5 group-[.toaster]:py-3 group-[.toaster]:shadow-lg";

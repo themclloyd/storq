@@ -7,7 +7,7 @@ import { useCallback, useRef, useState } from "react";
  * browser download-throttle tripping) or heavy all-time export queries. Returns
  * the guarded runner plus the running flag so the trigger can disable itself.
  *
- * The cooloff is deliberately short — a legitimate double-tap still gets
+ * The cooloff is deliberately short, a legitimate double-tap still gets
  * through once the first finishes, but rapid-fire clicking collapses to one.
  */
 export function useOnce<T extends (...args: never[]) => unknown>(

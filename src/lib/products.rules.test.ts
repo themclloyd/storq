@@ -41,7 +41,7 @@ describe("cashier discount caps (mirror app.checkout)", () => {
   });
 });
 
-describe("findByBarcode — resolves against the cached catalog, not the network", () => {
+describe("findByBarcode, resolves against the cached catalog, not the network", () => {
   const list = [p({ id: "a", sku: "ABC 123" }), p({ id: "b", sku: "XYZ", active: false })];
 
   it("matches case- and whitespace-insensitively after normalization", () => {

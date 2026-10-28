@@ -15,7 +15,7 @@ export type VerifyResult = {
   drop: boolean;
 };
 
-// Connecting to Supabase (Cloudflare) or PayChangu can transiently time out —
+// Connecting to Supabase (Cloudflare) or PayChangu can transiently time out,
 // most often on a cold start. These calls are all idempotent (the read is a
 // no-op, verify is a GET, and complete_subscription_payment returns early once a
 // row is paid), so a couple of quick retries stop a momentary blip from

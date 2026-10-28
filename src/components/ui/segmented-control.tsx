@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({
   options: readonly SegmentOption<T>[];
   className?: string;
   size?: "sm" | "md";
-  /** Grey out and refuse clicks — used to stop rapid filter toggles stacking heavy reads. */
+  /** Grey out and refuse clicks, used to stop rapid filter toggles stacking heavy reads. */
   disabled?: boolean;
   "aria-label"?: string;
 }) {

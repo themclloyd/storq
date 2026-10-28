@@ -1,4 +1,4 @@
-// Client-safe sale/layby receipt builders. No DB access — the caller passes an
+// Client-safe sale/layby receipt builders. No DB access, the caller passes an
 // already-formatted `money` fn (from usePos) so amounts stay in the store currency.
 import { t } from "@/lib/i18n";
 import { methodLabel } from "@/lib/payment-methods";
@@ -145,7 +145,7 @@ export function saleToReceipt(
 /**
  * Receipt HTML is built by string concatenation and inserted via innerHTML, so
  * every value must pass through here. Control characters (NUL, tab, newline,
- * CR and everything 0x00-0x1F / 0x7F-0x9F) come off first — otherwise a
+ * CR and everything 0x00-0x1F / 0x7F-0x9F) come off first, otherwise a
  * `&#09;` or a raw newline in a note can smuggle content into the surrounding
  * tag context. Then the usual five HTML/XML entities.
  */

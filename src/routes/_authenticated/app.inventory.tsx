@@ -175,10 +175,10 @@ function Inventory() {
   const canEdit = can("stock");
   // A hardware scanner on the inventory page jumps to the matching item in the
   // table (by setting the search field) or opens a pre-filled New Item dialog
-  // when the code is unknown — the same shortcuts as the till, without a sale.
+  // when the code is unknown, the same shortcuts as the till, without a sale.
   useScannerWedge(
     (code) => {
-      // No modals open — only intercept when the page is idle.
+      // No modals open, only intercept when the page is idle.
       if (edit || adj || qr || sheet || imp) return false;
       const hit = (products.data ?? []).find(
         (p) => normalizeCode(p.sku).toLowerCase() === normalizeCode(code).toLowerCase(),
@@ -365,7 +365,7 @@ function Inventory() {
                   if (!f) return;
                   // `accept` only filters the picker: a dragged, renamed or
                   // "All files" upload still arrives here. Check the file itself
-                  // — size included — before reading it into memory.
+                  // (size included) before reading it into memory.
                   const fileErr = validateCsvFile(f);
                   if (fileErr) {
                     toast.error(fileErr);
@@ -791,7 +791,7 @@ function ProductDialog({
         max: 1_000_000_000,
       }),
       validateAmount(f.cost, { label: t("inv.buyingCost"), min: 0, max: 1_000_000_000 }),
-      // An item bought at or above its selling price loses money on every unit —
+      // An item bought at or above its selling price loses money on every unit,
       // mirror the save_product SQL guard so the sheet never produces one.
       Number(f.cost) > 0 && Number(f.cost) >= Number(f.price || 0)
         ? t("inv.errCostAbovePrice")
@@ -819,7 +819,7 @@ function ProductDialog({
           p_id: p.id ?? null,
           p_name: sanitizeText(f.name, LIMITS.productName),
           p_sku: code || null,
-          // Category has no UI field yet — pass through whatever was stored on
+          // Category has no UI field yet, pass through whatever was stored on
           // edit so we don't silently clear it; leave null on create.
           p_category: p.category ?? null,
           p_price: Number(f.price || 0),
@@ -843,7 +843,7 @@ function ProductDialog({
       }
       toast.success(t("common.saved"));
       onClose();
-      // Refresh data in the background — don't wait for it. The modal closes
+      // Refresh data in the background, don't wait for it. The modal closes
       // immediately so the user sees the updated table as queries resolve.
       invalidateKeys(qc, [
         ["products"],
@@ -981,7 +981,7 @@ function ProductDialog({
         {stockEditable && (
           <Card className="bg-muted/40 p-2.5">
             <div className="mb-1 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {t("inv.quantity")} — {store?.name}
+              {t("inv.quantity")}, {store?.name}
             </div>
             <div className="flex items-center gap-2">
               <Input
@@ -1189,7 +1189,7 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {p.name} — {store?.name}
+            {p.name}, {store?.name}
           </DialogTitle>
         </DialogHeader>
         <ToggleGroup
@@ -1346,7 +1346,7 @@ type ImportRow = {
   active: boolean;
   existing: Product | null;
   /** True when the row was matched by code but the name in the CSV differs from
-   * the catalog name — the item will be renamed on import. */
+   * the catalog name, the item will be renamed on import. */
   renamed: boolean;
   error?: string | undefined;
 };
@@ -1389,7 +1389,7 @@ function readImport(text: string, products: Product[]): ImportRow[] {
     const existing = sku
       ? (products.find((p) => normalizeCode(p.sku).toLowerCase() === needle) ?? null)
       : (products.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? null);
-    // Flag when a code match found a different display name — the item will be
+    // Flag when a code match found a different display name, the item will be
     // renamed. This is intentional (e.g. correcting a typo) but we surface it
     // in the preview so the user isn't surprised.
     const renamed = !!sku && !!existing && existing.name.toLowerCase() !== name.toLowerCase();
@@ -1446,7 +1446,7 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
             p_id: r.existing?.id ?? null,
             p_name: r.name,
             p_sku: r.sku || null,
-            // Category is not a CSV column — preserve whatever is stored.
+            // Category is not a CSV column, preserve whatever is stored.
             p_category: r.existing?.category ?? null,
             p_price: r.price,
             p_cost: r.cost,
@@ -1486,7 +1486,7 @@ function ImportDialog({ rows, onClose }: { rows: ImportRow[]; onClose: () => voi
         ok: ok.length - failed.length,
         fails: failed.length,
       });
-      toast.error(`${counts} — ${failed.slice(0, 3).join("; ")}${more}`, { duration: 9000 });
+      toast.error(`${counts}, ${failed.slice(0, 3).join("; ")}${more}`, { duration: 9000 });
     } else toast.success(t("inv.itemsImported", { count: ok.length }));
   }
   return (
