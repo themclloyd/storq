@@ -21,7 +21,9 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v7 is the current major and runs on the Node 24 action runtime. v4 still
+      # declares Node 20, which GitHub force-runs on 24 and flags every run.
+      - uses: actions/checkout@v7
 
       # Pinned rather than `latest` so a bun release cannot change resolution or
       # audit behaviour out from under a green build.
