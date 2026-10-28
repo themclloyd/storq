@@ -168,12 +168,13 @@ export function visibleWorkspacePages(
 }
 
 /**
- * Groups whose sibling pages are reached from each page's own actions menu
- * instead of the shell tab row, so the workspace keeps one compact switcher.
- * Empty: every group now shows its siblings, because a hidden sibling (the
- * inventory tools) is a page nobody can find.
+ * Pages that already list their area's siblings in their own actions menu, so
+ * the shell tab row would only repeat the same links above the header. The
+ * inventory page is one: its "…" menu switches to Transfers / Collections /
+ * Stock takes. The other pages of an area keep the row, because they carry no
+ * menu of their own and would otherwise strand the person on that screen.
  */
-export const menuNavigationGroups: WorkspaceGroup[] = [];
+export const menuNavigationPages: WorkspacePath[] = ["/app/inventory"];
 
 export function workspacePageAt(path: string) {
   const normalized = path.replace(/\/$/, "");

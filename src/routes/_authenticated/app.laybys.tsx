@@ -17,6 +17,7 @@ import {
   Status,
   fmtDate,
 } from "@/components/pos/bits";
+import { ListSkeleton } from "@/components/pos/skeletons";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { methodLabel } from "@/lib/payment-methods";
 import { useI18n } from "@/lib/i18n";
@@ -90,7 +91,12 @@ function LaybysContent() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
-      {rows?.length === 0 && <Empty>{t("laybys.none")}</Empty>}
+      {(tab === "open" ? open.isPending : done.isPending) ? (
+        // A pending tab is not an empty shelf: hold the grid while the first read lands.
+        <ListSkeleton rows={3} className="grid gap-2 md:grid-cols-2 xl:grid-cols-3" />
+      ) : rows?.length === 0 ? (
+        <Empty>{t("laybys.none")}</Empty>
+      ) : null}
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {rows?.map((s) => {
           const pct = Math.min(100, (Number(s.paid) / Number(s.total)) * 100);

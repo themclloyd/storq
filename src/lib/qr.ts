@@ -5,6 +5,8 @@
 // printed label sheet all come from the same module grid, so a label can never
 // disagree with what the dialog previewed.
 
+import { saveDocument } from "@/lib/desktop";
+
 export type QrMatrix = {
   /** Modules per side, quiet zone excluded. */
   size: number;
@@ -94,16 +96,9 @@ export async function qrPngDataUrl(value: string, px = 512): Promise<string> {
   });
 }
 
-/** Trigger a browser download for a generated file (data URL or Blob). */
+/** Save a generated file (data URL or Blob), natively when the till is installed. */
 export function saveFile(name: string, data: Blob | string) {
-  const url = typeof data === "string" ? data : URL.createObjectURL(data);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  if (typeof data !== "string") setTimeout(() => URL.revokeObjectURL(url), 1000);
+  void saveDocument(name, data);
 }
 
 /** File-safe slug for a code (codes may legally contain spaces and dots). */

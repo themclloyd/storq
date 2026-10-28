@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fmtDate } from "@/components/pos/bits";
+import { RowsSkeleton } from "@/components/pos/skeletons";
 
 /** One live PIN session, as `account_devices` returns it. */
 type AccountDevice = {
@@ -86,7 +87,7 @@ export function DevicesCard() {
       <p className="mt-0.5 text-xs text-muted-foreground">{t("staff.devicesDesc")}</p>
       <div className="mt-2 divide-y">
         {devices.isPending ? (
-          <p className="py-2 text-[12px] text-muted-foreground">{t("common.loading")}</p>
+          <RowsSkeleton rows={2} className="py-2" />
         ) : !devices.data?.length ? (
           <p className="py-2 text-[12px] text-muted-foreground">{t("staff.devicesEmpty")}</p>
         ) : (

@@ -16,6 +16,7 @@ import { useRefunds } from "@/lib/refunds";
 import { methodLabel } from "@/lib/receipts";
 import { buildBusinessReport, reportKind, type ReportKind } from "@/lib/business-report";
 import { ExportMenu } from "@/components/pos/ExportMenu";
+import { PanelSkeleton } from "@/components/pos/skeletons";
 import { useOnce } from "@/hooks/use-once";
 
 export const Route = createFileRoute("/_authenticated/app/reports")({
@@ -410,9 +411,15 @@ function ReportsContent() {
         }
       />
       {loading ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">
-          {t("reports.loading")}
-        </Card>
+        // The verdict, the statement and the money split all arrive together, so
+        // the page holds their frames rather than collapsing to one line.
+        <div className="space-y-4">
+          <PanelSkeleton lines={2} />
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+            <PanelSkeleton lines={7} />
+            <PanelSkeleton lines={5} />
+          </div>
+        </div>
       ) : (
         <div className="space-y-4">
           {/* Verdict */}

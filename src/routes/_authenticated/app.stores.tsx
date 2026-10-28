@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
+import { ListSkeleton } from "@/components/pos/skeletons";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import { PaymentMethodPicker } from "@/components/pos/payment-methods";
 import { LEGACY_PAYMENT_METHODS } from "@/lib/payment-methods";
@@ -130,33 +131,39 @@ function Stores() {
           )
         }
       />
-      <div className="grid gap-2 md:grid-cols-2">
-        {stores.map((s) => (
-          <Link key={s.id} to="/app/stores/$id" params={{ id: s.id }} className="min-w-0">
-            <Card className="flex min-w-0 items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40">
-              <div className="min-w-0">
-                <div className="truncate text-[13px] font-semibold">{s.name}</div>
-                {(s.phone || s.address) && (
-                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {[s.phone, s.address].filter(Boolean).join(" · ")}
+      {stores.length === 0 ? (
+        // Setup always creates the first location, so an empty list here is the
+        // roster still arriving, not a business without a shop.
+        <ListSkeleton rows={2} className="grid gap-2 md:grid-cols-2" />
+      ) : (
+        <div className="grid gap-2 md:grid-cols-2">
+          {stores.map((s) => (
+            <Link key={s.id} to="/app/stores/$id" params={{ id: s.id }} className="min-w-0">
+              <Card className="flex min-w-0 items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40">
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-semibold">{s.name}</div>
+                  {(s.phone || s.address) && (
+                    <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {[s.phone, s.address].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <StoreTypeTag type={s.store_type} />
+                    <span className="text-[11px] text-muted-foreground">
+                      {t("till.vat")} {Number(s.tax_rate ?? 0)}%
+                      {s.tax_inclusive === false ? ` · ${t("till.added")}` : ""}
+                    </span>
                   </div>
-                )}
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <StoreTypeTag type={s.store_type} />
-                  <span className="text-[11px] text-muted-foreground">
-                    {t("till.vat")} {Number(s.tax_rate ?? 0)}%
-                    {s.tax_inclusive === false ? ` · ${t("till.added")}` : ""}
-                  </span>
                 </div>
-              </div>
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
-                className="size-4 shrink-0 text-muted-foreground"
-              />
-            </Card>
-          </Link>
-        ))}
-      </div>
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  className="size-4 shrink-0 text-muted-foreground"
+                />
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Closed branches stay here, with every sale they ever made, and can be put
           back without losing a number. Collapsed by default: they are history, not

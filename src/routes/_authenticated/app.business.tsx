@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
+import { DetailSkeleton } from "@/components/pos/skeletons";
 import { CurrencyField } from "@/components/pos/payment-methods";
 import { methodLabel } from "@/lib/payment-methods";
 
@@ -33,12 +34,8 @@ export const Route = createFileRoute("/_authenticated/app/business")({
 
 function BusinessPage() {
   const { business, can } = usePos();
-  const { t } = useI18n();
   if (!can("money", "view_money")) return <NoAccess />;
-  if (!business)
-    return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</Card>
-    );
+  if (!business) return <DetailSkeleton />;
   // Remount when the saved value changes so the form starts from the fetched row.
   return <BusinessForm key={`${business.id}:${business.currency}`} business={business} />;
 }

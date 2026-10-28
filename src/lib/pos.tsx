@@ -86,6 +86,12 @@ export type Business = {
 type PosCtx = {
   userId: string;
   business: Business | null | undefined;
+  /**
+   * True when the business row could not be read at all (no row is not the same
+   * as a failed read). The gate uses it so an offline device is told to
+   * reconnect instead of being offered the "create a business" form.
+   */
+  businessFailed: boolean;
   /** Open locations only, what the till, the pickers and the paid-slot count use. */
   stores: Store[];
   /** Locations that stopped trading. Read-only history, restorable from Locations. */
@@ -284,6 +290,11 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   const unlock = async (pin: string): Promise<UnlockResult> => {
     const pinErr = validatePin(pin);
     if (pinErr) throw new Error(pinErr);
+    // The PIN hash never leaves the database, so there is no offline check to
+    // make: say that plainly instead of failing on the wire with a transport
+    // error the cashier cannot act on.
+    if (typeof navigator !== "undefined" && !navigator.onLine)
+      throw new Error(t("offline.unlockNeedsNetwork"));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.rpc as any)("unlock_with_pin", {
       p_pin: pin,
@@ -492,7 +503,11 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     [autoLockKey],
   );
   useIdleLock(() => void lockRef.current(), {
-    enabled: !!staff,
+    // An offline till stays open: unlocking needs the server, so an idle lock
+    // would leave the counter unable to ring up a sale until the link returns.
+    // The session still ends by its own expiry, and the SQL guard still refuses
+    // every write once it does.
+    enabled: !!staff && online,
     minutes: autoLockMinutes,
     paused: syncing.current,
   });
@@ -507,6 +522,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     setAutoLockMinutes,
     userId,
     business: businessQ.isLoading ? undefined : (businessQ.data ?? null),
+    businessFailed: businessQ.isError,
     stores,
     archivedStores,
     allStores,

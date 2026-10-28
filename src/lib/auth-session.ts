@@ -17,6 +17,27 @@ import { isNetworkError } from "@/lib/offline";
  * the shell, RLS and every staff-session RPC remain the real authority.
  */
 const TTL_MS = 20_000;
+/**
+ * How long a route check may spend on the network before the device answers for
+ * itself. With no network the request fails at once, but a shop Wi-Fi with a
+ * dead uplink keeps it open until the browser's own timeout, and the whole
+ * workspace is stuck behind that await. The till would show a blank window for
+ * a minute and read as "it quit".
+ */
+const CHECK_TIMEOUT_MS = 4_000;
+/**
+ * Who this device last proved itself signed in as.
+ *
+ * The stored Supabase session alone is not enough: an access token lives about
+ * an hour, and once it lapses offline `getSession()` answers null because the
+ * refresh cannot be sent. Every navigation then looked like "signed out" and
+ * sent the till to `/auth`, a screen that cannot work without the network.
+ * Remembering the subject keeps the shell open across an outage; the token, RLS
+ * and the PIN session still decide what that person may read or write, and a
+ * real sign-out forgets it (see `forgetDeviceIdentity`).
+ */
+const IDENTITY_KEY = "storq-auth-user";
+
 let memo: { sub: string; at: number } | null = null;
 let inflight: Promise<string | null> | null = null;
 
@@ -26,22 +47,97 @@ export function clearAuthCheck() {
   inflight = null;
 }
 
-async function verify(): Promise<string | null> {
+/** A real sign-out forgets the person, so the next boot starts at the sign-in screen. */
+export function forgetDeviceIdentity() {
+  memo = null;
+  inflight = null;
   try {
-    const { data, error } = await supabase.auth.getClaims();
+    localStorage.removeItem(IDENTITY_KEY);
+  } catch {
+    // Blocked storage: nothing was remembered in the first place.
+  }
+}
+
+function remember(sub: string) {
+  try {
+    localStorage.setItem(IDENTITY_KEY, sub);
+  } catch {
+    // Storage unavailable: offline boots lose their identity, online ones still work.
+  }
+}
+
+/** The last verified subject, or the one the stored Supabase session names. */
+function remembered(): string | null {
+  try {
+    const own = localStorage.getItem(IDENTITY_KEY);
+    if (own) return own;
+    // First boot after this record was added: read the existing session so the
+    // device is not treated as signed out for one reload.
+    for (const key of Object.keys(localStorage)) {
+      if (!/^sb-.*-auth-token$/.test(key)) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const id = (JSON.parse(raw) as { user?: { id?: unknown } }).user?.id;
+        if (typeof id === "string" && id) {
+          remember(id);
+          return id;
+        }
+      } catch {
+        // A malformed entry proves nothing; keep looking.
+      }
+    }
+  } catch {
+    // Unreadable storage means no offline identity, not a crash.
+  }
+  return null;
+}
+
+const isOffline = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
+/** Resolve with `p`, or reject with a transport-looking error after `ms`. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error("timeout")), ms);
+    p.then(
+      (value) => {
+        clearTimeout(id);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(id);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function verify(): Promise<string | null> {
+  // Nothing to ask when there is no network, and waiting for the failure is
+  // what made an offline boot slow. The remembered subject is the answer.
+  if (isOffline()) return remembered();
+  try {
+    const { data, error } = await withTimeout(supabase.auth.getClaims(), CHECK_TIMEOUT_MS);
     const sub = data?.claims?.sub;
-    if (!error && typeof sub === "string" && sub) return sub;
+    if (!error && typeof sub === "string" && sub) {
+      remember(sub);
+      return sub;
+    }
     // An invalid/expired token is a real answer, not an offline blip: send the
     // visitor to sign in instead of trusting local storage.
     if (error && !isNetworkError(error.message)) return null;
   } catch (e) {
     if (!isNetworkError((e as Error).message)) return null;
   }
+  // Transport trouble: the stored session is the offline fallback.
+  if (isOffline()) return remembered();
   try {
     const { data } = await supabase.auth.getSession();
-    return data.session?.user?.id ?? null;
+    const sub = data.session?.user?.id ?? null;
+    if (sub) remember(sub);
+    return sub ?? remembered();
   } catch {
-    return null;
+    return remembered();
   }
 }
 

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ShellRouteImport } from './routes/shell'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedOpsRouteImport } from './routes/_authenticated/ops'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
@@ -32,6 +33,9 @@ import { Route as AuthenticatedAppStoresRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppTransfersRouteImport } from './routes/_authenticated/app.transfers'
 import { Route as AuthenticatedAppCollectionsIndexRouteImport } from './routes/_authenticated/app.collections.index'
 import { Route as AuthenticatedAppCollectionsIdRouteImport } from './routes/_authenticated/app.collections.$id'
+import { Route as AuthenticatedAppInventoryIdRouteImport } from './routes/_authenticated/app.inventory_.$id'
+import { Route as AuthenticatedAppInventoryBulkRouteImport } from './routes/_authenticated/app.inventory_.bulk'
+import { Route as AuthenticatedAppInventoryNewRouteImport } from './routes/_authenticated/app.inventory_.new'
 import { Route as AuthenticatedAppSalesIdRouteImport } from './routes/_authenticated/app.sales_.$id'
 import { Route as AuthenticatedAppStaffIdRouteImport } from './routes/_authenticated/app.staff_.$id'
 import { Route as AuthenticatedAppStaffNewRouteImport } from './routes/_authenticated/app.staff_.new'
@@ -50,6 +54,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShellRoute = ShellRouteImport.update({
+  id: '/shell',
+  path: '/shell',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
@@ -162,6 +171,24 @@ const AuthenticatedAppCollectionsIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAppCollectionsRoute,
   } as any)
+const AuthenticatedAppInventoryIdRoute =
+  AuthenticatedAppInventoryIdRouteImport.update({
+    id: '/inventory_/$id',
+    path: '/inventory/$id',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppInventoryBulkRoute =
+  AuthenticatedAppInventoryBulkRouteImport.update({
+    id: '/inventory_/bulk',
+    path: '/inventory/bulk',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
+const AuthenticatedAppInventoryNewRoute =
+  AuthenticatedAppInventoryNewRouteImport.update({
+    id: '/inventory_/new',
+    path: '/inventory/new',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppSalesIdRoute = AuthenticatedAppSalesIdRouteImport.update({
   id: '/sales_/$id',
   path: '/sales/$id',
@@ -194,6 +221,7 @@ const AuthenticatedAppStoresIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/shell': typeof ShellRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/ops': typeof AuthenticatedOpsRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
@@ -213,6 +241,9 @@ export interface FileRoutesByFullPath {
   '/app/transfers': typeof AuthenticatedAppTransfersRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/collections/$id': typeof AuthenticatedAppCollectionsIdRoute
+  '/app/inventory/$id': typeof AuthenticatedAppInventoryIdRoute
+  '/app/inventory/bulk': typeof AuthenticatedAppInventoryBulkRoute
+  '/app/inventory/new': typeof AuthenticatedAppInventoryNewRoute
   '/app/sales/$id': typeof AuthenticatedAppSalesIdRoute
   '/app/staff/$id': typeof AuthenticatedAppStaffIdRoute
   '/app/staff/new': typeof AuthenticatedAppStaffNewRoute
@@ -223,6 +254,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/shell': typeof ShellRoute
   '/ops': typeof AuthenticatedOpsRoute
   '/app/billing': typeof AuthenticatedAppBillingRoute
   '/app/business': typeof AuthenticatedAppBusinessRoute
@@ -240,6 +272,9 @@ export interface FileRoutesByTo {
   '/app/transfers': typeof AuthenticatedAppTransfersRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/collections/$id': typeof AuthenticatedAppCollectionsIdRoute
+  '/app/inventory/$id': typeof AuthenticatedAppInventoryIdRoute
+  '/app/inventory/bulk': typeof AuthenticatedAppInventoryBulkRoute
+  '/app/inventory/new': typeof AuthenticatedAppInventoryNewRoute
   '/app/sales/$id': typeof AuthenticatedAppSalesIdRoute
   '/app/staff/$id': typeof AuthenticatedAppStaffIdRoute
   '/app/staff/new': typeof AuthenticatedAppStaffNewRoute
@@ -252,6 +287,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/shell': typeof ShellRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/ops': typeof AuthenticatedOpsRoute
   '/_authenticated/app/billing': typeof AuthenticatedAppBillingRoute
@@ -271,6 +307,9 @@ export interface FileRoutesById {
   '/_authenticated/app/transfers': typeof AuthenticatedAppTransfersRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/collections/$id': typeof AuthenticatedAppCollectionsIdRoute
+  '/_authenticated/app/inventory_/$id': typeof AuthenticatedAppInventoryIdRoute
+  '/_authenticated/app/inventory_/bulk': typeof AuthenticatedAppInventoryBulkRoute
+  '/_authenticated/app/inventory_/new': typeof AuthenticatedAppInventoryNewRoute
   '/_authenticated/app/sales_/$id': typeof AuthenticatedAppSalesIdRoute
   '/_authenticated/app/staff_/$id': typeof AuthenticatedAppStaffIdRoute
   '/_authenticated/app/staff_/new': typeof AuthenticatedAppStaffNewRoute
@@ -283,6 +322,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/shell'
     | '/app'
     | '/ops'
     | '/app/billing'
@@ -302,6 +342,9 @@ export interface FileRouteTypes {
     | '/app/transfers'
     | '/app/'
     | '/app/collections/$id'
+    | '/app/inventory/$id'
+    | '/app/inventory/bulk'
+    | '/app/inventory/new'
     | '/app/sales/$id'
     | '/app/staff/$id'
     | '/app/staff/new'
@@ -312,6 +355,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/shell'
     | '/ops'
     | '/app/billing'
     | '/app/business'
@@ -329,6 +373,9 @@ export interface FileRouteTypes {
     | '/app/transfers'
     | '/app'
     | '/app/collections/$id'
+    | '/app/inventory/$id'
+    | '/app/inventory/bulk'
+    | '/app/inventory/new'
     | '/app/sales/$id'
     | '/app/staff/$id'
     | '/app/staff/new'
@@ -340,6 +387,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/shell'
     | '/_authenticated/app'
     | '/_authenticated/ops'
     | '/_authenticated/app/billing'
@@ -359,6 +407,9 @@ export interface FileRouteTypes {
     | '/_authenticated/app/transfers'
     | '/_authenticated/app/'
     | '/_authenticated/app/collections/$id'
+    | '/_authenticated/app/inventory_/$id'
+    | '/_authenticated/app/inventory_/bulk'
+    | '/_authenticated/app/inventory_/new'
     | '/_authenticated/app/sales_/$id'
     | '/_authenticated/app/staff_/$id'
     | '/_authenticated/app/staff_/new'
@@ -371,6 +422,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ShellRoute: typeof ShellRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -394,6 +446,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shell': {
+      id: '/shell'
+      path: '/shell'
+      fullPath: '/shell'
+      preLoaderRoute: typeof ShellRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app': {
@@ -536,6 +595,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppCollectionsIdRouteImport
       parentRoute: typeof AuthenticatedAppCollectionsRoute
     }
+    '/_authenticated/app/inventory_/$id': {
+      id: '/_authenticated/app/inventory_/$id'
+      path: '/inventory/$id'
+      fullPath: '/app/inventory/$id'
+      preLoaderRoute: typeof AuthenticatedAppInventoryIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/inventory_/bulk': {
+      id: '/_authenticated/app/inventory_/bulk'
+      path: '/inventory/bulk'
+      fullPath: '/app/inventory/bulk'
+      preLoaderRoute: typeof AuthenticatedAppInventoryBulkRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/inventory_/new': {
+      id: '/_authenticated/app/inventory_/new'
+      path: '/inventory/new'
+      fullPath: '/app/inventory/new'
+      preLoaderRoute: typeof AuthenticatedAppInventoryNewRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/sales_/$id': {
       id: '/_authenticated/app/sales_/$id'
       path: '/sales/$id'
@@ -608,6 +688,9 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppStoresRoute: typeof AuthenticatedAppStoresRoute
   AuthenticatedAppTransfersRoute: typeof AuthenticatedAppTransfersRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppInventoryIdRoute: typeof AuthenticatedAppInventoryIdRoute
+  AuthenticatedAppInventoryBulkRoute: typeof AuthenticatedAppInventoryBulkRoute
+  AuthenticatedAppInventoryNewRoute: typeof AuthenticatedAppInventoryNewRoute
   AuthenticatedAppSalesIdRoute: typeof AuthenticatedAppSalesIdRoute
   AuthenticatedAppStaffIdRoute: typeof AuthenticatedAppStaffIdRoute
   AuthenticatedAppStaffNewRoute: typeof AuthenticatedAppStaffNewRoute
@@ -633,6 +716,9 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppStoresRoute: AuthenticatedAppStoresRoute,
   AuthenticatedAppTransfersRoute: AuthenticatedAppTransfersRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppInventoryIdRoute: AuthenticatedAppInventoryIdRoute,
+  AuthenticatedAppInventoryBulkRoute: AuthenticatedAppInventoryBulkRoute,
+  AuthenticatedAppInventoryNewRoute: AuthenticatedAppInventoryNewRoute,
   AuthenticatedAppSalesIdRoute: AuthenticatedAppSalesIdRoute,
   AuthenticatedAppStaffIdRoute: AuthenticatedAppStaffIdRoute,
   AuthenticatedAppStaffNewRoute: AuthenticatedAppStaffNewRoute,
@@ -660,6 +746,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ShellRoute: ShellRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

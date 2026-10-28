@@ -17,6 +17,7 @@ import {
   fmtDate,
 } from "@/components/pos/bits";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { ListSkeleton, RowsSkeleton } from "@/components/pos/skeletons";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { methodLabel } from "@/lib/payment-methods";
 import { useI18n } from "@/lib/i18n";
@@ -106,93 +107,107 @@ function InvoicesContent() {
         }
       />
       {tab === "waiting" ? (
-        <>
-          {pending.data?.length === 0 && <Empty>{t("invoices.nothingWaiting")}</Empty>}
-          <div className="grid gap-2 md:grid-cols-2">
-            {pending.data?.map((s) => (
-              <div key={s.id} className="pos-card min-w-0 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-[13px] font-semibold">
-                      #{s.number}{" "}
-                      {s.kind === "layby" && (
-                        <span className="text-accent">· {t("invoices.laybyTag")}</span>
+        pending.isPending ? (
+          // Waiting on a decision is the queue this screen exists for; hold its
+          // two-card grid instead of reporting an empty queue.
+          <ListSkeleton rows={4} className="grid gap-2 md:grid-cols-2" />
+        ) : (
+          <>
+            {pending.data?.length === 0 && <Empty>{t("invoices.nothingWaiting")}</Empty>}
+            <div className="grid gap-2 md:grid-cols-2">
+              {pending.data?.map((s) => (
+                <div key={s.id} className="pos-card min-w-0 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-semibold">
+                        #{s.number}{" "}
+                        {s.kind === "layby" && (
+                          <span className="text-accent">· {t("invoices.laybyTag")}</span>
+                        )}
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {t("sdetail.by", { name: names.data?.[s.created_by ?? ""] ?? "—" })} ·{" "}
+                        {fmtDate(s.created_at)}
+                      </div>
+                    </div>
+                    <div className="tabular shrink-0 text-[15px] font-extrabold">
+                      {money(s.total)}
+                    </div>
+                  </div>
+                  <ul className="mt-2.5 space-y-1 text-[13px]">
+                    {s.sale_items.map((i, k) => (
+                      <li key={k} className="flex justify-between">
+                        <span>
+                          {i.qty} × {i.name}
+                        </span>
+                        <span className="tabular text-muted-foreground">
+                          {money(i.qty * i.price)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {(s.customer_name || s.note) && (
+                    <p className="mt-2.5 rounded-lg bg-secondary p-2 text-xs">
+                      {s.customer_name && (
+                        <b>
+                          {s.customer_name} {s.customer_phone}{" "}
+                        </b>
                       )}
+                      {s.note}
+                    </p>
+                  )}
+                  {approver && (
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => review(s, false)}
+                      >
+                        {t("invoices.reject")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="success"
+                        className="flex-1"
+                        disabled={s.created_by === staff?.id && !staff?.owner}
+                        onClick={() => setApproving(s)}
+                      >
+                        {t("invoices.approve")}
+                      </Button>
                     </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {t("sdetail.by", { name: names.data?.[s.created_by ?? ""] ?? "—" })} ·{" "}
-                      {fmtDate(s.created_at)}
-                    </div>
-                  </div>
-                  <div className="tabular shrink-0 text-[15px] font-extrabold">
-                    {money(s.total)}
-                  </div>
+                  )}
                 </div>
-                <ul className="mt-2.5 space-y-1 text-[13px]">
-                  {s.sale_items.map((i, k) => (
-                    <li key={k} className="flex justify-between">
-                      <span>
-                        {i.qty} × {i.name}
-                      </span>
-                      <span className="tabular text-muted-foreground">
-                        {money(i.qty * i.price)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {(s.customer_name || s.note) && (
-                  <p className="mt-2.5 rounded-lg bg-secondary p-2 text-xs">
-                    {s.customer_name && (
-                      <b>
-                        {s.customer_name} {s.customer_phone}{" "}
-                      </b>
-                    )}
-                    {s.note}
-                  </p>
-                )}
-                {approver && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => review(s, false)}
-                    >
-                      {t("invoices.reject")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="success"
-                      className="flex-1"
-                      disabled={s.created_by === staff?.id && !staff?.owner}
-                      onClick={() => setApproving(s)}
-                    >
-                      {t("invoices.approve")}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
+              ))}
+            </div>
+          </>
+        )
       ) : (
         <div className="pos-card divide-y">
-          {reviewed.data
-            ?.filter((s) => s.approved_by)
-            .slice(0, 30)
-            .map((s) => (
-              <div key={s.id} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">
-                <span className="tabular w-14 shrink-0 font-semibold">#{s.number}</span>
-                <Status s={s.status} />
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  {t("sdetail.by", { name: names.data?.[s.approved_by ?? ""] ?? "—" })} ·{" "}
-                  {s.approved_at && fmtDate(s.approved_at)}
-                </span>
-                <span className="tabular shrink-0 font-semibold">{money(s.total)}</span>
-              </div>
-            ))}
-          {!reviewed.data?.some((s) => s.approved_by) && (
-            <p className="p-4 text-center text-sm text-muted-foreground">{t("invoices.noneYet")}</p>
+          {reviewed.isPending ? (
+            <RowsSkeleton rows={4} className="p-4" />
+          ) : (
+            <>
+              {reviewed.data
+                ?.filter((s) => s.approved_by)
+                .slice(0, 30)
+                .map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">
+                    <span className="tabular w-14 shrink-0 font-semibold">#{s.number}</span>
+                    <Status s={s.status} />
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                      {t("sdetail.by", { name: names.data?.[s.approved_by ?? ""] ?? "—" })} ·{" "}
+                      {s.approved_at && fmtDate(s.approved_at)}
+                    </span>
+                    <span className="tabular shrink-0 font-semibold">{money(s.total)}</span>
+                  </div>
+                ))}
+              {!reviewed.data?.some((s) => s.approved_by) && (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  {t("invoices.noneYet")}
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

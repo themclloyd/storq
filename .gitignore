@@ -30,6 +30,11 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Tauri desktop shell: bundle output and the schemas the CLI regenerates
+storqdesktop/src-tauri/target/
+storqdesktop/src-tauri/gen/schemas/
+dist-desktop/
+
 # Temporary logs / dev output
 tmp/
 

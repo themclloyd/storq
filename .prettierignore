@@ -1,5 +1,9 @@
 node_modules
 dist
+dist-desktop
+storqdesktop/src-tauri/target
+storqdesktop/src-tauri/gen
+storqdesktop/src-tauri/icons
 .output
 .vinxi
 pnpm-lock.yaml

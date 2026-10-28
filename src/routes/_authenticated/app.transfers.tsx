@@ -18,6 +18,7 @@ import {
   Pager,
   fmtDate,
 } from "@/components/pos/bits";
+import { ListSkeleton } from "@/components/pos/skeletons";
 import { cn } from "@/lib/utils";
 import { pageSlice } from "@/lib/paging";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -79,7 +80,7 @@ function Transfers() {
       />
       {canEdit && stores.length < 2 && <Empty>{t("trf.needSecond")}</Empty>}
       {transfers.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("trf.loading")}</p>
+        <ListSkeleton rows={4} />
       ) : (transfers.data?.length ?? 0) === 0 ? (
         <Empty>{t(canEdit ? "trf.none" : "common.none")}</Empty>
       ) : (

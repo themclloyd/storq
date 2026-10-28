@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "The till window: core APIs only, plus the app's own commands.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

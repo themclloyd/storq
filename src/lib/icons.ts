@@ -14,6 +14,7 @@
 
 export { default as Alert02Icon } from "@hugeicons/core-free-icons/Alert02Icon";
 export { default as Archive01Icon } from "@hugeicons/core-free-icons/Archive01Icon";
+export { default as ArrowDown01Icon } from "@hugeicons/core-free-icons/ArrowDown01Icon";
 export { default as ArrowLeft01Icon } from "@hugeicons/core-free-icons/ArrowLeft01Icon";
 export { default as ArrowReloadHorizontalIcon } from "@hugeicons/core-free-icons/ArrowReloadHorizontalIcon";
 export { default as ArrowRight01Icon } from "@hugeicons/core-free-icons/ArrowRight01Icon";
@@ -33,6 +34,8 @@ export { default as DashboardSquare01Icon } from "@hugeicons/core-free-icons/Das
 export { default as Delete02Icon } from "@hugeicons/core-free-icons/Delete02Icon";
 export { default as Download01Icon } from "@hugeicons/core-free-icons/Download01Icon";
 export { default as File01Icon } from "@hugeicons/core-free-icons/File01Icon";
+export { default as FileExportIcon } from "@hugeicons/core-free-icons/FileExportIcon";
+export { default as FileImportIcon } from "@hugeicons/core-free-icons/FileImportIcon";
 export { default as FilterIcon } from "@hugeicons/core-free-icons/FilterIcon";
 export { default as FlashIcon } from "@hugeicons/core-free-icons/FlashIcon";
 export { default as GridViewIcon } from "@hugeicons/core-free-icons/GridViewIcon";
@@ -46,6 +49,7 @@ export { default as NoteEditIcon } from "@hugeicons/core-free-icons/NoteEditIcon
 export { default as Notification01Icon } from "@hugeicons/core-free-icons/Notification01Icon";
 export { default as PackageIcon } from "@hugeicons/core-free-icons/PackageIcon";
 export { default as PauseIcon } from "@hugeicons/core-free-icons/PauseIcon";
+export { default as Pdf01Icon } from "@hugeicons/core-free-icons/Pdf01Icon";
 export { default as PercentIcon } from "@hugeicons/core-free-icons/PercentIcon";
 export { default as PlusSignIcon } from "@hugeicons/core-free-icons/PlusSignIcon";
 export { default as PrinterIcon } from "@hugeicons/core-free-icons/PrinterIcon";

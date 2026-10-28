@@ -8,14 +8,15 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { startLocale, useI18n } from "@/lib/i18n";
 
 import { Toaster } from "@/components/ui/sonner";
 import { CookieConsent } from "@/components/CookieConsent";
 import { NotFound } from "@/components/NotFound";
 import { supabase } from "@/integrations/supabase/client";
-import { clearAuthCheck } from "@/lib/auth-session";
+import { clearAuthCheck, forgetDeviceIdentity } from "@/lib/auth-session";
+import { isDesktop, openExternal } from "@/lib/desktop";
 import appCss from "../styles.css?url";
 import { SITE_NAME, DEFAULT_OG_IMAGE, PUBLIC_ROBOTS } from "@/lib/seo";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -54,6 +55,20 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const { t } = useI18n();
   console.error(error);
   const router = useRouter();
+  // Without a connection "try again" can only fail again, so the screen says
+  // what is actually wrong and offers the one screen a till can always reach.
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
     if (isStaleModule(error)) reloadOnce();
@@ -63,9 +78,11 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {t("errors.pageDidntLoad")}
+          {online ? t("errors.pageDidntLoad") : t("offline.cannotLoadTitle")}
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("errors.pageDidntLoadBody")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {online ? t("errors.pageDidntLoadBody") : t("offline.cannotLoad")}
+        </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -78,6 +95,14 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
           >
             {t("common.tryAgain")}
           </button>
+          {!online && (
+            <button
+              onClick={() => void router.navigate({ to: "/app", replace: true })}
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              {t("nav.pos")}
+            </button>
+          )}
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
@@ -177,12 +202,50 @@ function RootComponent() {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event === "SIGNED_OUT") {
+        forgetDeviceIdentity();
         queryClient.clear();
-        clearDeviceCache();
+        // Offline, an ended session says nothing about the device's snapshot,
+        // and wiping it turns a reconnect into a first-run setup. The queue is
+        // kept either way; here the catalogue and stock survive too.
+        if (typeof navigator === "undefined" || navigator.onLine) clearDeviceCache();
       } else queryClient.invalidateQueries();
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
+
+  useEffect(() => {
+    if (!isDesktop()) return;
+    // A packaged webview has no tabs and no system browser: `target=_blank` and
+    // `window.open` would either do nothing or open a chrome-less popup. Every
+    // web link (WhatsApp, the installer download, social proof) leaves through
+    // the shell's opener instead.
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute("href") ?? "";
+      if (!/^https?:\/\//i.test(href)) return;
+      if (href.startsWith(window.location.origin)) return;
+      event.preventDefault();
+      void openExternal(href);
+    };
+    const originalOpen = window.open.bind(window);
+    window.open = ((url?: string | URL, name?: string, features?: string) => {
+      const href = typeof url === "string" ? url : (url?.toString() ?? "");
+      // The PayChangu checkout renders inside an iframe of our own page, so only
+      // real links are handed out; anything else keeps browser behaviour.
+      if (href && /^https?:\/\//i.test(href) && !/checkout\.paychangu\.com/i.test(href)) {
+        void openExternal(href);
+        return null;
+      }
+      return originalOpen(url ?? "", name ?? "_blank", features);
+    }) as typeof window.open;
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.open = originalOpen;
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

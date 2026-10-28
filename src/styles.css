@@ -14,8 +14,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition (GoDaddy "Everyday Blue": white/cool-gray surfaces,
- * near-black ink text, a single brand teal accent at hue ~196).
+ * Design system definition (blue #004cfa: white/cool-gray surfaces,
+ * near-black ink text, a single brand blue accent at hue ~263).
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
@@ -107,8 +107,8 @@
   --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
   --font-hero: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 
-  /* GoDaddy surfaces are white + a cool section-gray, text is near-black ink,
-     and the one brand color is "Everyday Blue" teal (hue 196). */
+  /* Surfaces are white + a cool section-gray, text is near-black ink, and the
+     one brand color is blue #004cfa (hue ~263) with a deep and a soft step. */
   --background: oklch(0.9749 0.0025 228.77); /* #f5f7f8 section gray */
   --foreground: oklch(0.1776 0 0); /* #111 ink */
   --card: oklch(1 0 0); /* #fff */
@@ -116,21 +116,21 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.1776 0 0);
 
-  --primary: oklch(0.6514 0.111 196.31); /* #00a4a6 Everyday Blue */
-  --primary-foreground: oklch(0.999 0 0); /* white on Everyday Blue (brand fill) */
-  /* Brand teal for large surfaces that carry white type: Everyday Blue is only
-     ~2.9:1 against white, so a full-bleed section or card uses this deeper step
-     (AA at body size) while buttons and marks keep `--primary`. */
-  --primary-deep: oklch(0.44 0.075 196.31);
-  /* GoDaddy filled CTA is neutral ink, not blue-tinted charcoal. */
+  --primary: oklch(0.5135 0.2634 263.17); /* #004cfa blue */
+  --primary-foreground: oklch(0.999 0 0); /* white on blue (6.1:1 on the fill) */
+  /* Deeper blue for large surfaces that carry white type: the fill above already
+     clears AA, so this step is about weight, not legibility — a full-bleed band
+     reads as brand while buttons and marks keep `--primary`. */
+  --primary-deep: oklch(0.4 0.2 263.17); /* ≈ #0235b1 */
+  /* Filled CTA is neutral ink, not blue-tinted charcoal. */
   --button: oklch(0.1776 0 0); /* #111 ink */
   --button-foreground: oklch(0.999 0 0);
 
   --secondary: oklch(0.9358 0.0025 228.77); /* #e8eaeb */
-  --secondary-foreground: oklch(0.5121 0.0852 200.17); /* #09757a dark teal */
+  --secondary-foreground: oklch(0.42 0.19 263.17); /* deep blue, AA on the gray */
   --muted: oklch(0.9358 0.0025 228.77);
   --muted-foreground: oklch(0.5658 0 0); /* #767676 gray */
-  --accent: oklch(0.6514 0.111 196.31); /* Everyday Blue */
+  --accent: oklch(0.5135 0.2634 263.17); /* blue, the same fill as primary */
   --accent-foreground: oklch(0.999 0 0);
 
   --success: oklch(0.55 0.13 155);
@@ -144,13 +144,13 @@
   --success-soft: oklch(0.95 0.03 155);
   --warning-soft: oklch(0.965 0.04 80);
   --destructive-soft: oklch(0.955 0.03 25);
-  /* Tinted primary: soft Everyday-Blue surface with dark-teal text (AA on tint). */
-  --primary-soft: oklch(0.94 0.03 196);
-  --primary-soft-foreground: oklch(0.5121 0.0852 200.17);
+  /* Tinted primary: washed-blue surface with deep-blue text (AA on the tint). */
+  --primary-soft: oklch(0.955 0.02 263.17); /* ≈ #e9f0fe */
+  --primary-soft-foreground: oklch(0.42 0.19 263.17);
 
   --border: oklch(0.8875 0.0103 238.52); /* #d4dbe0 */
   --input: oklch(0.8497 0.0139 240.98); /* #c6cfd6 */
-  --ring: oklch(0.6514 0.111 196.31); /* Everyday Blue */
+  --ring: oklch(0.5135 0.2634 263.17); /* blue */
   --rail: oklch(1 0 0);
 
   /* Counter tiles: Square's flat saturated blocks (navy, forest, terracotta,
@@ -165,49 +165,49 @@
   --tile-foreground: oklch(0.99 0 0);
 
   /* The commanding Charge action: jet charcoal on white, so the one button that
-     takes money outweighs every teal affordance around it. */
+     takes money outweighs every blue affordance around it. */
   --charge: oklch(0.1776 0 0);
   --charge-foreground: oklch(0.999 0 0);
   /* Hairline between counter panes (Square's #E5E7EB). */
   --hairline: oklch(0.9215 0.004 240);
 
-  --chart-1: oklch(0.6514 0.111 196.31); /* Everyday Blue: sales */
+  --chart-1: oklch(0.5135 0.2634 263.17); /* blue: sales */
   --chart-2: oklch(0.8305 0.1453 74.18); /* warm gold: profit */
-  --chart-3: oklch(0.5121 0.0852 200.17); /* dark teal */
-  --chart-4: oklch(0.55 0.14 295.56); /* Sherpa purple */
+  --chart-3: oklch(0.5121 0.0852 196.31); /* deep teal: the pair to blue on a trend */
+  --chart-4: oklch(0.58 0.19 330); /* orchid: well off the brand hue */
   --chart-5: oklch(0.8 0.12 190); /* bright turquoise */
 
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.1776 0 0);
-  --sidebar-primary: oklch(0.6514 0.111 196.31);
+  --sidebar-primary: oklch(0.5135 0.2634 263.17);
   --sidebar-primary-foreground: oklch(0.999 0 0);
-  --sidebar-accent: oklch(0.94 0.01 200);
-  --sidebar-accent-foreground: oklch(0.5121 0.0852 200.17);
+  --sidebar-accent: oklch(0.955 0.02 263.17);
+  --sidebar-accent-foreground: oklch(0.42 0.19 263.17);
   --sidebar-border: oklch(0.8875 0.0103 238.52);
-  --sidebar-ring: oklch(0.6514 0.111 196.31);
+  --sidebar-ring: oklch(0.5135 0.2634 263.17);
 }
 
 .dark {
-  --background: oklch(0.19 0.01 210);
-  --foreground: oklch(0.97 0.005 196);
-  --card: oklch(0.23 0.012 205);
-  --card-foreground: oklch(0.97 0.005 196);
-  --popover: oklch(0.25 0.012 205);
-  --popover-foreground: oklch(0.97 0.005 196);
+  --background: oklch(0.19 0.012 263.17);
+  --foreground: oklch(0.97 0.005 263.17);
+  --card: oklch(0.23 0.014 263.17);
+  --card-foreground: oklch(0.97 0.005 263.17);
+  --popover: oklch(0.25 0.014 263.17);
+  --popover-foreground: oklch(0.97 0.005 263.17);
 
-  --primary: oklch(0.72 0.11 196.31);
-  --primary-foreground: oklch(0.18 0.02 200);
+  --primary: oklch(0.68 0.16 263.17);
+  --primary-foreground: oklch(0.17 0.05 263.17);
   /* On a dark page the deep step would vanish, so brand surfaces lift instead. */
-  --primary-deep: oklch(0.52 0.09 196.31);
-  --button: oklch(0.72 0.11 196.31);
-  --button-foreground: oklch(0.18 0.02 200);
+  --primary-deep: oklch(0.5 0.19 263.17);
+  --button: oklch(0.68 0.16 263.17);
+  --button-foreground: oklch(0.17 0.05 263.17);
 
-  --secondary: oklch(0.3 0.02 200);
-  --secondary-foreground: oklch(0.9 0.03 196);
-  --muted: oklch(0.28 0.012 205);
-  --muted-foreground: oklch(0.7 0.015 200);
-  --accent: oklch(0.72 0.11 196.31);
-  --accent-foreground: oklch(0.18 0.02 200);
+  --secondary: oklch(0.3 0.035 263.17);
+  --secondary-foreground: oklch(0.88 0.05 263.17);
+  --muted: oklch(0.28 0.014 263.17);
+  --muted-foreground: oklch(0.7 0.015 263.17);
+  --accent: oklch(0.68 0.16 263.17);
+  --accent-foreground: oklch(0.17 0.05 263.17);
 
   --success: oklch(0.72 0.13 155);
   --success-foreground: oklch(0.18 0.03 155);
@@ -219,13 +219,13 @@
   --success-soft: oklch(0.3 0.05 155);
   --warning-soft: oklch(0.32 0.06 80);
   --destructive-soft: oklch(0.31 0.06 25);
-  --primary-soft: oklch(0.3 0.05 196);
-  --primary-soft-foreground: oklch(0.82 0.09 196);
+  --primary-soft: oklch(0.3 0.08 263.17);
+  --primary-soft-foreground: oklch(0.82 0.085 263.17);
 
-  --border: oklch(0.32 0.012 205);
-  --input: oklch(0.38 0.012 205);
-  --ring: oklch(0.72 0.11 196.31);
-  --rail: oklch(0.23 0.012 205);
+  --border: oklch(0.32 0.014 263.17);
+  --input: oklch(0.38 0.014 263.17);
+  --ring: oklch(0.68 0.16 263.17);
+  --rail: oklch(0.23 0.014 263.17);
 
   /* Same color blocks, lifted just enough to separate from a dark counter. */
   --tile-1: oklch(0.45 0.09 255);
@@ -236,24 +236,24 @@
   --tile-6: oklch(0.5 0.02 250);
   --tile-foreground: oklch(0.99 0 0);
 
-  --charge: oklch(0.96 0.005 196);
-  --charge-foreground: oklch(0.19 0.01 210);
-  --hairline: oklch(0.32 0.012 205);
+  --charge: oklch(0.96 0.005 263.17);
+  --charge-foreground: oklch(0.19 0.012 263.17);
+  --hairline: oklch(0.32 0.014 263.17);
 
-  --chart-1: oklch(0.72 0.11 196);
+  --chart-1: oklch(0.68 0.16 263.17);
   --chart-2: oklch(0.83 0.13 74);
-  --chart-3: oklch(0.62 0.1 200);
-  --chart-4: oklch(0.62 0.15 296);
+  --chart-3: oklch(0.62 0.1 196.31);
+  --chart-4: oklch(0.66 0.17 330);
   --chart-5: oklch(0.8 0.12 190);
 
-  --sidebar: oklch(0.21 0.012 205);
-  --sidebar-foreground: oklch(0.97 0.005 196);
-  --sidebar-primary: oklch(0.72 0.11 196);
-  --sidebar-primary-foreground: oklch(0.18 0.02 200);
-  --sidebar-accent: oklch(0.3 0.02 200);
-  --sidebar-accent-foreground: oklch(0.9 0.03 196);
-  --sidebar-border: oklch(0.32 0.012 205);
-  --sidebar-ring: oklch(0.72 0.11 196);
+  --sidebar: oklch(0.21 0.014 263.17);
+  --sidebar-foreground: oklch(0.97 0.005 263.17);
+  --sidebar-primary: oklch(0.68 0.16 263.17);
+  --sidebar-primary-foreground: oklch(0.17 0.05 263.17);
+  --sidebar-accent: oklch(0.3 0.035 263.17);
+  --sidebar-accent-foreground: oklch(0.88 0.05 263.17);
+  --sidebar-border: oklch(0.32 0.014 263.17);
+  --sidebar-ring: oklch(0.68 0.16 263.17);
 }
 
 @layer base {

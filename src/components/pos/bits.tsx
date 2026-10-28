@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TableCell, TableHead } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -27,9 +28,10 @@ export function PageHeader({
 }: {
   /**
    * Parent-page link rendered on the trail line itself, replacing the old
-   * stacked BackLink row so a nested page keeps one compact header.
+   * stacked BackLink row so a nested page keeps one compact header. `search`
+   * carries a list's view back to the screen it belongs to.
    */
-  back?: { to: WorkspacePath; label: ReactNode };
+  back?: { to: WorkspacePath; label: ReactNode; search?: Record<string, unknown> };
   breadcrumb?: ReactNode;
   title: ReactNode;
   sub?: ReactNode;
@@ -43,6 +45,7 @@ export function PageHeader({
             {back && (
               <Link
                 to={back.to}
+                search={back.search as never}
                 className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/30"
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
@@ -127,23 +130,36 @@ export function Money({ value, className }: { value: string; className?: string 
 /**
  * KPI tile for list headers: a micro label over one heavy tabular figure. The
  * value never wraps, so a row of stats stays level whatever the amounts are.
+ * While the figure is in flight, pass `loading` to hold the tile's shape: a
+ * zeroed display would read as a real result.
  */
 export function Stat({
   label,
   value,
   hint,
+  loading,
 }: {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
+  loading?: boolean;
 }) {
   return (
-    <Card className="p-3.5">
+    <Card className="p-3.5" aria-busy={loading || undefined}>
       <div className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
         {label}
       </div>
-      <div className="tabular mt-1 truncate text-2xl leading-tight font-extrabold">{value}</div>
-      {hint && <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</div>}
+      {loading ? (
+        <div className="mt-2 space-y-1.5" aria-hidden>
+          <Skeleton className="h-7 w-24" />
+          {hint && <Skeleton className="h-2.5 w-16" />}
+        </div>
+      ) : (
+        <>
+          <div className="tabular mt-1 truncate text-2xl leading-tight font-extrabold">{value}</div>
+          {hint && <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</div>}
+        </>
+      )}
     </Card>
   );
 }

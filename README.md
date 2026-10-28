@@ -45,3 +45,14 @@ bun run dev            # local dev server
 bun run test           # unit tests (Vitest)
 bun run build          # production build
 ```
+
+## Windows app
+
+The installed till lives in [`storqdesktop/`](storqdesktop/README.md). It is the same
+frontend wrapped in a Tauri shell, with a local SQLite database that keeps the
+catalogue and any unsent sale when the webview's own storage is lost.
+
+```sh
+bun run tauri:dev      # the app with devtools, against the local dev server
+bun run tauri:build    # NSIS installer in storqdesktop/src-tauri/target/release/bundle
+```

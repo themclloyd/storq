@@ -21,18 +21,18 @@ export function renderErrorPage(): string {
         --muted: oklch(0.5658 0 0);
         --card: oklch(1 0 0);
         --border: oklch(0.8875 0.0103 238.52);
-        --primary: oklch(0.6514 0.111 196.31);
+        --primary: oklch(0.5135 0.2634 263.17);
         --on-primary: oklch(0.999 0 0);
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: oklch(0.19 0.01 210);
-          --fg: oklch(0.97 0.005 196);
-          --muted: oklch(0.7 0.015 200);
-          --card: oklch(0.23 0.012 205);
-          --border: oklch(0.32 0.012 205);
-          --primary: oklch(0.72 0.11 196.31);
-          --on-primary: oklch(0.18 0.02 200);
+          --bg: oklch(0.19 0.012 263.17);
+          --fg: oklch(0.97 0.005 263.17);
+          --muted: oklch(0.7 0.015 263.17);
+          --card: oklch(0.23 0.014 263.17);
+          --border: oklch(0.32 0.014 263.17);
+          --primary: oklch(0.68 0.16 263.17);
+          --on-primary: oklch(0.17 0.05 263.17);
         }
       }
       * { box-sizing: border-box; }

@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, NoAccess, PageHeader, Pager, Stat, StatRow, Status } from "@/components/pos/bits";
+import { PanelSkeleton, StatSkeleton, TableSkeleton } from "@/components/pos/skeletons";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import { cn } from "@/lib/utils";
@@ -242,7 +243,7 @@ function StockTakeDetailContent() {
     return (
       <>
         <PageHeader back={back} title={t("stk.title")} />
-        <Empty>{t("common.loading")}</Empty>
+        <PanelSkeleton lines={8} />
       </>
     );
   if (!take)
@@ -299,11 +300,15 @@ function StockTakeDetailContent() {
           ) : undefined
         }
       />
-      <StatRow className="mb-4">
-        {cards.map(([k, v]) => (
-          <Stat key={k} label={k} value={v} />
-        ))}
-      </StatRow>
+      {lines.isPending ? (
+        <StatSkeleton count={cards.length} />
+      ) : (
+        <StatRow className="mb-4">
+          {cards.map(([k, v]) => (
+            <Stat key={k} label={k} value={v} />
+          ))}
+        </StatRow>
+      )}
       {!open && total > counted && (
         <p className="mb-3 text-xs text-muted-foreground">
           {t("stk.notCountedNote", { n: total - counted })}
@@ -334,7 +339,7 @@ function StockTakeDetailContent() {
         </span>
       </div>
       {lines.isPending ? (
-        <Empty>{t("common.loading")}</Empty>
+        <TableSkeleton rows={6} columns={seesVariance ? 5 : 2} />
       ) : (
         <>
           <Card className="overflow-hidden">

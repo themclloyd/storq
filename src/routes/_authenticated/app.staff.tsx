@@ -12,6 +12,7 @@ import {
   toPermissions,
 } from "@/lib/permissions";
 import { NativeSelect, PageHeader } from "@/components/pos/bits";
+import { RowsSkeleton } from "@/components/pos/skeletons";
 import { DevicesCard } from "@/components/pos/DevicesCard";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -89,78 +90,84 @@ function Staff() {
       </Card>
       <DevicesCard />
       <Card className="divide-y p-0">
-        {roster.data?.map((s) => {
-          const access = { owner: s.is_owner, permissions: s.permissions };
-          const shown = AREAS.map((area) => ({ area, ...areaAccess(access, area) })).filter(
-            (x) => x.view,
-          );
-          const row = (
-            <>
-              <span className="font-display grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
-                {s.name.slice(0, 1).toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold">
-                  <span className="truncate">{s.name}</span>
-                  {s.is_owner && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
-                      <HugeiconsIcon icon={ShieldCheckIcon} className="size-3" />
-                      {t("staff.owner")}
-                    </span>
-                  )}
-                  {!s.active && (
-                    <span className="text-xs text-destructive">{t("staff.inactive")}</span>
-                  )}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1">
-                  {s.is_owner ? (
-                    <span className="text-xs text-muted-foreground">{t("staff.fullAccess")}</span>
-                  ) : shown.length ? (
-                    shown.map(({ area, change }) => (
-                      <span
-                        key={area}
-                        className={
-                          change
-                            ? "rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-secondary-foreground"
-                            : "rounded-md border px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground"
-                        }
-                      >
-                        {t(AREA_LABEL_KEYS[area])}
-                        {!change && ` · ${t("staff.viewOnly")}`}
+        {roster.isPending ? (
+          <RowsSkeleton rows={4} className="p-4" />
+        ) : (
+          roster.data?.map((s) => {
+            const access = { owner: s.is_owner, permissions: s.permissions };
+            const shown = AREAS.map((area) => ({ area, ...areaAccess(access, area) })).filter(
+              (x) => x.view,
+            );
+            const row = (
+              <>
+                <span className="font-display grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+                  {s.name.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold">
+                    <span className="truncate">{s.name}</span>
+                    {s.is_owner && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
+                        <HugeiconsIcon icon={ShieldCheckIcon} className="size-3" />
+                        {t("staff.owner")}
                       </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted-foreground">{t("staff.noAccessYet")}</span>
-                  )}
+                    )}
+                    {!s.active && (
+                      <span className="text-xs text-destructive">{t("staff.inactive")}</span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    {s.is_owner ? (
+                      <span className="text-xs text-muted-foreground">{t("staff.fullAccess")}</span>
+                    ) : shown.length ? (
+                      shown.map(({ area, change }) => (
+                        <span
+                          key={area}
+                          className={
+                            change
+                              ? "rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-secondary-foreground"
+                              : "rounded-md border px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                          }
+                        >
+                          {t(AREA_LABEL_KEYS[area])}
+                          {!change && ` · ${t("staff.viewOnly")}`}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {t("staff.noAccessYet")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 truncate text-xs text-muted-foreground">
+                    {stores.find((x) => x.id === s.store_id)?.name ?? t("sales.allStores")}
+                  </div>
                 </div>
-                <div className="mt-1 truncate text-xs text-muted-foreground">
-                  {stores.find((x) => x.id === s.store_id)?.name ?? t("sales.allStores")}
-                </div>
+                {openable(s) && (
+                  <HugeiconsIcon
+                    icon={ArrowRight01Icon}
+                    size={16}
+                    className="mt-1 shrink-0 text-muted-foreground"
+                  />
+                )}
+              </>
+            );
+            return openable(s) ? (
+              <Link
+                key={s.id}
+                to="/app/staff/$id"
+                params={{ id: s.id }}
+                className="flex items-start gap-3 px-4 py-3 text-[13px] transition-colors hover:bg-muted/50"
+              >
+                {row}
+              </Link>
+            ) : (
+              <div key={s.id} className="flex items-start gap-3 px-4 py-3 text-[13px]">
+                {row}
               </div>
-              {openable(s) && (
-                <HugeiconsIcon
-                  icon={ArrowRight01Icon}
-                  size={16}
-                  className="mt-1 shrink-0 text-muted-foreground"
-                />
-              )}
-            </>
-          );
-          return openable(s) ? (
-            <Link
-              key={s.id}
-              to="/app/staff/$id"
-              params={{ id: s.id }}
-              className="flex items-start gap-3 px-4 py-3 text-[13px] transition-colors hover:bg-muted/50"
-            >
-              {row}
-            </Link>
-          ) : (
-            <div key={s.id} className="flex items-start gap-3 px-4 py-3 text-[13px]">
-              {row}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </Card>
       {manage && <p className="mt-3 text-xs text-muted-foreground">{t("staff.openHint")}</p>}
     </>

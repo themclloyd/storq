@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   Accordion,
   AccordionContent,
@@ -35,7 +35,7 @@ import {
 } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { PRICES, YEARLY_FACTOR } from "@/lib/billing";
-import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop";
+import { DESKTOP_DOWNLOAD_URL, isDesktop } from "@/lib/desktop";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { buildSeo, absUrl, SITE_NAME } from "@/lib/seo";
@@ -140,6 +140,12 @@ const landingJsonLd = {
 };
 
 export const Route = createFileRoute("/")({
+  // The installed till never shows the marketing page: it opens on the workspace,
+  // which sends a signed-out device to its sign-in screen. Deciding here means
+  // the landing page is not even rendered on the way.
+  beforeLoad: () => {
+    if (isDesktop()) throw redirect({ to: "/app" });
+  },
   head: () => {
     const seo = buildSeo({
       title: "Storq POS | The lite POS for African shops that works offline",

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Storq POS",
+  "version": "1.1.0",
+  "identifier": "xyz.storq.pos",
+  "build": {
+    "frontendDist": "../../dist-desktop/client",
+    "devUrl": "http://localhost:8080",
+    "beforeDevCommand": "bun run dev:desktop",
+    "beforeBuildCommand": "bun run build:desktop"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Storq POS",
+        "width": 1360,
+        "height": 880,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "resizable": true,
+        "maximizable": true,
+        "fullscreen": false,
+        "center": true,
+        "theme": "Light",
+        "backgroundColor": "#f5f7f8",
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'unsafe-inline' https://in.paychangu.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ws://localhost:8080 http://localhost:8080 https://*.supabase.co wss://*.supabase.co https://*.paychangu.com https://storq.xyz https://challenges.cloudflare.com; frame-src https://*.paychangu.com https://challenges.cloudflare.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "publisher": "Storq",
+    "copyright": "© Storq",
+    "category": "Business",
+    "shortDescription": "Storq POS till for Windows",
+    "longDescription": "Point of sale, stock, layby and reports for Storq businesses. Keeps selling offline and syncs when the connection returns.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://gtkfczmudhzhbdooftsa.supabase.co/storage/v1/object/public/storq-updates/desktop/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVDNjZFM0M3QUQ3N0VFREQKUldUZDduZXR4K05tWEpkT25rUXM4cTZEd0V4d0dhdkVONVpKMGNrdTkxMHpkNytFTFFzVlVGdjcK"
+    }
+  }
+}

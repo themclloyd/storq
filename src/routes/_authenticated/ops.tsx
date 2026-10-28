@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, PageHeader, Pager, fmtDate, rowLinkProps } from "@/components/pos/bits";
+import { RowsSkeleton, TableSkeleton } from "@/components/pos/skeletons";
 import {
   accessRunway,
   applyEntitlementChange,
@@ -307,6 +308,10 @@ function Ops() {
                 {t("ops.error")}{" "}
                 <span className="text-destructive">{(roster.error as Error).message}</span>
               </Empty>
+            ) : roster.isPending ? (
+              // The tenant list is the screen; hold its columns while the page read
+              // settles instead of showing "no tenants" to a tenant-rich console.
+              <TableSkeleton rows={6} columns={canWrite ? 7 : 6} />
             ) : rows.length === 0 ? (
               <Empty>
                 {filtered ? (
@@ -854,7 +859,7 @@ function ManageTenant({
           {audit.isError ? (
             <p className="text-[12px] text-destructive">{(audit.error as Error).message}</p>
           ) : audit.isPending ? (
-            <p className="text-[12px] text-muted-foreground">{t("common.loading")}</p>
+            <RowsSkeleton rows={2} />
           ) : !audit.data?.length ? (
             <p className="text-[12px] text-muted-foreground">{t("ops.recentEmpty")}</p>
           ) : (

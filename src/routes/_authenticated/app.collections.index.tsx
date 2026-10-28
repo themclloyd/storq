@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, NoAccess, PageHeader, Pager } from "@/components/pos/bits";
+import { TableSkeleton } from "@/components/pos/skeletons";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { pageSlice } from "@/lib/paging";
 import { useI18n } from "@/lib/i18n";
@@ -112,7 +113,9 @@ function Collections() {
           ) : undefined
         }
       />
-      {list.length === 0 ? (
+      {cols.isPending ? (
+        <TableSkeleton rows={5} columns={canEdit ? 5 : 4} />
+      ) : list.length === 0 ? (
         <Empty>{t("col.noneYet")}</Empty>
       ) : (
         <>

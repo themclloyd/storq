@@ -22,6 +22,7 @@ import {
   rowLinkProps,
 } from "@/components/pos/bits";
 import { ExportMenu } from "@/components/pos/ExportMenu";
+import { TableSkeleton } from "@/components/pos/skeletons";
 import {
   Table,
   TableBody,
@@ -263,11 +264,11 @@ function SalesContent() {
       />
       <StatRow>
         {cards.map(([k, v]) => (
-          <Stat key={k} label={k} value={v} />
+          <Stat key={k} label={k} value={v} loading={summary.isPending} />
         ))}
       </StatRow>
       {list.isPending ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</Card>
+        <TableSkeleton rows={6} columns={6} />
       ) : rows.length === 0 ? (
         <Empty
           icon={<HugeiconsIcon icon={ReceiptIcon} className="size-5" />}

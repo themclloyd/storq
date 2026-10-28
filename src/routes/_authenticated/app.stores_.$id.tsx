@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
+import { DetailSkeleton } from "@/components/pos/skeletons";
 import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { RadioCard, StoreTypeTag } from "@/components/pos/store-settings";
 import { PaymentMethodPicker } from "@/components/pos/payment-methods";
@@ -68,12 +69,13 @@ function StorePage() {
   // A closed branch keeps its page: it still holds the receipt details of every
   // sale it ever made, and it is where the slot is handed back.
   const store = stores.find((s) => s.id === id) ?? archivedStores.find((s) => s.id === id);
-  if (!store)
+  if (!store) {
+    // An empty list on the first read is a pending roster, not a missing branch.
+    if (!stores.length) return <DetailSkeleton />;
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">
-        {stores.length ? t("store.notFound") : t("common.loading")}
-      </Card>
+      <Card className="p-6 text-center text-sm text-muted-foreground">{t("store.notFound")}</Card>
     );
+  }
   // Keyed so a refreshed store row resets the draft once the query returns.
   return (
     <StoreForm

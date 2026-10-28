@@ -23,6 +23,9 @@ import { useSubscription } from "@/lib/billing";
 import { useOnce } from "@/hooks/use-once";
 import { Billing } from "@/components/pos/Billing";
 import { GraceBanner } from "@/components/pos/GraceBanner";
+import { UpdateBanner } from "@/components/pos/UpdateBanner";
+import { isDesktop } from "@/lib/desktop";
+import { deviceStorageReady } from "@/lib/offline";
 import { ResetPinDialog } from "@/components/pos/ResetPinDialog";
 import { PasswordInput } from "@/components/password-input";
 import { Button } from "@/components/ui/button";
@@ -69,6 +72,18 @@ export const Route = createFileRoute("/_authenticated/app")({
 
 function AppLayout() {
   const { user } = Route.useRouteContext();
+  const ready = useDeviceStorage();
+  const { t } = useI18n();
+  // The installed app reads its catalogue and unsent sales out of SQLite before
+  // the workspace mounts. Skipping the wait would let the first queries settle
+  // as "no business" offline, so the gate is the difference between a till that
+  // opens after an outage and one that asks to set up a new shop.
+  if (!ready)
+    return (
+      <div className="grid min-h-screen place-items-center text-muted-foreground">
+        {t("desktop.booting")}
+      </div>
+    );
   return (
     <PosProvider userId={user.id}>
       <div className="min-h-screen">
@@ -78,9 +93,25 @@ function AppLayout() {
   );
 }
 
+/** True once the device snapshot has been restored (always true in a browser). */
+function useDeviceStorage() {
+  const [ready, setReady] = useState(() => !isDesktop());
+  useEffect(() => {
+    if (ready) return;
+    let live = true;
+    void deviceStorageReady().finally(() => {
+      if (live) setReady(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [ready]);
+  return ready;
+}
+
 function Gate() {
   const { t } = useI18n();
-  const { business, staff, stores } = usePos();
+  const { business, businessFailed, staff, stores } = usePos();
   const sub = useSubscription(business?.id, stores.length);
   // Cool the "Try again" click so a session cannot hammer the entitlement
   // query when Supabase is briefly unreachable.
@@ -91,7 +122,10 @@ function Gate() {
         {t("common.loading")}
       </div>
     );
-  if (business === null) return <Setup />;
+  // A failed read is not an empty account. Without this branch a device that
+  // lost its snapshot before going offline was shown the "create a business"
+  // form for a shop that already exists.
+  if (business === null) return businessFailed ? <Unreachable /> : <Setup />;
   if (!staff) return <PinPad />;
   // Only block on a first-ever check; afterwards the cached entitlement renders
   // instantly and refreshes silently. The database still rejects expired writes.
@@ -141,6 +175,28 @@ function useSignOut() {
     await supabase.auth.signOut();
     nav({ to: "/auth", replace: true });
   };
+}
+
+/**
+ * Shown when the business row could not be read at all: offline without a
+ * snapshot, or a refused read. It is deliberately not the setup form, a shop
+ * that already exists must never be offered "create a business" again.
+ */
+function Unreachable() {
+  const { t } = useI18n();
+  const { refresh } = usePos();
+  const { run, running } = useOnce(() => refresh(), 3_000);
+  return (
+    <div className="grid min-h-screen place-items-center bg-background p-4">
+      <div className="max-w-sm space-y-3 text-center">
+        <h1 className="text-lg font-semibold text-foreground">{t("offline.cannotLoadTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("offline.cannotLoad")}</p>
+        <Button disabled={running} onClick={() => void run()}>
+          {t("common.tryAgain")}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function Setup() {
@@ -263,7 +319,7 @@ function Setup() {
 
 function PinPad() {
   const { t } = useI18n();
-  const { business, unlock, userId } = usePos();
+  const { business, unlock, userId, online } = usePos();
   const signOut = useSignOut();
   // The gate is scoped to this account and survives a reload, so closing the
   // tab cannot hand the next person a fresh set of guesses.
@@ -356,6 +412,11 @@ function PinPad() {
         {business?.name}
       </p>
       <h1 className="mt-2 text-2xl font-bold">{t("pin.enterPin")}</h1>
+      {!online && (
+        <p className="mt-2 max-w-xs text-center text-xs text-muted-foreground">
+          {t("offline.unlockNeedsNetwork")}
+        </p>
+      )}
       <div className={cn("mt-8 flex gap-4", err && "animate-pulse")}>
         {Array.from({ length: Math.max(pin.length, 4) }).map((_, i) => (
           <span
@@ -641,7 +702,8 @@ function Shell() {
             screen: here above every workspace page, and inside Billing on the billing
             page itself. */}
         {path !== "/app/billing" && (
-          <div className="mx-auto w-full max-w-[1400px] px-4 pt-3 md:px-6 lg:px-11">
+          <div className="mx-auto w-full max-w-[1400px] space-y-2 px-4 pt-3 md:px-6 lg:px-11">
+            <UpdateBanner />
             <GraceBanner />
           </div>
         )}

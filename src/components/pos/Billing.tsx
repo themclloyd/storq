@@ -51,11 +51,14 @@ import {
   type Currency,
 } from "@/lib/billing";
 import { getPaychanguKey, verifySubscriptionPayment } from "@/lib/billing.functions";
+import { publicAppUrl } from "@/lib/desktop";
+import { clearUrlQuery, urlParam } from "@/lib/url";
 import { useOnce } from "@/hooks/use-once";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -65,6 +68,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/pos/bits";
+import { RowsSkeleton } from "@/components/pos/skeletons";
 import { GraceBanner } from "@/components/pos/GraceBanner";
 import {
   Dialog,
@@ -628,14 +632,16 @@ export function Billing({ locked }: { locked?: boolean }) {
     // Check URL param first (PayChangu redirect), then fall back to the stored
     // reference, but only while the checkout it belongs to could still be open.
     // Re-checking an older one is exactly what kept a cancelled click on the screen.
-    const urlRef = new URLSearchParams(window.location.search).get("tx_ref");
+    const urlRef = urlParam("tx_ref");
     const ref = urlRef || freshStoredRef();
     if (ref) {
       // Quiet on a failed re-check: this fires on every visit while a reference is
       // still pending, and the inline banner already says the money is being waited
       // on. Only a confirmation deserves to interrupt the page.
       void finalizePayment(ref, true);
-      window.history.replaceState(null, "", window.location.pathname);
+      // Works for both targets: the website drops `?tx_ref` from the path, the
+      // installed app from its hash route.
+      clearUrlQuery();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -653,7 +659,7 @@ export function Billing({ locked }: { locked?: boolean }) {
   useEffect(() => {
     if (intentRead.current || !s) return;
     intentRead.current = true;
-    if (new URLSearchParams(window.location.search).get("intent") !== "add-stores") return;
+    if (urlParam("intent") !== "add-stores") return;
     // `paid`, not `canAddStore`: the owner is usually here *because* every slot is
     // taken, which is exactly when buying one is the right next move. A lapsed or
     // suspended account lands on the page instead, where paying time comes first.
@@ -661,7 +667,7 @@ export function Billing({ locked }: { locked?: boolean }) {
     setAddDelta(1);
     setPlanMode("add-stores");
     // Drop the query, so a reload does not reopen the dialog over a finished job.
-    window.history.replaceState(null, "", window.location.pathname);
+    clearUrlQuery();
   }, [s]);
 
   useEffect(() => {
@@ -687,11 +693,9 @@ export function Billing({ locked }: { locked?: boolean }) {
         loadPaychangu(),
       ]);
       if (!key) throw new Error(t("billing.payNotConfigured"));
-      // Use VITE_SITE_URL when set (deployed domain), fall back to current origin.
-      const origin =
-        (import.meta.env["VITE_SITE_URL"] as string | undefined)?.trim().replace(/\/+$/, "") ||
-        window.location.origin;
-      const callbackUrl = `${origin}/app/billing`;
+      // The provider sends the buyer back to a web page, never to the app's own
+      // `tauri.localhost` origin.
+      const callbackUrl = publicAppUrl("/app/billing");
       if (!document.getElementById("wrapper")) {
         const w = document.createElement("div");
         w.id = "wrapper";
@@ -964,13 +968,15 @@ export function Billing({ locked }: { locked?: boolean }) {
                     {status.label}
                   </span>
                   <span className="text-[13px] font-semibold">
-                    {sub.isPending
-                      ? t("common.loading")
-                      : s?.paid
-                        ? t("billing.planOf", { plan: s?.sub?.plan ?? "Storq" })
-                        : s?.trial
-                          ? t("store.freeTrial")
-                          : t("billing.noActivePlan")}
+                    {sub.isPending ? (
+                      <Skeleton className="h-3.5 w-28" aria-hidden />
+                    ) : s?.paid ? (
+                      t("billing.planOf", { plan: s?.sub?.plan ?? "Storq" })
+                    ) : s?.trial ? (
+                      t("store.freeTrial")
+                    ) : (
+                      t("billing.noActivePlan")
+                    )}
                   </span>
                 </div>
                 {/* Date first, coverage second: the two facts an owner is asked
@@ -1286,9 +1292,7 @@ export function Billing({ locked }: { locked?: boolean }) {
 
         <Card className="divide-y overflow-hidden">
           {history.isPending ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {t("billing.loadingInvoices")}
-            </p>
+            <RowsSkeleton rows={4} className="p-4" />
           ) : history.isError ? (
             <p className="py-10 text-center text-sm text-destructive">
               {t("billing.invoicesError")}

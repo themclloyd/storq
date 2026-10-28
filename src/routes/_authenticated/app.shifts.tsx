@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, NoAccess, PageHeader, Status, fmtDate } from "@/components/pos/bits";
+import { PanelSkeleton, RowsSkeleton } from "@/components/pos/skeletons";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -129,7 +130,11 @@ function ShiftsContent() {
   return (
     <>
       <PageHeader title={t("shift.title")} sub={store?.name ?? ""} />
-      {!open ? (
+      {shifts.isPending ? (
+        // Before the history answers, "no open shift" is not a fact: hold the
+        // drawer panel rather than offering to open a second one.
+        <PanelSkeleton lines={3} className="mb-4 max-w-md" />
+      ) : !open ? (
         <div className="pos-card mb-4 max-w-md space-y-3 p-4">
           <div>
             <h3 className="text-[13px] font-semibold">{t("shift.openTitle")}</h3>
@@ -206,7 +211,11 @@ function ShiftsContent() {
 
       <h3 className="mb-2.5 text-[13px] font-semibold">{t("shift.past")}</h3>
       {(shifts.data ?? []).filter((s) => s.status === "closed").length === 0 ? (
-        <Empty>{t("shift.noneClosed")}</Empty>
+        shifts.isPending ? (
+          <RowsSkeleton rows={3} className="p-4" />
+        ) : (
+          <Empty>{t("shift.noneClosed")}</Empty>
+        )
       ) : (
         <div className="pos-card divide-y">
           {(shifts.data ?? [])

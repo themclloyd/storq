@@ -27,6 +27,7 @@ import {
   type RangeKey,
 } from "@/lib/trend";
 import { PageHeader } from "@/components/pos/bits";
+import { RowsSkeleton } from "@/components/pos/skeletons";
 import {
   AlertRow,
   DashboardSection,
@@ -277,7 +278,7 @@ function NeedsReorder({ storeId }: { storeId?: string | undefined }) {
     >
       <div className="space-y-1.5">
         {low.isPending ? (
-          <EmptyState>{t("dashboard.checkingStock")}</EmptyState>
+          <RowsSkeleton rows={3} />
         ) : rows.length === 0 ? (
           <EmptyState>{t("dashboard.nothingBelowReorder")}</EmptyState>
         ) : (

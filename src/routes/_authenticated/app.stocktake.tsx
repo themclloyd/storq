@@ -46,6 +46,7 @@ import {
   fmtDate,
   rowLinkProps,
 } from "@/components/pos/bits";
+import { TableSkeleton } from "@/components/pos/skeletons";
 import { pageSlice } from "@/lib/paging";
 import { useOnce } from "@/hooks/use-once";
 import { useI18n } from "@/lib/i18n";
@@ -218,7 +219,7 @@ function StockTakeListContent() {
         }
       />
       {takes.isPending ? (
-        <Empty>{t("common.loading")}</Empty>
+        <TableSkeleton rows={5} columns={4} />
       ) : rows.length === 0 ? (
         <Empty>{filter === "all" ? t("stk.none") : t("stk.noneInFilter")}</Empty>
       ) : (

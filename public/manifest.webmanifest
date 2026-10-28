@@ -9,7 +9,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#f5f7f8",
-  "theme_color": "#00a4a6",
+  "theme_color": "#004cfa",
   "lang": "en",
   "dir": "ltr",
   "categories": ["business", "productivity", "finance"],

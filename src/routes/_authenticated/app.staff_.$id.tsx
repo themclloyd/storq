@@ -5,6 +5,7 @@ import { StaffForm } from "@/components/pos/staff-form";
 import { staffQuery } from "@/lib/staff";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
+import { DetailSkeleton } from "@/components/pos/skeletons";
 
 export const Route = createFileRoute("/_authenticated/app/staff_/$id")({
   head: () => ({
@@ -29,12 +30,12 @@ function EditPerson() {
       <Card className="p-6 text-center text-sm text-muted-foreground">{t("staff.onlyAdmins")}</Card>
     );
   const person = roster.data?.find((s) => s.id === id);
-  if (!person)
+  if (!person) {
+    if (roster.isPending) return <DetailSkeleton />;
     return (
-      <Card className="p-6 text-center text-sm text-muted-foreground">
-        {roster.isPending ? t("common.loading") : t("staff.notFound")}
-      </Card>
+      <Card className="p-6 text-center text-sm text-muted-foreground">{t("staff.notFound")}</Card>
     );
+  }
   // Keyed so a refreshed roster row resets the draft once the query returns.
   return <StaffForm key={person.id} person={person} />;
 }

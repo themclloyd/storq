@@ -17,6 +17,7 @@ import {
   noteWait,
 } from "@/lib/attempt-gate";
 import { landingRouteFor } from "@/lib/ops";
+import { publicAppUrl } from "@/lib/desktop";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Turnstile, type TurnstileHandle } from "@/components/Turnstile";
@@ -141,7 +142,10 @@ function AuthPage() {
           email: cleanEmail,
           password,
           options: {
-            emailRedirectTo: window.location.origin + "/app",
+            // A confirmation link is opened in a real browser, so it must point
+            // at the website: inside the installed app the page origin is
+            // `tauri.localhost`, which no mail client can reach.
+            emailRedirectTo: publicAppUrl("/app"),
             ...(captchaToken ? { captchaToken } : {}),
           },
         });
@@ -150,7 +154,7 @@ function AuthPage() {
         else setSent("signup");
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: window.location.origin + "/auth",
+          redirectTo: publicAppUrl("/auth"),
           ...(captchaToken ? { captchaToken } : {}),
         });
         if (error) throw error;

@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { CookieIcon } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
+import { isDesktop } from "@/lib/desktop";
 
 /**
  * Consent is remembered per device under this key: "all" allows optional
@@ -30,6 +31,12 @@ export function CookieConsent() {
 
   // localStorage is client-only, so the server markup and first paint never carry the banner.
   useEffect(() => {
+    // The installed app is not a website: it has no marketing pages, no
+    // analytics and nowhere to send a consent choice.
+    if (isDesktop()) {
+      setVisible(false);
+      return;
+    }
     if (pathname.startsWith("/app")) {
       setVisible(false);
       return;

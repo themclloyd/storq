@@ -3,6 +3,7 @@
 
 import { csvCell, LIMITS } from "@/lib/validate";
 import { t } from "@/lib/i18n";
+import { saveDocument } from "@/lib/desktop";
 import {
   methodLabel,
   receiptTitle,
@@ -38,14 +39,14 @@ export type PdfDoc = {
   orientation?: "portrait" | "landscape" | undefined;
 };
 
-// Brand palette mirrored from the design tokens in src/styles.css (GoDaddy
-// "Everyday Blue": near-black ink text, cool-gray surfaces, one teal accent).
+// Brand palette mirrored from the design tokens in src/styles.css (blue
+// #004cfa: near-black ink text, cool-gray surfaces, one blue accent).
 const INK: [number, number, number] = [17, 17, 17]; // #111 foreground
 const MUTED: [number, number, number] = [118, 118, 118]; // #767676 muted-foreground
 const LINE: [number, number, number] = [212, 219, 224]; // #d4dbe0 border
-const TEAL: [number, number, number] = [0, 164, 166]; // #00a4a6 primary
-const TEAL_DARK: [number, number, number] = [9, 117, 122]; // #09757a secondary-foreground
-const SOFT: [number, number, number] = [241, 251, 250]; // primary-soft oklch(0.94 0.03 196)
+const BRAND: [number, number, number] = [0, 76, 250]; // #004cfa primary
+const BRAND_DARK: [number, number, number] = [2, 53, 177]; // #0235b1 primary-deep
+const SOFT: [number, number, number] = [233, 240, 254]; // #e9f0fe primary-soft
 const WHITE: [number, number, number] = [255, 255, 255];
 
 // Standard PDF fonts only cover Latin-1; normalise common typographic glyphs.
@@ -70,11 +71,11 @@ export async function downloadPdf(d: PdfDoc) {
   const M = 40;
   let y = M;
 
-  // Brand header: teal strip, plus a logo chip echoing the app mark (teal
+  // Brand header: blue strip, plus a logo chip echoing the app mark (blue
   // rounded square, white "S").
-  doc.setFillColor(...TEAL);
+  doc.setFillColor(...BRAND);
   doc.rect(0, 0, W, 6, "F");
-  doc.setFillColor(...TEAL);
+  doc.setFillColor(...BRAND);
   doc.roundedRect(M, y, 22, 22, 5, 5, "F");
   doc
     .setTextColor(...WHITE)
@@ -93,9 +94,9 @@ export async function downloadPdf(d: PdfDoc) {
   if (d.badge) {
     doc.setFont("helvetica", "bold").setFontSize(8);
     const bw = doc.getTextWidth(clean(d.badge)) + 16;
-    // Soft-teal badge with dark-teal text, like the app's primary-soft badges.
+    // Soft-blue badge with deep-blue text, like the app's primary-soft badges.
     doc.setFillColor(...SOFT).roundedRect(W - M - bw, y + 3, bw, 16, 8, 8, "F");
-    doc.setTextColor(...TEAL_DARK).text(clean(d.badge), W - M - bw + 8, y + 14);
+    doc.setTextColor(...BRAND_DARK).text(clean(d.badge), W - M - bw + 8, y + 14);
   }
   y += 50;
   doc
@@ -153,7 +154,7 @@ export async function downloadPdf(d: PdfDoc) {
       doc
         .setFont("helvetica", "bold")
         .setFontSize(12)
-        .setTextColor(...TEAL_DARK)
+        .setTextColor(...BRAND_DARK)
         .text(clean(v), cx + 10, y + 37, { maxWidth: cw - 16 });
     });
     y += 66;
@@ -238,10 +239,10 @@ export async function downloadPdf(d: PdfDoc) {
       doc
         .setFont("helvetica", bold ? "bold" : "normal")
         .setFontSize(bold ? 11 : 9.5)
-        .setTextColor(...(bold ? TEAL_DARK : MUTED))
+        .setTextColor(...(bold ? BRAND_DARK : MUTED))
         .text(clean(k), bx, y + 13);
       doc
-        .setTextColor(...(bold ? TEAL_DARK : INK))
+        .setTextColor(...(bold ? BRAND_DARK : INK))
         .setFont("helvetica", "bold")
         .text(clean(v), W - M, y + 13, { align: "right" });
       y += 22;
@@ -273,7 +274,12 @@ export async function downloadPdf(d: PdfDoc) {
     doc.text(`Generated ${stamp} · Storq`, M, H - 20);
     doc.text(`Page ${p} of ${pages}`, W - M, H - 20, { align: "right" });
   }
-  doc.save(d.filename.endsWith(".pdf") ? d.filename : `${d.filename}.pdf`);
+  // `save()` is a browser download; the packaged till has no download shelf, so
+  // every document goes through the shared save (native dialog when installed).
+  void saveDocument(
+    d.filename.endsWith(".pdf") ? d.filename : `${d.filename}.pdf`,
+    doc.output("blob"),
+  );
 }
 
 // ---------- Thermal receipt PDF (80mm roll) ----------
@@ -398,7 +404,7 @@ export async function downloadReceiptPdf(r: Receipt, money: MoneyFmt) {
     format: [ROLL, Math.max(ROLL + 4, Math.ceil(end + 6))],
   });
   draw(doc);
-  doc.save(`storq-receipt-${r.number}.pdf`);
+  void saveDocument(`storq-receipt-${r.number}.pdf`, doc.output("blob"));
 }
 
 // ---------- CSV ----------
@@ -409,12 +415,10 @@ export function toCsv(rows: (string | number | null | undefined)[][]) {
 }
 
 export function downloadCsv(filename: string, rows: (string | number | null | undefined)[][]) {
-  const blob = new Blob(["\ufeff" + toCsv(rows)], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  void saveDocument(
+    filename,
+    new Blob(["\ufeff" + toCsv(rows)], { type: "text/csv;charset=utf-8" }),
+  );
 }
 
 /**
@@ -566,5 +570,5 @@ export async function downloadLabelSheet(d: {
     doc.text(clean(who || "Storq"), M, H - 14);
     doc.text(t("doc.labelPage", { page: p, total: pages }), W - M, H - 14, { align: "right" });
   }
-  doc.save(`storq-labels-${fileStamp()}.pdf`);
+  void saveDocument(`storq-labels-${fileStamp()}.pdf`, doc.output("blob"));
 }

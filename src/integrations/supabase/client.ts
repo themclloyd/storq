@@ -21,10 +21,19 @@ function serverSupabaseUrl(publicUrl: string, supabaseKey: string): string | und
   return serverUrl;
 }
 
+// A link that is up but has no route (a shop's Wi-Fi with a dead uplink, a
+// stopped carrier) never refuses a socket: the request simply sits there until
+// the browser gives up, which is long after a cashier has closed the window.
+// Rows and RPCs are small, so a read or a write that has not answered in this
+// long is a dead link, and saying so early is what lets the till fall back to
+// its offline queue instead of freezing on a spinner. Storage uploads are
+// excluded below: a large file on a slow line is legitimately slower.
+const REQUEST_TIMEOUT_MS = 15_000;
+
 function createSupabaseFetch(supabaseUrl: string, supabaseKey: string): typeof fetch {
   const publicUrl = supabaseUrl.replace(/\/+$/, "");
   const serverUrl = serverSupabaseUrl(publicUrl, supabaseKey);
-  return (input, init) => {
+  return async (input, init) => {
     const headers = new Headers(
       typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
     );
@@ -52,16 +61,42 @@ function createSupabaseFetch(supabaseUrl: string, supabaseKey: string): typeof f
     if (staffToken) headers.set("x-storq-session", staffToken);
     else headers.delete("x-storq-session");
 
+    let target: RequestInfo | URL = input;
     if (serverUrl) {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.startsWith(`${publicUrl}/`)) {
-        const target = serverUrl + url.slice(publicUrl.length);
-        const request =
-          typeof input === "string" || input instanceof URL ? target : new Request(target, input);
-        return fetch(request, { ...init, headers });
+        const next = serverUrl + url.slice(publicUrl.length);
+        target =
+          typeof input === "string" || input instanceof URL ? next : new Request(next, input);
       }
     }
-    return fetch(input, { ...init, headers });
+
+    const url = typeof target === "string" ? target : target instanceof URL ? target.href : target.url;
+    const deadline = url.includes("/storage/v1/")
+      ? undefined
+      : new AbortController();
+    const timer = deadline ? setTimeout(() => deadline.abort(), REQUEST_TIMEOUT_MS) : undefined;
+    // The caller's own signal (react-query cancelling a stale read) must still
+    // win, so both are watched rather than replacing one with the other.
+    const caller = init?.signal;
+    const signal = deadline
+      ? caller && typeof AbortSignal.any === "function"
+        ? AbortSignal.any([caller, deadline.signal])
+        : (caller ?? deadline.signal)
+      : caller;
+
+    try {
+      return await fetch(target, { ...init, headers, ...(signal ? { signal } : {}) });
+    } catch (e) {
+      // Report a dead link the way the offline queue already understands it, so
+      // a sale falls back to the device instead of surfacing as a server fault.
+      if (deadline?.signal.aborted && !caller?.aborted) {
+        throw new TypeError("Failed to fetch: request timed out");
+      }
+      throw e;
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   };
 }
 

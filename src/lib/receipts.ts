@@ -2,6 +2,7 @@
 // already-formatted `money` fn (from usePos) so amounts stay in the store currency.
 import { t } from "@/lib/i18n";
 import { methodLabel } from "@/lib/payment-methods";
+import { isDesktop, printHtml, saveDocument } from "@/lib/desktop";
 
 export type ReceiptLine = { name: string; qty: number; price: number; total: number };
 
@@ -323,27 +324,27 @@ const PRINT_CSS =
   ".it{margin:3px 0}.it .nm{font-weight:600}" +
   ".ft{margin-top:8px;font-size:11px}.bc{margin-top:4px;letter-spacing:2px}";
 
-/** Open the receipt in a thermal-sized window and trigger printing. */
+/** The self-contained 80mm document, without the browser's auto-print script. */
+function receiptDocument(r: Receipt, money: MoneyFmt) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${r.number}</title><style>${PRINT_CSS}</style></head><body>${receiptHtml(r, money)}</body></html>`;
+}
+
+/** Print the receipt on the shop's thermal roll. */
 export function printReceipt(r: Receipt, money: MoneyFmt) {
+  // The installed app prints a hidden frame: a webview popup would be a second
+  // window with no print affordance, and the shell itself must never be printed.
+  if (isDesktop()) return printHtml(receiptDocument(r, money));
   const w = window.open("", "_blank", "width=380,height=640");
   if (!w) return false;
   w.document.write(
     // eslint-disable-next-line no-useless-escape
-    `<!doctype html><html><head><meta charset="utf-8"><title>Receipt #${r.number}</title><style>${PRINT_CSS}</style></head><body>${receiptHtml(r, money)}<script>window.onload=function(){setTimeout(function(){window.print()},60)}<\/script></body></html>`,
+    `${receiptDocument(r, money).replace("</body>", "<script>window.onload=function(){setTimeout(function(){window.print()},60)}<\/script></body>")}`,
   );
   w.document.close();
   return true;
 }
 
-/** Download the receipt as a plain-text file. */
+/** Save the receipt as a plain-text file. */
 export function downloadReceipt(r: Receipt, money: MoneyFmt) {
-  const blob = new Blob([receiptText(r, money)], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `storq-receipt-${r.number}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  void saveDocument(`storq-receipt-${r.number}.txt`, receiptText(r, money));
 }

@@ -24,6 +24,7 @@ import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,7 @@ import {
 import type { DashIcon } from "@/components/dashboard";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import { Field, NativeSelect, NoAccess, PageHeader, Pager } from "@/components/pos/bits";
+import { TableSkeleton } from "@/components/pos/skeletons";
 
 export const Route = createFileRoute("/_authenticated/app/expenses")({
   head: () => ({
@@ -329,6 +331,7 @@ function ExpensesContent() {
         }
       />
       <SummaryStrip
+        loading={list.isPending}
         cells={[
           {
             label: t("exp.totalSpent"),
@@ -357,7 +360,7 @@ function ExpensesContent() {
         ]}
       />
       {list.isPending ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</Card>
+        <TableSkeleton rows={6} columns={canDelete ? 7 : 6} />
       ) : filtered.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
@@ -471,11 +474,17 @@ function ExpensesContent() {
 /** One card, four numbers: the whole period at a glance instead of a wall of tiles. */
 function SummaryStrip({
   cells,
+  loading,
 }: {
   cells: { label: string; value: string; sub: string; icon: DashIcon }[];
+  /** The figures are still in flight: keep the labels, hold the numbers' shape. */
+  loading?: boolean;
 }) {
   return (
-    <Card className="mb-4 grid grid-cols-2 gap-x-6 gap-y-4 p-4 sm:grid-cols-4">
+    <Card
+      className="mb-4 grid grid-cols-2 gap-x-6 gap-y-4 p-4 sm:grid-cols-4"
+      aria-busy={loading || undefined}
+    >
       {cells.map((c) => (
         <div key={c.label} className="min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -484,8 +493,19 @@ function SummaryStrip({
             </p>
             <HugeiconsIcon icon={c.icon} className="size-4 shrink-0 text-muted-foreground" />
           </div>
-          <p className="tabular mt-1 truncate text-2xl leading-tight font-extrabold">{c.value}</p>
-          <p className="truncate text-[11px] text-muted-foreground">{c.sub}</p>
+          {loading ? (
+            <div className="mt-2 space-y-1.5" aria-hidden>
+              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-2.5 w-20" />
+            </div>
+          ) : (
+            <>
+              <p className="tabular mt-1 truncate text-2xl leading-tight font-extrabold">
+                {c.value}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">{c.sub}</p>
+            </>
+          )}
         </div>
       ))}
     </Card>

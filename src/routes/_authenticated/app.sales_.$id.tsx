@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
+import { DetailSkeleton } from "@/components/pos/skeletons";
 import { ReceiptIcon, Refresh01Icon } from "@/lib/icons";
 import { REFUNDABLE, useRefunds } from "@/lib/refunds";
 import type { SaleRow } from "@/lib/sales";
@@ -66,7 +67,7 @@ const fmtDate = (d: string) =>
 
 // Action tiles share one filled style: the order-sheet pattern's Receipt /
 // Return tiles, big touch targets, icon top-left, label bottom-left. The tint
-// pair (`primary-soft` + its dark-teal ink) is the AA one; a 15% accent wash
+// pair (`primary-soft` + its deep-blue ink) is the AA one; a 15% accent wash
 // under accent text sank to ~2.9:1 on the card.
 const TILE_CLASS =
   "flex h-20 w-36 flex-col items-start justify-between rounded-xl bg-primary-soft p-3.5 " +
@@ -164,7 +165,11 @@ function SaleDetailContent() {
   const refunds = useRefunds({ saleId: id });
   const s = sale.data;
   if (sale.isLoading)
-    return <div className="p-4 text-sm text-muted-foreground">{t("common.loading")}</div>;
+    return (
+      <div className="mx-auto max-w-3xl">
+        <DetailSkeleton />
+      </div>
+    );
   if (!s)
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">

@@ -46,6 +46,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Empty, Field, NoAccess } from "@/components/pos/bits";
+import { TileSkeleton } from "@/components/pos/skeletons";
 import { ReceiptModal } from "@/components/pos/ReceiptModal";
 import { ScanCamera, ScanCameraButton } from "@/components/pos/ScanCamera";
 import { QuickAddItem } from "@/components/pos/QuickAddItem";
@@ -721,7 +722,9 @@ function RegisterContent() {
                   </Empty>
                 </>
               ) : !catalog.data ? (
-                <Empty>{t("common.loading")}</Empty>
+                // A cold catalogue: the grid keeps its tiles' shape so the first
+                // scan does not land on a half-built layout.
+                <TileSkeleton count={6} />
               ) : shown.length === 0 ? (
                 <Empty>
                   {!q.trim() && !cat ? t("till.noItemsYet") : t("till.noMatchingItems")}

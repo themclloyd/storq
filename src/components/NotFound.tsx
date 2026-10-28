@@ -1,8 +1,9 @@
-import { type CSSProperties } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, type CSSProperties } from "react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Home, LogIn } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { isDesktop } from "@/lib/desktop";
 import { useI18n } from "@/lib/i18n";
 import logo from "/logo.svg?url";
 
@@ -16,7 +17,16 @@ import logo from "/logo.svg?url";
  */
 export function NotFound() {
   const { t } = useI18n();
+  const router = useRouter();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  // The installed app is a counter, not a website: a hash left over from an
+  // older build must land on the workspace, never on a page that offers to
+  // sign in or go to a marketing site the window cannot reach.
+  const installed = isDesktop();
+  useEffect(() => {
+    if (installed) void router.navigate({ to: "/app", replace: true });
+  }, [installed, router]);
+  if (installed) return null;
   // Helper for the CSS-var stagger consumed by `.rise` (see styles.css).
   const rise = (ms: number) => ({ "--rise-delay": `${ms}ms` }) as CSSProperties;
 

@@ -10,8 +10,13 @@ export default tseslint.config(
     ignores: [
       // Build output
       "dist",
+      "dist-desktop",
       ".output",
       ".vinxi",
+      // The Tauri shell embeds the built bundle into its Rust target directory,
+      // which is build output, not source.
+      "storqdesktop/src-tauri/target",
+      "storqdesktop/src-tauri/gen",
       // Tool-managed state and agent scratch space
       ".wrangler",
       ".tanstack",

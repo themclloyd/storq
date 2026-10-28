@@ -1,30 +1,28 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useCallback, useRef } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStaffNames } from "@/lib/sales";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  Download01Icon,
+  FileExportIcon,
+  FileImportIcon,
   FilterIcon,
   MoreHorizontalIcon,
+  NoteEditIcon,
   PackageIcon,
+  Pdf01Icon,
   PlusSignIcon,
   QrCode01Icon,
-  Refresh01Icon,
   Search01Icon,
   Settings01Icon,
 } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { invalidateKeys } from "@/lib/cache-invalidation";
 import { useProducts, useStock, type Product } from "@/lib/products";
-import {
-  findCodeClash,
-  isAutoCode,
-  normalizeCode,
-  suggestCode,
-  takenCodes,
-} from "@/lib/item-codes";
+import { normalizeCode } from "@/lib/item-codes";
 import { useLowStock } from "@/lib/transfers";
 import {
   LIMITS,
@@ -33,18 +31,18 @@ import {
   optionalText,
   parseAmountCell,
   payloadKind,
-  requireText,
   sanitizeText,
   validateAmount,
   validateCsvFile,
-  validateSku,
 } from "@/lib/validate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader, Pager, Stat, StatRow } from "@/components/pos/bits";
+import { RowsSkeleton, TableSkeleton } from "@/components/pos/skeletons";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -59,7 +57,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ItemCodeCard, ItemQrDialog } from "@/components/pos/ItemQr";
+import { ItemQrDialog } from "@/components/pos/ItemQr";
 import {
   Dialog,
   DialogContent,
@@ -87,6 +85,14 @@ import {
 import { cn } from "@/lib/utils";
 import { useCollections } from "@/lib/collections";
 import { pageSlice } from "@/lib/paging";
+import {
+  parseView,
+  sameSearch,
+  viewOnly,
+  viewSearch,
+  type InventorySort,
+  type InventoryView,
+} from "@/lib/inventory-view";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useOnce } from "@/hooks/use-once";
 import { visibleWorkspacePages } from "@/lib/workspace-navigation";
@@ -100,8 +106,14 @@ import {
 } from "@/lib/pdf";
 import { t as tt, useI18n } from "@/lib/i18n";
 import { useScannerWedge } from "@/components/pos/use-scanner";
+import { pageIcons } from "@/components/pos/nav-icons";
 
 export const Route = createFileRoute("/_authenticated/app/inventory")({
+  // The view lives in the URL as well as in state: an item page opened from this
+  // table can hand it back, so Save returns to the same filter and the same page
+  // instead of the top of the catalogue. Only the keys that narrow the list are
+  // kept, or the router would rewrite every default into the address bar.
+  validateSearch: (search: Record<string, unknown>): Partial<InventoryView> => viewOnly(search),
   head: () => ({
     meta: [
       { title: "Inventory | Storq" },
@@ -135,11 +147,15 @@ const initialsOf = (name: string) => {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 };
 
+/** Rows one bulk edit carries through the URL: a shelf, not a catalogue. */
+const BULK_LIMIT = 100;
+
 function Inventory() {
   const { store, money, can, business, staff } = usePos();
   const { t } = useI18n();
-  // The shell no longer renders an inventory tab row, so the actions menu is the
-  // switcher between this page and Transfers / Collections / Stock takes.
+  const nav = useNavigate();
+  // The shell hides its tab row here (`menuNavigationPages`), so this menu is
+  // the switcher between this page and Transfers / Collections / Stock takes.
   const siblingPages = staff
     ? visibleWorkspacePages(staff, store?.store_type).filter(
         (p) => p.group === "inventory" && p.to !== "/app/inventory",
@@ -157,29 +173,36 @@ function Inventory() {
         .join(", "),
     [cols.data],
   );
-  const [edit, setEdit] = useState<Partial<Product> | null>(null);
   const [adj, setAdj] = useState<Product | null>(null);
   // Code / QR: one item at a time, and the multi-select for a label sheet.
   const [qr, setQr] = useState<Product | null>(null);
   const [sheet, setSheet] = useState<Product[] | null>(null);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
-  const [q, setQ] = useState("");
-  const [lowOnly, setLowOnly] = useState(false);
-  const [colFilter, setColFilter] = useState("all");
-  const [sort, setSort] = useState<"name" | "price" | "stock">("name");
-  const [page, setPage] = useState(0);
+  // Seeded from the URL once on mount; typing in the search box must not rewrite
+  // the route on every keystroke. The mirror below keeps the address bar honest
+  // afterwards, which is what makes Back land on the filtered page.
+  const opened = Route.useSearch();
+  // The route holds the URL's own spelling, where `?page=2` is the second page,
+  // while the table works in zero-based indexes. Parsing once here is what stops
+  // the address bar from counting a page the person never turned.
+  const start = useMemo(() => parseView(opened as Record<string, unknown>), [opened]);
+  const [q, setQ] = useState(start.q);
+  const [lowOnly, setLowOnly] = useState(start.low);
+  const [colFilter, setColFilter] = useState(start.col);
+  const [sort, setSort] = useState<InventorySort>(start.sort);
+  const [page, setPage] = useState(start.page);
   const fileRef = useRef<HTMLInputElement>(null);
   const low = useLowStock(store?.id);
   // Reading the catalog and changing it are separate grants: a viewer gets the
   // list, the codes and the exports, but no import, new-item or stock writes.
   const canEdit = can("stock");
   // A hardware scanner on the inventory page jumps to the matching item in the
-  // table (by setting the search field) or opens a pre-filled New Item dialog
-  // when the code is unknown, the same shortcuts as the till, without a sale.
+  // table (by setting the search field), or opens the add page for a code the
+  // catalog does not know yet, the same shortcuts as the till, without a sale.
   useScannerWedge(
     (code) => {
-      // No modals open, only intercept when the page is idle.
-      if (edit || adj || qr || sheet || imp) return false;
+      // No dialogs open, only intercept when the page is idle.
+      if (adj || qr || sheet || imp) return false;
       const hit = (products.data ?? []).find(
         (p) => normalizeCode(p.sku).toLowerCase() === normalizeCode(code).toLowerCase(),
       );
@@ -188,11 +211,11 @@ function Inventory() {
         setPage(0);
         return true;
       }
-      // Unknown code → pre-fill a New Item dialog with the scanned code.
-      setEdit({ active: true, price: 0, cost: 0, sku: normalizeCode(code) });
+      // Unknown code → the add page, its first row already carrying the scan.
+      nav({ to: "/app/inventory/new", search: { ...back, code: normalizeCode(code) } });
       return true;
     },
-    { enabled: canEdit && !edit && !adj && !qr && !sheet && !imp },
+    { enabled: canEdit && !adj && !qr && !sheet && !imp },
   );
   // The filter, sort and stock-value total scan the whole cached catalog, so
   // memoize them (unrelated re-renders no longer re-scan every product) and
@@ -200,6 +223,21 @@ function Inventory() {
   // derive from hooks, so they stay above the role guard to keep hook order
   // unconditional.
   const dq = useDebouncedValue(q);
+  // What the table is showing, as search params. Every item page receives this
+  // and hands it back, and the debounced term is used so the link never promises
+  // a filter the table has not drawn yet.
+  const view = useMemo<InventoryView>(
+    () => ({ q: dq, low: lowOnly, col: colFilter, sort, page }),
+    [dq, lowOnly, colFilter, sort, page],
+  );
+  const back = useMemo(() => viewSearch(view), [view]);
+  // State → URL, one way. The equality check is what keeps this from re-entering
+  // the route for its own write.
+  useEffect(() => {
+    const next = viewSearch(view);
+    if (sameSearch(next, viewOnly(opened))) return;
+    void nav({ to: "/app/inventory", search: next, replace: true });
+  }, [view, opened, nav]);
   const rows = useMemo(() => {
     const needle = dq.trim().toLowerCase();
     const lowIds = new Set((low.data ?? []).map((r) => r.product_id));
@@ -345,12 +383,6 @@ function Inventory() {
     <>
       <PageHeader
         title={t("inv.title")}
-        sub={
-          <>
-            {store?.name} · {t("inv.stockValueCost")}{" "}
-            <span className="font-medium text-secondary-foreground">{money(value)}</span>
-          </>
-        }
         actions={
           <>
             {canEdit && (
@@ -479,6 +511,7 @@ function Inventory() {
               <DropdownMenuContent align="end" className="w-52">
                 {canEdit && (
                   <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
+                    <HugeiconsIcon icon={FileImportIcon} className="size-4" />
                     {t("inv.importCsv")}
                   </DropdownMenuItem>
                 )}
@@ -490,26 +523,36 @@ function Inventory() {
                     ])
                   }
                 >
+                  <HugeiconsIcon icon={Download01Icon} className="size-4" />
                   {t("inv.downloadTemplate")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem disabled={exporting} onSelect={() => void runExport("csv")}>
+                  <HugeiconsIcon icon={FileExportIcon} className="size-4" />
                   {t("inv.exportCsv")}
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled={exporting} onSelect={() => void runExport("pdf")}>
+                  <HugeiconsIcon icon={Pdf01Icon} className="size-4" />
                   {t("inv.exportPdf")}
                 </DropdownMenuItem>
                 {siblingPages.length > 0 && <DropdownMenuSeparator />}
                 {siblingPages.map((p) => (
                   <DropdownMenuItem key={p.to} asChild>
-                    <Link to={p.to}>{t(p.labelKey)}</Link>
+                    <Link to={p.to}>
+                      <HugeiconsIcon icon={pageIcons[p.to] ?? PackageIcon} className="size-4" />
+                      {t(p.labelKey)}
+                    </Link>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
             {canEdit && (
-              <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
-                <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
+              <Button
+                size="icon"
+                aria-label={t("inv.newItem")}
+                onClick={() => nav({ to: "/app/inventory/new", search: back })}
+              >
+                <HugeiconsIcon icon={PlusSignIcon} />
               </Button>
             )}
           </>
@@ -517,6 +560,26 @@ function Inventory() {
       />
       {pickedRows.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
+          {canEdit && (
+            <Button
+              size="sm"
+              onClick={() => {
+                // The ids travel in the URL, so the grid opens on the same rows
+                // after a reload. Past one shelf it is a catalogue job, not a
+                // bulk edit, so say so instead of building an enormous link.
+                if (pickedRows.length > BULK_LIMIT) {
+                  toast.error(t("inv.bulkLimit", { max: BULK_LIMIT }));
+                  return;
+                }
+                nav({
+                  to: "/app/inventory/bulk",
+                  search: { ...back, ids: pickedRows.map((p) => p.id).join(",") },
+                });
+              }}
+            >
+              <HugeiconsIcon icon={NoteEditIcon} /> {t("inv.editSelected")} · {pickedRows.length}
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => setSheet(pickedRows)}>
             <HugeiconsIcon icon={QrCode01Icon} /> {t("code.printLabelSheet")} · {pickedRows.length}
           </Button>
@@ -531,8 +594,20 @@ function Inventory() {
         </div>
       )}
       <StatRow className="mb-4 sm:grid-cols-3">
-        <Stat label={t("inv.totalItems")} value={rows.length} />
-        <Stat label={t("inv.unitsInStock")} value={units} />
+        <Stat
+          label={t("inv.totalItems")}
+          value={rows.length}
+          loading={products.isPending}
+          hint={
+            <>
+              {t("inv.stockValueHint")}{" "}
+              <span className="tabular font-semibold text-secondary-foreground">
+                {money(value)}
+              </span>
+            </>
+          }
+        />
+        <Stat label={t("inv.unitsInStock")} value={units} loading={products.isPending} />
         {/* The low-stock figure is also the filter: a real button, so a tap and
             a keyboard press do the same thing. */}
         <button
@@ -551,11 +626,13 @@ function Inventory() {
             {t("inv.lowStock")}
           </div>
           <div className="tabular mt-1 text-2xl leading-tight font-extrabold text-destructive">
-            {lowCount}
+            {products.isPending ? <Skeleton className="h-7 w-12" aria-hidden /> : lowCount}
           </div>
         </button>
       </StatRow>
-      {rows.length === 0 ? (
+      {products.isPending ? (
+        <TableSkeleton rows={6} columns={canEdit ? 6 : 5} />
+      ) : rows.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <span className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
@@ -565,7 +642,7 @@ function Inventory() {
               {q || lowOnly || colFilter !== "all" ? t("common.none") : t("inv.noItemsYet")}
             </p>
             {canEdit && (
-              <Button onClick={() => setEdit({ active: true, price: 0, cost: 0 })}>
+              <Button onClick={() => nav({ to: "/app/inventory/new", search: back })}>
                 <HugeiconsIcon icon={PlusSignIcon} /> {t("inv.newItem")}
               </Button>
             )}
@@ -698,7 +775,15 @@ function Inventory() {
                                   <HugeiconsIcon icon={PackageIcon} className="size-4" />
                                   {t("inv.btnStock")}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => setEdit(p)}>
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    nav({
+                                      to: "/app/inventory/$id",
+                                      params: { id: p.id },
+                                      search: back,
+                                    })
+                                  }
+                                >
                                   <HugeiconsIcon icon={Settings01Icon} className="size-4" />
                                   {t("common.edit")}
                                 </DropdownMenuItem>
@@ -715,14 +800,6 @@ function Inventory() {
           </Card>
           <Pager page={curPage} pageCount={pageCount} total={rows.length} onPage={setPage} />
         </>
-      )}
-      {edit && (
-        <ProductDialog
-          p={edit}
-          currentQty={stock.data?.[edit.id!] ?? 0}
-          codes={products.data ?? []}
-          onClose={() => setEdit(null)}
-        />
       )}
       {adj && <StockDialog p={adj} onClose={() => setAdj(null)} />}
       {qr && (
@@ -745,270 +822,6 @@ function Inventory() {
       )}
       {imp && <ImportDialog rows={imp} onClose={() => setImp(null)} />}
     </>
-  );
-}
-
-function ProductDialog({
-  p,
-  currentQty,
-  codes,
-  onClose,
-}: {
-  p: Partial<Product>;
-  currentQty: number;
-  codes: Product[];
-  onClose: () => void;
-}) {
-  const { rpc, store, can, money } = usePos();
-  const { t } = useI18n();
-  const qc = useQueryClient();
-  const cols = useCollections();
-  const [sel, setSel] = useState<string[] | null>(null);
-  const chosen = sel ?? (p.id ? (cols.data?.byProduct[p.id] ?? []) : []);
-  const [f, setF] = useState({
-    name: p.name ?? "",
-    sku: p.sku ?? "",
-    price: String(p.price ?? ""),
-    cost: String(p.cost ?? ""),
-    qty: p.id ? String(currentQty) : "",
-    reorder: p.reorder_point != null ? String(p.reorder_point) : "",
-    active: p.active ?? true,
-  });
-  // One identifier for the whole item: typed here, printed as the QR, and what
-  // the till matches a scan against. Blank on create means SQL generates it.
-  const code = normalizeCode(f.sku);
-  const clash = findCodeClash(codes, code, p.id);
-  async function save() {
-    // Mirror the save_product / adjust_stock_reason RPC bounds client-side first.
-    const err = firstError(
-      requireText(f.name, t("common.name"), LIMITS.productName),
-      validateSku(code),
-      clash ? t("inv.codeTaken", { name: clash.name }) : null,
-      validateAmount(f.price, {
-        label: t("inv.sellingPrice"),
-        required: true,
-        min: 0,
-        max: 1_000_000_000,
-      }),
-      validateAmount(f.cost, { label: t("inv.buyingCost"), min: 0, max: 1_000_000_000 }),
-      // An item bought at or above its selling price loses money on every unit,
-      // mirror the save_product SQL guard so the sheet never produces one.
-      Number(f.cost) > 0 && Number(f.cost) >= Number(f.price || 0)
-        ? t("inv.errCostAbovePrice")
-        : null,
-      f.qty === ""
-        ? null
-        : validateAmount(f.qty, { label: t("inv.quantity"), min: 0, max: 1_200_000 }),
-      f.reorder === ""
-        ? null
-        : validateAmount(f.reorder, {
-            label: t("inv.reorderPointField"),
-            min: 0,
-            max: 1_000_000,
-            integer: true,
-          }),
-    );
-    if (err) {
-      toast.error(err);
-      return;
-    }
-    try {
-      const pid =
-        ((await rpc("save_product", {
-          p_store: store?.id ?? null,
-          p_id: p.id ?? null,
-          p_name: sanitizeText(f.name, LIMITS.productName),
-          p_sku: code || null,
-          // Category has no UI field yet, pass through whatever was stored on
-          // edit so we don't silently clear it; leave null on create.
-          p_category: p.category ?? null,
-          p_price: Number(f.price || 0),
-          p_cost: Number(f.cost || 0),
-          p_active: f.active,
-          p_reorder_point: f.reorder === "" ? null : Number(f.reorder),
-        })) as string | null) ?? p.id;
-      if (pid) await rpc("set_product_collections", { p_product: pid, p_collections: chosen });
-      const qty = f.qty === "" ? null : Number(f.qty);
-      // Send the absolute quantity, never target - cached: set_stock_qty works
-      // out the movement against the locked row, so a balance that moved while
-      // this sheet was open cannot write a number nobody typed.
-      if (pid && qty !== null && store?.id) {
-        await rpc("set_stock_qty", {
-          p_store: store.id,
-          p_product: pid,
-          p_qty: qty,
-          p_reason: "correction",
-          p_note: "Edited on item",
-        });
-      }
-      toast.success(t("common.saved"));
-      onClose();
-      // Refresh data in the background, don't wait for it. The modal closes
-      // immediately so the user sees the updated table as queries resolve.
-      invalidateKeys(qc, [
-        ["products"],
-        ["stock"],
-        ["movements"],
-        ["collections"],
-        ["dash-alerts"],
-      ]);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }
-  const stockEditable = can("stock") && !!store;
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{p.id ? t("inv.editItem") : t("inv.newItem")}</DialogTitle>
-        </DialogHeader>
-        <Label className="block space-y-1">
-          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-            {t("common.name")}
-          </span>
-          <Input
-            maxLength={LIMITS.productName}
-            value={f.name}
-            onChange={(e) => setF({ ...f, name: e.target.value.slice(0, LIMITS.productName) })}
-          />
-        </Label>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {t("inv.itemCode")}
-            </span>
-            <div className="flex gap-1.5">
-              <Input
-                className="min-w-0 flex-1"
-                maxLength={LIMITS.sku}
-                placeholder={t("inv.codePlaceholder")}
-                value={f.sku}
-                onChange={(e) => setF({ ...f, sku: e.target.value.slice(0, LIMITS.sku) })}
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                title={t("inv.generateCode")}
-                aria-label={t("inv.generateCode")}
-                onClick={() => setF({ ...f, sku: suggestCode(takenCodes(codes)) })}
-              >
-                <HugeiconsIcon icon={Refresh01Icon} />
-              </Button>
-            </div>
-          </div>
-          <Label className="block space-y-1">
-            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {t("inv.costPrice")}
-            </span>
-            <Input
-              inputMode="decimal"
-              maxLength={14}
-              value={f.cost}
-              onChange={(e) => setF({ ...f, cost: e.target.value.replace(/[^0-9.]/g, "") })}
-            />
-          </Label>
-          <Label className="block space-y-1">
-            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {t("inv.sellingPrice")}
-            </span>
-            <Input
-              inputMode="decimal"
-              maxLength={14}
-              value={f.price}
-              onChange={(e) => setF({ ...f, price: e.target.value.replace(/[^0-9.]/g, "") })}
-            />
-          </Label>
-        </div>
-        <Card className="space-y-2 bg-muted/40 p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {t("inv.codePanel")}
-            </span>
-            {code && isAutoCode(code) && <Badge variant="secondary">{t("inv.autoTag")}</Badge>}
-          </div>
-          {clash ? (
-            <p className="text-xs text-destructive">{t("inv.codeTaken", { name: clash.name })}</p>
-          ) : code ? (
-            <ItemCodeCard
-              compact
-              item={{ name: f.name || t("doc.item"), code, price: f.price ? money(f.price) : null }}
-            />
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {p.id ? t("inv.codeKeepHint") : t("inv.codeAutoHint")}
-            </p>
-          )}
-        </Card>
-        <Label className="block space-y-1">
-          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-            {t("inv.collectionsLabel")}
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {(cols.data?.list ?? []).map((c) => {
-              const on = chosen.includes(c.id);
-              return (
-                <Button
-                  type="button"
-                  key={c.id}
-                  size="sm"
-                  variant={on ? "default" : "outline"}
-                  onClick={() => setSel(on ? chosen.filter((x) => x !== c.id) : [...chosen, c.id])}
-                >
-                  {c.name}
-                  {c.discount_pct > 0 ? ` −${c.discount_pct}%` : ""}
-                </Button>
-              );
-            })}
-            {(cols.data?.list ?? []).length === 0 && (
-              <span className="text-xs text-muted-foreground">{t("inv.noCollections")}</span>
-            )}
-          </div>
-        </Label>
-        <Label className="block space-y-1">
-          <span className="text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-            {t("inv.reorderPoint")}
-          </span>
-          <Input
-            inputMode="numeric"
-            maxLength={7}
-            placeholder={t("inv.reorderPlaceholder")}
-            value={f.reorder}
-            onChange={(e) => setF({ ...f, reorder: e.target.value.replace(/[^0-9]/g, "") })}
-          />
-        </Label>
-        {stockEditable && (
-          <Card className="bg-muted/40 p-2.5">
-            <div className="mb-1 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
-              {t("inv.quantity")}, {store?.name}
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                className="max-w-32"
-                inputMode="decimal"
-                placeholder={p.id ? String(currentQty) : "0"}
-                value={f.qty}
-                onChange={(e) => setF({ ...f, qty: e.target.value.replace(/[^0-9.]/g, "") })}
-              />
-              <span className="text-xs text-muted-foreground">
-                {p.id ? t("inv.currentlyInStock", { qty: currentQty }) : t("inv.startingStock")}
-              </span>
-            </div>
-          </Card>
-        )}
-        <Label className="flex items-center gap-2 text-sm font-normal">
-          <Checkbox
-            checked={f.active}
-            onCheckedChange={(v) => setF({ ...f, active: v === true })}
-          />{" "}
-          {t("inv.availableForSale")}
-        </Label>
-        <Button disabled={!f.name.trim()} onClick={save}>
-          {t("inv.saveItem")}
-        </Button>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -1295,9 +1108,11 @@ function StockDialog({ p, onClose }: { p: Product; onClose: () => void }) {
         ) : (
           <Card className="max-h-80 overflow-y-auto">
             {(hist.data ?? []).length === 0 ? (
-              <p className="p-3 text-[13px] text-muted-foreground">
-                {hist.isLoading ? t("common.loading") : t("inv.noMovements")}
-              </p>
+              hist.isLoading ? (
+                <RowsSkeleton rows={3} className="p-3" />
+              ) : (
+                <p className="p-3 text-[13px] text-muted-foreground">{t("inv.noMovements")}</p>
+              )
             ) : (
               <Table className="text-[13px]">
                 <TableBody>

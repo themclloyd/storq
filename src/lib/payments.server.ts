@@ -181,6 +181,63 @@ function sameSecret(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// ── desktop bridge ──────────────────────────────────────────────────────────
+//
+// The installed Windows till is served from `tauri.localhost`, not from this
+// origin, so its two calls are cross-origin. Both are public and idempotent, and
+// only the app's own schemes are granted CORS: any other page is refused, so a
+// website cannot borrow this as a free payment-verification oracle.
+
+const DESKTOP_ORIGINS = new Set([
+  "http://tauri.localhost",
+  "https://tauri.localhost",
+  "tauri://localhost",
+]);
+
+function desktopResponse(request: Request, response: Response): Response {
+  const origin = request.headers.get("origin");
+  if (!origin || !DESKTOP_ORIGINS.has(origin)) return response;
+  const headers = new Headers(response.headers);
+  headers.set("access-control-allow-origin", origin);
+  headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
+  headers.set("access-control-allow-headers", "content-type");
+  headers.set("access-control-max-age", "86400");
+  headers.set("vary", "origin");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
+ * The publishable PayChangu key. A packaged app has no server to read
+ * `PAYCHANGU_PUBLIC_KEY` from, and the key is public by design (the checkout
+ * frame is loaded with it); the secret key never crosses this endpoint.
+ */
+function handleDesktopConfig(): Response {
+  return json({ paychangu: process.env["PAYCHANGU_PUBLIC_KEY"] ?? "" });
+}
+
+/**
+ * Settle one reference on behalf of the installed app. Identical decision to the
+ * server function the website uses: a charge is only granted after PayChangu
+ * confirms it, so the desktop client cannot activate anything by asking.
+ */
+async function handleDesktopVerify(request: Request): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ ok: false, message: "Bad request.", drop: true }, 400);
+  }
+  const txRef = (body as { tx_ref?: unknown } | null)?.tx_ref;
+  if (typeof txRef !== "string" || txRef.length < 6 || txRef.length > 80) {
+    return json({ ok: false, message: "Invalid payment reference.", drop: true }, 400);
+  }
+  return json(await verifyAndComplete(txRef));
+}
+
 function pickTxRef(body: unknown): string | null {
   const walk = (v: unknown, depth = 0): string | null => {
     if (!v || typeof v !== "object" || depth > 4) return null;
@@ -247,6 +304,20 @@ async function handleReconcile(request: Request): Promise<Response> {
 /** Returns a response for our payment endpoints, or null to fall through to the app. */
 export async function servePaymentsApi(request: Request): Promise<Response | null> {
   const { pathname } = new URL(request.url);
+  if (pathname === "/api/desktop/config" || pathname === "/api/desktop/verify") {
+    // Preflight first: the desktop origin is cross-origin, so a JSON POST never
+    // reaches its handler without it.
+    if (request.method === "OPTIONS") {
+      return desktopResponse(request, new Response(null, { status: 204 }));
+    }
+    const expected = pathname === "/api/desktop/config" ? "GET" : "POST";
+    if (request.method !== expected) {
+      return desktopResponse(request, json({ ok: false }, 405));
+    }
+    const response =
+      expected === "GET" ? handleDesktopConfig() : await handleDesktopVerify(request);
+    return desktopResponse(request, response);
+  }
   if (pathname === "/api/paychangu/webhook") {
     if (request.method !== "POST") return json({ ok: false }, 405);
     return handleWebhook(request);
