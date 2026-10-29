@@ -18,6 +18,7 @@ import {
   fmtDate,
 } from "@/components/pos/bits";
 import { ListSkeleton } from "@/components/pos/skeletons";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { invalidateKeys, SALE_TOUCHED } from "@/lib/cache-invalidation";
 import { methodLabel } from "@/lib/payment-methods";
 import { useI18n } from "@/lib/i18n";
@@ -52,6 +53,11 @@ function LaybysContent() {
     statuses: ["layby_completed", "layby_cancelled"],
   });
   const [paying, setPaying] = useState<SaleRow | null>(null);
+  // Cancelling puts the goods back into stock and needs a refund by hand, so it
+  // asks first. A native `confirm()` never fires in the packaged webview, which
+  // left the button doing nothing on the counter.
+  const [pendingCancel, setPendingCancel] = useState<SaleRow | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [q, setQ] = useState("");
   const rows = (tab === "open" ? open.data : done.data)?.filter(
     (s) =>
@@ -60,13 +66,16 @@ function LaybysContent() {
   );
 
   async function cancel(s: SaleRow) {
-    if (!confirm(t("laybys.cancelConfirm", { number: s.number, amount: money(s.paid) }))) return;
+    setCancelling(true);
     try {
       await rpc("cancel_layby", { p_sale: s.id });
       toast.success(t("status.layby_cancelled"));
       invalidateKeys(qc, SALE_TOUCHED);
+      setPendingCancel(null);
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -129,7 +138,7 @@ function LaybysContent() {
               {s.status === "layby_open" && (
                 <div className="mt-3 flex gap-2">
                   {can("approvals") && (
-                    <Button size="sm" variant="outline" onClick={() => cancel(s)}>
+                    <Button size="sm" variant="outline" onClick={() => setPendingCancel(s)}>
                       {t("common.cancel")}
                     </Button>
                   )}
@@ -159,6 +168,26 @@ function LaybysContent() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={pendingCancel !== null}
+        title={t("laybys.cancelTitle")}
+        description={
+          pendingCancel
+            ? t("laybys.cancelConfirm", {
+                number: pendingCancel.number,
+                amount: money(pendingCancel.paid),
+              })
+            : undefined
+        }
+        confirmLabel={t("laybys.cancelAction")}
+        busy={cancelling}
+        onOpenChange={(open) => {
+          if (!open) setPendingCancel(null);
+        }}
+        onConfirm={() => {
+          if (pendingCancel) void cancel(pendingCancel);
+        }}
+      />
     </>
   );
 }

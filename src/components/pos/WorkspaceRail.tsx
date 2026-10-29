@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Download01Icon, Settings01Icon } from "@/lib/icons";
-import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop";
+import { DESKTOP_DOWNLOAD_URL, isDesktop } from "@/lib/desktop";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup, WorkspacePath } from "@/lib/workspace-navigation";
@@ -53,6 +53,11 @@ export function WorkspaceRail({
   userMenu: ReactNode;
 }) {
   const { t } = useI18n();
+  // The installer link is an offer to a browser visitor. Inside the installed
+  // app it would hand the operator a download of the very build they are using,
+  // so the rail keeps only the account tools and the update banner carries its
+  // own upgrades.
+  const installed = isDesktop();
   const badge = pendingCount >= 100 ? "99+" : String(pendingCount);
   return (
     <aside className="sticky top-0 hidden h-screen w-[72px] shrink-0 flex-col items-center border-r border-border/70 bg-rail px-2 pt-3 pb-3 md:flex">
@@ -97,17 +102,19 @@ export function WorkspaceRail({
             <HugeiconsIcon icon={Settings01Icon} className="size-5" />
           </Link>
         )}
-        <a
-          href={DESKTOP_DOWNLOAD_URL}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          title={t("nav.downloadDesktop")}
-          aria-label={t("nav.downloadDesktop")}
-          className={cn(RAIL_ITEM, RAIL_IDLE)}
-        >
-          <HugeiconsIcon icon={Download01Icon} className="size-5" />
-        </a>
+        {!installed && (
+          <a
+            href={DESKTOP_DOWNLOAD_URL}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t("nav.downloadDesktop")}
+            aria-label={t("nav.downloadDesktop")}
+            className={cn(RAIL_ITEM, RAIL_IDLE)}
+          >
+            <HugeiconsIcon icon={Download01Icon} className="size-5" />
+          </a>
+        )}
         <div className="mt-1">{userMenu}</div>
       </div>
     </aside>

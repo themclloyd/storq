@@ -1,6 +1,6 @@
 [package]
 name = "storq-desktop"
-version = "1.1.0"
+version = "1.2.0"
 description = "Storq POS — desktop till for Windows"
 authors = ["Storq"]
 edition = "2021"

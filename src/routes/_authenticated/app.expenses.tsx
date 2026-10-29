@@ -62,6 +62,7 @@ import type { DashIcon } from "@/components/dashboard";
 import { ExportMenu } from "@/components/pos/ExportMenu";
 import { Field, NativeSelect, NoAccess, PageHeader, Pager } from "@/components/pos/bits";
 import { TableSkeleton } from "@/components/pos/skeletons";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 
 export const Route = createFileRoute("/_authenticated/app/expenses")({
   head: () => ({
@@ -121,6 +122,11 @@ function ExpensesContent() {
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(0);
   const [recording, setRecording] = useState(false);
+  // Deleting an expense asks in the workspace's own dialog: a native
+  // `confirm()` is suppressed in the packaged webview, which made the button
+  // look broken on the till.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const since = sinceFor(range);
   const rangeLabel = t(RANGE_KEYS[range]);
   const list = useExpenses({ storeId: store?.id, since });
@@ -169,12 +175,15 @@ function ExpensesContent() {
   }
 
   async function remove(id: string) {
-    if (!confirm(t("exp.deleteConfirm"))) return;
+    setDeleting(true);
     try {
       await rpc("delete_expense", { p_id: id });
       qc.invalidateQueries({ queryKey: ["expenses"] });
+      setPendingDelete(null);
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -452,7 +461,7 @@ function ExpensesContent() {
                           size="icon"
                           className="size-7 text-muted-foreground hover:text-destructive"
                           aria-label={t("exp.deleteAria")}
-                          onClick={() => void remove(e.id)}
+                          onClick={() => setPendingDelete(e.id)}
                         >
                           <HugeiconsIcon icon={Delete02Icon} className="size-4" />
                         </Button>
@@ -466,6 +475,18 @@ function ExpensesContent() {
           <Pager page={curPage} pageCount={pageCount} total={filtered.length} onPage={setPage} />
         </>
       )}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={t("exp.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        busy={deleting}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        onConfirm={() => {
+          if (pendingDelete) void remove(pendingDelete);
+        }}
+      />
       {recording && <RecordDialog onClose={() => setRecording(false)} />}
     </>
   );

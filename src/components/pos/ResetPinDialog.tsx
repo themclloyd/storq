@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { publicAppUrl } from "@/lib/desktop";
 import { firstError, validatePassword, validatePin } from "@/lib/validate";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 import { PasswordInput } from "@/components/password-input";
@@ -114,7 +115,9 @@ export function ResetPinDialog({
         options: {
           // An owner re-signing in must never create an account out of a typo.
           shouldCreateUser: false,
-          emailRedirectTo: `${window.location.origin}/app`,
+          // The mail client opens this on the public site: inside the installed
+          // app the page origin is `tauri.localhost`, which no inbox can reach.
+          emailRedirectTo: publicAppUrl("/app"),
           ...(token ? { captchaToken: token } : {}),
         },
       });

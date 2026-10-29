@@ -27,6 +27,7 @@ import { getDeviceId, staffStorageKey } from "@/lib/staff-session";
 import { useIdleLock } from "@/components/pos/use-idle-lock";
 import { t, useI18n } from "@/lib/i18n";
 import { permits, toPermissions, type Access, type Permission } from "@/lib/permissions";
+import { ConfirmDialog } from "@/components/pos/ConfirmDialog";
 import { sortPaymentMethods } from "@/lib/payment-methods";
 
 export type CheckoutResult = {
@@ -387,6 +388,10 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
   // ---- offline sales queue ----
   const [online, setOnline] = useState(true);
   const [queue, setQueueState] = useState<QueuedSale[]>([]);
+  // Discarding throws away money already taken, so it asks first. A native
+  // `confirm()` never fires inside the packaged webview, which left the counter's
+  // only way to clear a rejected sale doing nothing.
+  const [pendingDiscard, setPendingDiscard] = useState<QueuedSale | null>(null);
   useEffect(() => {
     setOnline(navigator.onLine);
     setQueueState(loadQueue(userId));
@@ -572,13 +577,7 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
             >
               {t("offline.retry")}
             </button>{" "}
-            <button
-              className="underline"
-              onClick={() => {
-                if (confirm(t("offline.discardConfirm")))
-                  setQueue((q) => q.filter((x) => x.ref !== f.ref));
-              }}
-            >
+            <button className="underline" onClick={() => setPendingDiscard(f)}>
               {t("offline.discard")}
             </button>
           </span>
@@ -589,6 +588,19 @@ export function PosProvider({ userId, children }: { userId: string; children: Re
     <Ctx.Provider value={value}>
       {children}
       {banner}
+      <ConfirmDialog
+        open={pendingDiscard !== null}
+        title={t("offline.discard")}
+        description={t("offline.discardConfirm")}
+        confirmLabel={t("offline.discard")}
+        onOpenChange={(open) => {
+          if (!open) setPendingDiscard(null);
+        }}
+        onConfirm={() => {
+          if (pendingDiscard) setQueue((q) => q.filter((x) => x.ref !== pendingDiscard.ref));
+          setPendingDiscard(null);
+        }}
+      />
     </Ctx.Provider>
   );
 }

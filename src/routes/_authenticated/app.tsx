@@ -24,6 +24,7 @@ import { useOnce } from "@/hooks/use-once";
 import { Billing } from "@/components/pos/Billing";
 import { GraceBanner } from "@/components/pos/GraceBanner";
 import { UpdateBanner } from "@/components/pos/UpdateBanner";
+import { WorkspaceSkeleton } from "@/components/pos/skeletons";
 import { isDesktop } from "@/lib/desktop";
 import { deviceStorageReady } from "@/lib/offline";
 import { ResetPinDialog } from "@/components/pos/ResetPinDialog";
@@ -73,17 +74,12 @@ export const Route = createFileRoute("/_authenticated/app")({
 function AppLayout() {
   const { user } = Route.useRouteContext();
   const ready = useDeviceStorage();
-  const { t } = useI18n();
   // The installed app reads its catalogue and unsent sales out of SQLite before
   // the workspace mounts. Skipping the wait would let the first queries settle
   // as "no business" offline, so the gate is the difference between a till that
-  // opens after an outage and one that asks to set up a new shop.
-  if (!ready)
-    return (
-      <div className="grid min-h-screen place-items-center text-muted-foreground">
-        {t("desktop.booting")}
-      </div>
-    );
+  // opens after an outage and one that asks to set up a new shop. It waits on a
+  // skeleton of the workspace, never on a centred line that reads like a stall.
+  if (!ready) return <WorkspaceSkeleton />;
   return (
     <PosProvider userId={user.id}>
       <div className="min-h-screen">
@@ -116,12 +112,7 @@ function Gate() {
   // Cool the "Try again" click so a session cannot hammer the entitlement
   // query when Supabase is briefly unreachable.
   const { run: retrySub, running: retryingSub } = useOnce(() => sub.refetch(), 3_000);
-  if (business === undefined)
-    return (
-      <div className="grid min-h-screen place-items-center text-muted-foreground">
-        {t("common.loading")}
-      </div>
-    );
+  if (business === undefined) return <WorkspaceSkeleton />;
   // A failed read is not an empty account. Without this branch a device that
   // lost its snapshot before going offline was shown the "create a business"
   // form for a shop that already exists.
@@ -129,12 +120,7 @@ function Gate() {
   if (!staff) return <PinPad />;
   // Only block on a first-ever check; afterwards the cached entitlement renders
   // instantly and refreshes silently. The database still rejects expired writes.
-  if (sub.isPending && !sub.hasRow)
-    return (
-      <div className="grid min-h-screen place-items-center text-muted-foreground">
-        {t("setup.checkingSubscription")}
-      </div>
-    );
+  if (sub.isPending && !sub.hasRow) return <WorkspaceSkeleton />;
   if (sub.isError && !sub.hasRow)
     return (
       <div className="grid min-h-screen place-items-center">

@@ -822,7 +822,9 @@ export function Billing({ locked }: { locked?: boolean }) {
       date: (paidUntil ?? trialEnd ?? new Date()).toLocaleDateString(undefined, {
         dateStyle: "medium",
       }),
-      link: `${window.location.origin}/app/billing`,
+      // Shared over WhatsApp, so it must be a link the recipient can open: the
+      // installed app has no web origin of its own.
+      link: publicAppUrl("/app/billing"),
     });
     window.open(
       digits

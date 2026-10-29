@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NoAccess, PageHeader } from "@/components/pos/bits";
 import { DetailSkeleton } from "@/components/pos/skeletons";
+import { DesktopCard } from "@/components/pos/DesktopCard";
 import { CurrencyField } from "@/components/pos/payment-methods";
 import { methodLabel } from "@/lib/payment-methods";
 
@@ -138,6 +139,9 @@ function BusinessForm({ business }: { business: Business }) {
             <p className="text-xs text-muted-foreground">{t("biz.methodsNoAccess")}</p>
           )}
         </Card>
+        {/* The website's equivalent of this slot is "get the Windows app"; here
+            the app is already running, so it names its own build instead. */}
+        <DesktopCard />
       </div>
     </>
   );

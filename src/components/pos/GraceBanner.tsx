@@ -21,6 +21,7 @@ import { Alert02Icon, ArrowUpRight01Icon } from "@/lib/icons";
 import { usePos } from "@/lib/pos";
 import { useI18n } from "@/lib/i18n";
 import { calcTotal, fmtMoney, useSubscription } from "@/lib/billing";
+import { publicAppUrl } from "@/lib/desktop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -92,7 +93,9 @@ export function GraceBanner({ hideLink = false }: { hideLink?: boolean }) {
       amount: fmtMoney("MWK", amount),
       date,
       days,
-      link: `${window.location.origin}/app/billing`,
+      // The recipient reads this on the web, so the installed app must hand out
+      // the published origin rather than its own `tauri.localhost`.
+      link: publicAppUrl("/app/billing"),
     });
     // Without a usable number the plain share still works, WhatsApp asks the sender
     // to pick a chat, which is exactly what a cashier at the counter would do anyway.

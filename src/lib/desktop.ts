@@ -183,10 +183,32 @@ export type AppInfo = {
   dataDir?: string | null;
 };
 
+/** What the durable local copy holds: the mirror behind the webview's storage. */
+export type DeviceStats = {
+  path: string;
+  bytes: number;
+  cacheRows: number;
+  queuedSales: number;
+};
+
 export async function appInfo(): Promise<AppInfo | null> {
   if (!isDesktop()) return null;
   try {
     return await desktopInvoke<AppInfo>("app_info");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The SQLite mirror's own numbers. A till that "lost" its catalogue or its
+ * unsent sales can be checked here instead of guessed at, and a dismissed save
+ * dialog never has to stand in for proof that the copy exists.
+ */
+export async function deviceStats(): Promise<DeviceStats | null> {
+  if (!isDesktop()) return null;
+  try {
+    return await desktopInvoke<DeviceStats>("db_stats");
   } catch {
     return null;
   }

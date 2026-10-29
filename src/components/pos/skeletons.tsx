@@ -163,6 +163,63 @@ export function PanelSkeleton({ lines = 4, className }: { lines?: number; classN
   );
 }
 
+/**
+ * The workspace before its first read: the rail, a page header, its tab row and
+ * the blocks the screen is about to fill.
+ *
+ * The installed app waits here while SQLite restores its snapshot, and a slow
+ * first query waits here too, so the till never opens on a blank window or a
+ * centred line of text that could be mistaken for an empty shop.
+ */
+export function WorkspaceSkeleton({ tiles = 6 }: { tiles?: number }) {
+  return (
+    <LoadingRegion className="storq-workspace flex min-h-screen bg-background">
+      <aside className="sticky top-0 hidden h-screen w-[72px] shrink-0 flex-col items-center border-r border-border/70 bg-rail px-2 pt-3 pb-3 md:flex">
+        <Skeleton className="size-11 rounded-xl" />
+        <Skeleton className="mt-1.5 size-11 rounded-xl" />
+        <div className="mt-2 flex w-full flex-col items-center gap-1">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Skeleton key={i} className="size-11 rounded-xl" />
+          ))}
+        </div>
+        <div className="mt-auto flex flex-col items-center gap-1">
+          <Skeleton className="size-11 rounded-xl" />
+          <Skeleton className="size-8 rounded-full" />
+        </div>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="mx-auto w-full max-w-[1400px] space-y-3 p-4 md:px-6 md:pt-6 lg:px-11 lg:pt-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <Skeleton className="h-6 w-48 max-w-full" />
+              <Skeleton className="h-3 w-64 max-w-full" />
+            </div>
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            {Array.from({ length: 3 }, (_, i) => (
+              <Skeleton key={i} className="h-7 w-24 rounded-full" />
+            ))}
+          </div>
+          <StatRow>
+            {Array.from({ length: 3 }, (_, i) => (
+              <Card key={i} className="p-3.5">
+                <Skeleton className="h-2.5 w-20" />
+                <Skeleton className="mt-2 h-7 w-28" />
+              </Card>
+            ))}
+          </StatRow>
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            {Array.from({ length: tiles }, (_, i) => (
+              <Skeleton key={i} className="h-[112px] w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </LoadingRegion>
+  );
+}
+
 /** A whole detail page: the header block, then its panel. */
 export function DetailSkeleton({ className }: { className?: string }) {
   return (

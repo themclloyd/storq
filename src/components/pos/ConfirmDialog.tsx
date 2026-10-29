@@ -29,7 +29,9 @@ export function ConfirmDialog({
 }: {
   open: boolean;
   title: string;
-  description?: string;
+  // Callers often build the sentence from the row they are about to act on, so
+  // "no description" arrives as undefined rather than a missing prop.
+  description?: string | undefined;
   confirmLabel: string;
   busy?: boolean;
   /** Extra context, such as the numbers the action is about to apply. */
