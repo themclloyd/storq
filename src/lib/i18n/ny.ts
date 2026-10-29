@@ -1912,6 +1912,9 @@ export const ny = {
     aboutQueued: "Malonda akudikira kutumizidwa",
     aboutSize: "Kukula",
     aboutDataHint: "Mndandanda wa katundu ndi malonda omwe akudikira kutumizidwa.",
+    aboutPortable:
+      "Kope iyi ikugwira ntchito kuchokera pa chotsitsa, ndiye Windows ilibe chizindikiro pa Start Menu kapena pa desktop. Ikani Storq POS kuti mukhale ndi zonse ziwiri, ndipo zosintha zidzapitirira kuyenda.",
+    aboutPortableAction: "Tsitsani choyikira",
     aboutCheck: "Onani zosintha",
     aboutChecking: "Tikuyang'ana…",
     aboutUpToDate: "Awa ndi mtundu watsopano kwambiri.",

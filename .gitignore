@@ -33,6 +33,9 @@ dist-ssr
 # Tauri desktop shell: bundle output and the schemas the CLI regenerates
 storqdesktop/src-tauri/target/
 storqdesktop/src-tauri/gen/schemas/
+# Written per machine by storqdesktop/sign-windows.ps1, because a certificate
+# thumbprint belongs to one certificate store and not to the repository
+storqdesktop/src-tauri/tauri.sign.json
 dist-desktop/
 
 # Temporary logs / dev output

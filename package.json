@@ -10,7 +10,7 @@
     "build:dev": "vite build --mode development",
     "build:desktop": "vite build --config vite.config.desktop.ts",
     "tauri:dev": "tauri dev --config storqdesktop/src-tauri/tauri.conf.json",
-    "tauri:build": "tauri build --config storqdesktop/src-tauri/tauri.conf.json",
+    "tauri:build": "powershell -NoProfile -ExecutionPolicy Bypass -File ./storqdesktop/build-windows.ps1",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

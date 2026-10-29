@@ -181,6 +181,8 @@ export type AppInfo = {
   identifier: string;
   platform: string;
   dataDir?: string | null;
+  /** False when the shell is running from a download instead of an install. */
+  installed: boolean;
 };
 
 /** What the durable local copy holds: the mirror behind the webview's storage. */

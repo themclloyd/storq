@@ -108,6 +108,26 @@ pub struct AppInfo {
     pub identifier: String,
     pub platform: String,
     pub data_dir: Option<String>,
+    /// False when this binary was started from a download rather than an install.
+    pub installed: bool,
+}
+
+/// True when the binary sits in a folder the installer writes to
+/// (`%ProgramFiles%\Storq POS`, or `%LOCALAPPDATA%\Storq POS` for the per-user
+/// builds before 1.2.0), the ones that also get the Start Menu and desktop
+/// shortcuts. A till opened from a loose download reports false, which is what
+/// lets the About card explain why it has no shortcut to point at.
+fn running_installed_copy(name: &str) -> bool {
+    let Ok(exe) = std::env::current_exe() else {
+        return false;
+    };
+    let Some(dir) = exe.parent() else {
+        return false;
+    };
+    ["LOCALAPPDATA", "PROGRAMFILES", "PROGRAMFILES(X86)"]
+        .iter()
+        .filter_map(|var| std::env::var(var).ok())
+        .any(|base| dir == std::path::Path::new(&base).join(name))
 }
 
 /// What this install is, for the About card and the update banner.
@@ -115,6 +135,7 @@ pub struct AppInfo {
 pub fn app_info<R: Runtime>(app: AppHandle<R>) -> AppInfo {
     let package = app.package_info();
     AppInfo {
+        installed: running_installed_copy(&package.name),
         name: package.name.clone(),
         version: package.version.to_string(),
         identifier: app.config().identifier.clone(),

@@ -1891,6 +1891,9 @@ export const en = {
     aboutQueued: "Sales waiting to sync",
     aboutSize: "Size",
     aboutDataHint: "The cached catalogue and any sales still waiting to sync.",
+    aboutPortable:
+      "This copy is running from a download, so Windows has no Start Menu or desktop shortcut for it. Install Storq POS to get both, and updates will keep it current.",
+    aboutPortableAction: "Download the installer",
     aboutCheck: "Check for updates",
     aboutChecking: "Checking…",
     aboutUpToDate: "This is the newest version.",

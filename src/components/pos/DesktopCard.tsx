@@ -19,8 +19,10 @@ import {
   appInfo,
   checkForUpdate,
   deviceStats,
+  DESKTOP_DOWNLOAD_URL,
   installUpdate,
   isDesktop,
+  openExternal,
   type AppInfo,
   type DeviceStats,
   type UpdateInfo,
@@ -125,6 +127,23 @@ export function DesktopCard() {
         </div>
       </dl>
       <p className="text-xs text-muted-foreground">{t("desktop.aboutDataHint")}</p>
+      {/* A copy opened straight from the download folder is portable by nature:
+          Windows has no shortcut for it, and the updater would install a second
+          copy elsewhere. Saying so, with the installer one click away, answers
+          the "it did not install" question at the till. */}
+      {info && !info.installed && (
+        <div className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3">
+          <p className="text-xs text-warning-foreground">{t("desktop.aboutPortable")}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void openExternal(DESKTOP_DOWNLOAD_URL)}
+          >
+            <HugeiconsIcon icon={Download01Icon} />
+            {t("desktop.aboutPortableAction")}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 pt-1">
         {update ? (
           <>
